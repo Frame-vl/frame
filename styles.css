@@ -34,7 +34,7 @@ label{display:block;color:var(--muted);font-size:13px}input,select,textarea{widt
 .stepList{display:grid;gap:9px}.stepCard{border:1px solid var(--border);border-radius:17px;background:var(--soft);overflow:hidden}.stepButton{width:100%;border:0;background:transparent;color:var(--text);padding:14px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left}.stepNumber{width:29px;height:29px;border-radius:999px;background:var(--card);display:grid;place-items:center;color:var(--muted);font-weight:850}.stepCard.active .stepNumber,.stepCard.done .stepNumber{background:var(--accent);color:#fff}.stepTitle{font-weight:850}.stepSummary{display:block;color:var(--muted);font-size:12px;margin-top:3px}.stepChevron{color:var(--muted);font-size:21px}.stepBody{display:none;padding:0 14px 14px}.stepCard.active .stepBody{display:block}.stepNav{display:flex;justify-content:space-between;gap:9px;margin-top:14px}.stepNav .btn{min-width:112px}
 .rowList{display:grid;gap:9px}.rowCard{border:1px solid var(--border);background:var(--soft);border-radius:16px;padding:12px}.rowGrid{display:grid;grid-template-columns:2fr .7fr .8fr .9fr auto;gap:8px;align-items:end}.rowGrid.compact{grid-template-columns:2fr .8fr .9fr auto}.rowSum{margin-top:8px;color:var(--muted);font-size:12px}.rowSum strong{color:var(--text)}.rowComment{margin-top:8px}.addBar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:9px}.addBar select{margin:0}.empty{padding:18px;border:1px dashed var(--border);border-radius:15px;color:var(--muted);text-align:center;font-size:13px}
 .summaryGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:13px}.reviewSummary{background:#34383c;color:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center}.reviewSummary.secondary{background:var(--soft);color:var(--text);border:1px solid var(--border)}.reviewSummary span{font-size:12px}.reviewSummary strong{font-size:21px;font-variant-numeric:tabular-nums}
-.doorList{display:grid;gap:10px}.doorCard{border:1px solid var(--border);background:var(--soft);border-radius:18px;padding:14px}.doorCard h3{margin:0}.doorCard .grid{margin-top:11px}.inlineActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.priceWarning{margin-top:8px;padding:9px 11px;border-radius:12px;background:rgba(224,174,104,.13);color:var(--warn);font-size:12px}.contextTag{display:inline-flex;padding:5px 8px;border-radius:999px;background:var(--card);color:var(--muted);font-size:10px;margin-top:6px}
+.doorList{display:grid;gap:10px}.doorCard{border:1px solid var(--border);background:var(--soft);border-radius:18px;padding:0;overflow:hidden}.doorSummary{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer;list-style:none}.doorSummary::-webkit-details-marker{display:none}.doorSummary:after{float:none;margin-left:0;flex:0 0 auto}.doorSummaryText{min-width:0;flex:1}.doorSummaryText strong{display:block;color:var(--text);font-size:15px;line-height:1.25}.doorSummaryText small{display:block;color:var(--muted);font-size:11px;line-height:1.35;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.doorSummaryTotal{font-weight:900;color:var(--text);white-space:nowrap}.doorCard[open] .doorSummary{border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--card) 55%,transparent)}.doorCardBody{padding:0 14px 14px}.doorCard h3{margin:0}.doorCard .grid{margin-top:11px}.inlineActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.priceWarning{margin-top:8px;padding:9px 11px;border-radius:12px;background:rgba(224,174,104,.13);color:var(--warn);font-size:12px}.contextTag{display:inline-flex;padding:5px 8px;border-radius:999px;background:var(--card);color:var(--muted);font-size:10px;margin-top:6px}
 .detailsBox,details{border:1px solid var(--border);border-radius:17px;background:var(--soft);padding:12px;margin-top:12px}summary{list-style:none;cursor:pointer;font-weight:850}summary::-webkit-details-marker{display:none}summary:after{content:'›';float:right;color:var(--muted);transform:rotate(90deg)}details[open]>summary:after{transform:rotate(-90deg)}.settingsRows{display:grid;gap:8px;margin-top:12px}.settingsRow{display:grid;grid-template-columns:1fr minmax(130px,180px);gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}.settingsRow:last-child{border-bottom:0}.settingsRow strong{display:block;font-size:14px}.settingsRow small{color:var(--muted)}.settingsRow input{margin:0}.settingsTabs{display:flex;gap:7px;overflow:auto;padding-bottom:4px}.settingsTabs button{white-space:nowrap}.settingsTabs .active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .sheet{position:fixed;inset:0;z-index:220;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding-top:40px}.sheet.show{display:flex}.sheetPanel{width:min(820px,100%);max-height:92vh;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:25px 25px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -18px 55px rgba(0,0,0,.35)}.sheetHandle{width:44px;height:5px;background:var(--border);border-radius:99px;margin:-7px auto 15px}.choiceGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.optionCard strong,.optionCard small{display:block}.optionCard small{margin-top:5px;color:var(--muted);line-height:1.35}.optionCard.selected{border-color:var(--accent);background:var(--accent-soft)}
 .toast{position:fixed;z-index:500;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#34383c;color:#fff;border-radius:999px;padding:11px 16px;display:none;box-shadow:0 12px 35px rgba(0,0,0,.35);max-width:90%;text-align:center}.toast.show{display:block}
@@ -47,6 +47,58 @@ label{display:block;color:var(--muted);font-size:13px}input,select,textarea{widt
   @page{size:A4;margin:14mm}
   body>*:not(#documentView){display:none!important}.documentView{display:block!important;position:static;padding:0;background:#fff}.docActions{display:none!important}.paper{max-width:none;margin:0;padding:0;min-height:auto;box-shadow:none}.paper *{-webkit-print-color-adjust:economy!important;print-color-adjust:economy!important}.paper .group td{background:#fff!important;color:#34383c!important;border-top:2px solid #34383c;border-bottom:1px solid #34383c}.paperTotal{background:#fff!important;color:#34383c!important;border:2px solid #34383c}.paperSlogan{background:#fff!important}.signature{break-inside:avoid}.paper table{break-inside:auto}.paper tr{break-inside:avoid}.paperHero,.paperSlogan,.paperInfo,.paperTotal,.paperAdvantages,.paperAlso{break-inside:avoid}
 }
+.receiptSlot{margin-top:10px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.receiptPreview{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:13px;padding:8px;background:var(--card);width:100%}.receiptPreview img{width:58px;height:58px;object-fit:cover;border-radius:9px}.receiptPreview strong,.receiptPreview small{display:block}.receiptPreview small{color:var(--muted);margin:3px 0 7px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.historyItem{width:100%;border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}.historyItem strong{display:block}.historyItem small{display:block;color:var(--muted);margin-top:3px}.historyItem>span:last-child{white-space:nowrap;font-weight:850;color:var(--muted)}
 .priceGuide{margin-top:8px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:12px}.guideBadge{border-radius:999px;padding:5px 8px;font-weight:800}.guide-ok{background:rgba(79,139,104,.2);color:#7bc398}.guide-low{background:rgba(74,127,158,.22);color:#86b8d4}.guide-high{background:rgba(169,121,53,.22);color:#e0ae68}.guide-danger{background:rgba(143,61,61,.25);color:#e99a9a}.guide-none{background:var(--card);color:var(--muted)}
 .photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}.photo{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--soft);aspect-ratio:1}.photo img{width:100%;height:100%;object-fit:cover}.photo button{position:absolute;right:6px;top:6px;border:0;border-radius:999px;background:rgba(0,0,0,.68);color:#fff;width:30px;height:30px}.photo input{position:absolute;left:6px;right:6px;bottom:6px;width:calc(100% - 12px);min-height:38px;font-size:16px;padding:7px;background:rgba(0,0,0,.72);color:#fff;border:0}.printCopy{break-inside:avoid}
 @media(max-width:700px){.photoGrid{grid-template-columns:repeat(2,1fr)}}
+
+/* FRAME 1.8.0 mobile layout and finance additions */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+body{touch-action:pan-y}
+.shell,.view,.card,.topbar,.topActions,.grid,.modules,.sheetPanel{max-width:100%;min-width:0}
+.grid>*,.modules>*,.objectHero>*,.sectionTitle>*,.rowGrid>*,.summaryLine>*{min-width:0}
+input,select,textarea{max-width:100%;min-width:0}
+input[type="date"]{display:block;width:100%;max-width:100%;min-width:0;-webkit-appearance:auto;appearance:auto}
+.iconBtn{width:44px;height:44px;border:0;border-radius:12px;background:transparent;padding:8px;color:var(--text)}
+.iconBtn svg{width:27px;height:27px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.iconBtn .accentStroke{stroke:var(--accent);stroke-width:2.4}
+.iconBtn:active{background:var(--accent-soft)}
+.topActions{flex-shrink:0}
+.settingsTabs{max-width:100%;overscroll-behavior-x:contain}
+.sheetPanel{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.scenarioTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border:1px solid var(--border);border-radius:15px;background:var(--soft);position:sticky;top:0;z-index:2}
+.scenarioTabs button{min-width:0;border:0;border-radius:11px;padding:11px 6px;background:transparent;color:var(--muted);font-size:13px;font-weight:850}
+.scenarioTabs button.active{background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.16)}
+.scenarioPanel{margin-top:15px}
+.scenarioHeading{padding:0 2px 8px}
+.scenarioHeading h2{margin:0 0 4px;font-size:19px}
+.scenarioHeading p{margin:0;color:var(--muted);font-size:13px}
+.scenarioList{display:grid;gap:8px}
+.workChoice{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--border);border-radius:15px;background:var(--soft);color:var(--text);padding:13px 14px;text-align:left}
+.workChoice strong,.workChoice small{display:block}
+.workChoice small{margin-top:4px;color:var(--muted);font-size:12px}
+.workChoice .arrow{font-size:24px}
+.financeCard{width:100%;display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:8px;align-items:stretch;border:1px solid var(--border);border-radius:17px;background:var(--soft);color:var(--text);padding:9px;margin:0 0 13px;text-align:left}
+.financeCard>span{padding:7px 8px;border-right:1px solid var(--border);min-width:0}
+.financeCard>span:last-child{border-right:0}
+.financeCard strong,.financeCard small{display:block}
+.financeCard strong{font-size:14px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
+.financeCard small{color:var(--muted);font-size:10px;margin-bottom:3px}
+.financeMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}
+.orderFinanceStrip{width:100%;display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin:13px 0;border:1px solid var(--border);border-radius:15px;background:var(--soft);color:var(--text);padding:11px 13px;text-align:left}
+.orderFinanceStrip span small,.orderFinanceStrip span strong{display:block}
+.orderFinanceStrip small{color:var(--muted);font-size:11px}
+.orderFinanceStrip strong{margin-top:3px;font-size:16px}
+.summaryList{display:grid;gap:8px;margin-top:12px}
+.periodChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.customCoverList{display:grid;gap:10px;margin-top:12px}
+.customCoverCard{border:1px solid var(--border);border-radius:15px;padding:12px;background:var(--card)}
+.customCoverCard details{margin-bottom:10px}
+@media(max-width:620px){
+  .financeCard{grid-template-columns:1fr 1fr}
+  .financeCard>span{border-right:0;border-bottom:1px solid var(--border)}
+  .financeCard>span:nth-last-child(-n+2){border-bottom:0}
+  .financeMetrics{grid-template-columns:1fr}
+  .periodChoices{grid-template-columns:1fr}
+}
