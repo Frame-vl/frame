@@ -102,3 +102,150 @@ input[type="date"]{display:block;width:100%;max-width:100%;min-width:0;-webkit-a
   .financeMetrics{grid-template-columns:1fr}
   .periodChoices{grid-template-columns:1fr}
 }
+
+/* FRAME 1.9.0: strict iPhone width containment and clearer order navigation */
+html,body{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  overflow-x:hidden;
+  overscroll-behavior-x:none;
+}
+@supports (overflow:clip){html,body{overflow-x:clip}}
+body{position:relative;touch-action:pan-y;-webkit-text-size-adjust:100%}
+.shell{
+  inline-size:100%;
+  max-inline-size:820px;
+  min-inline-size:0;
+  margin-inline:auto;
+}
+#viewHost,.view,.card,.topbar,.topActions,.grid,.modules,.workModules,.orderTools,.settingsTabs,.settingsRows,.rowList,.rowCard,.rowGrid,.objectHero,.moneyStack,.summaryGrid,.sectionTitle,.actions,.sheet,.sheetPanel,.documentView,.docActions,.paper{
+  min-inline-size:0;
+  max-inline-size:100%;
+}
+.view>*,.card>*,.grid>*,.modules>*,.workModules>*,.orderTools>*,.settingsTabs>*,.settingsRows>*,.rowList>*,.rowGrid>*,.objectHero>*,.moneyStack>*,.summaryGrid>*,.sectionTitle>*,.actions>*{
+  min-inline-size:0;
+}
+label,input,select,textarea,button{
+  max-inline-size:100%;
+}
+input,select,textarea{
+  display:block;
+  inline-size:100%;
+  min-inline-size:0;
+  box-sizing:border-box;
+}
+input[type="date"]{
+  display:block;
+  inline-size:100%;
+  max-inline-size:100%;
+  min-inline-size:0;
+  -webkit-min-logical-width:0;
+  overflow:hidden;
+}
+input[type="date"]::-webkit-date-and-time-value{
+  min-inline-size:0;
+  text-align:left;
+}
+input[type="date"]::-webkit-calendar-picker-indicator{
+  flex:0 0 auto;
+}
+.topActions{flex-shrink:1;justify-content:flex-end}
+.settingsTabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  overflow:visible;
+  inline-size:100%;
+  padding-bottom:0;
+}
+.settingsTabs button{
+  inline-size:100%;
+  min-inline-size:0;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.15;
+  padding-inline:8px;
+}
+.workModules{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.orderToolsSection{
+  margin-top:20px;
+  padding-top:17px;
+  border-top:1px solid var(--border);
+}
+.orderToolsSection h3{margin:0 0 5px}
+.orderTools{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.orderTool{
+  inline-size:100%;
+  min-inline-size:0;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:var(--soft);
+  color:var(--text);
+  padding:12px;
+  text-align:left;
+}
+.orderTool:active{transform:scale(.985)}
+.orderToolIcon{font-size:20px;line-height:1}
+.orderToolText{min-inline-size:0}
+.orderToolText strong,.orderToolText small{display:block;min-inline-size:0}
+.orderToolText strong{font-size:14px}
+.orderToolText small{margin-top:3px;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.periodButton{max-inline-size:100%;white-space:normal;text-align:center}
+.financeOrderLine{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.financeOrderLine:last-child{border-bottom:0}
+.financeOrderLine span{min-inline-size:0}
+.financeOrderLine strong,.financeOrderLine small{display:block}
+.financeOrderLine small{color:var(--muted);font-size:11px;margin-top:3px;overflow-wrap:anywhere}
+.financeOrderLine>span:last-child{text-align:right;white-space:nowrap}
+.documentView{inline-size:100%;overflow-x:hidden}
+.paper{inline-size:100%;max-inline-size:920px;overflow-wrap:anywhere}
+.paper table{table-layout:auto;max-inline-size:100%}
+.paper td,.paper th{overflow-wrap:anywhere}
+
+@media(max-width:720px){
+  .shell{padding-inline:11px}
+  .workModules{grid-template-columns:1fr}
+  .orderTools{grid-template-columns:1fr 1fr}
+  .sectionTitle.financeTitle{display:grid;grid-template-columns:1fr;gap:10px}
+  .financeTitle .periodButton{inline-size:100%}
+  .financeMetrics{grid-template-columns:1fr 1fr}
+  .paper{padding:24px 16px}
+}
+@media(max-width:480px){
+  .topbar{align-items:center;gap:5px}
+  .brandButton{flex:1 1 auto;min-inline-size:0}
+  .tag{display:none}
+  .brand{font-size:21px}
+  .topActions{gap:1px}
+  .iconBtn{inline-size:36px;block-size:36px;padding:6px}
+  .themeSwitch{padding:2px;gap:0;flex:0 0 auto}
+  .themeSwitch button{inline-size:29px;block-size:29px;padding:0}
+  .settingsTabs{gap:5px}
+  .settingsTabs .btn{font-size:12px;padding:10px 5px;border-radius:12px}
+  .orderTools{grid-template-columns:1fr}
+  .financeMetrics{grid-template-columns:1fr 1fr}
+  .financeOrderLine{grid-template-columns:1fr}
+  .financeOrderLine>span:last-child{text-align:left;white-space:normal}
+  .sheetPanel{inline-size:100%;padding-inline:14px}
+  .paper{padding:20px 12px}
+}
