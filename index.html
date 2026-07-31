@@ -6,230 +6,245 @@
 <meta name="theme-color" content="#0f1113">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FRAME">
-<title>FRAME 1.5.0 Field</title>
+<title>FRAME 1.6.0 Field</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<style>
-:root{--bg:#0f1113;--card:#181b1f;--soft:#202429;--input:#14171a;--text:#f4f4f2;--muted:#a5a9ad;--border:#30353a;--accent:#c97d2f;--danger:#8f3d3d;--paper:#fff;--ink:#34383c;--paperSoft:#f5f3ee;--ok:#4f8b68}
-body.light{--bg:#f3f0e9;--card:#fff;--soft:#f8f5ef;--input:#fff;--text:#34383c;--muted:#767a7e;--border:#d8d2c8;--danger:#a64545}
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}button,input,select,textarea{font:inherit}button{cursor:pointer}
-.shell{max-width:920px;margin:auto;padding:14px 14px 100px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}.brand{font-size:25px;font-weight:900;letter-spacing:.2px}.tag{font-size:12px;color:var(--accent);font-style:italic}.build{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:7px 10px;background:var(--card)}
-.view{display:none}.view.active{display:block;animation:fade .18s ease}@keyframes fade{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:none}}
-.card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:18px;margin-bottom:14px}.card h1,.card h2,.card h3{margin-top:0}h1{font-size:24px}h2{font-size:18px;margin:24px 0 10px}h3{font-size:15px}.help{color:var(--muted);font-size:14px;line-height:1.5}.muted{color:var(--muted)}
-.actions{display:flex;gap:9px;flex-wrap:wrap}.actions.end{justify-content:flex-end}.btn{border:1px solid transparent;border-radius:13px;padding:12px 15px;font-weight:800;background:var(--soft);color:var(--text)}.btn.primary{background:var(--accent);color:#fff}.btn.ghost{border-color:var(--border);background:var(--card)}.btn.danger{background:var(--danger);color:#fff}.btn.small{padding:8px 10px;font-size:12px}.btn.wide{width:100%}.btn:active{transform:scale(.98)}
-.grid{display:grid;gap:11px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.wide{grid-column:1/-1}label{display:block;color:var(--muted);font-size:13px}input,select,textarea{width:100%;margin-top:6px;padding:12px 13px;border:1px solid var(--border);border-radius:12px;background:var(--input);color:var(--text)}textarea{min-height:82px;resize:vertical}.checkline{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}.check{display:flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--soft);border-radius:999px;padding:9px 11px;color:var(--text)}.check input{width:auto;margin:0}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}.stat{background:var(--soft);border:1px solid var(--border);border-radius:16px;padding:12px}.stat span{font-size:11px;color:var(--muted);display:block}.stat strong{font-size:21px;display:block;margin-top:4px}.list{display:grid;gap:10px}.objectItem{background:var(--soft);border:1px solid var(--border);border-radius:17px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px}.objectItem h3{margin:0 0 5px}.objectItem p{margin:3px 0;font-size:13px;color:var(--muted)}.pill{height:max-content;border-radius:999px;padding:6px 9px;font-size:11px;background:rgba(201,125,47,.17);color:var(--accent)}
-.objectHero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}.objectHero h1{margin-bottom:4px}.objectMeta{font-size:13px;color:var(--muted);line-height:1.5}.totalBox{background:#34383c;color:#fff;border-radius:18px;padding:14px;min-width:170px}.totalBox span{display:block;font-size:11px;color:#d7d7d7}.totalBox strong{display:block;font-size:25px;margin-top:4px}
-.modules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.module{border:1px solid var(--border);background:var(--soft);border-radius:18px;padding:15px;text-align:left;color:var(--text)}.moduleTop{display:flex;justify-content:space-between;gap:8px;align-items:center}.moduleIcon{font-size:24px}.module h3{margin:10px 0 4px;font-size:17px}.module p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}.moduleStatus{font-size:10px;border-radius:999px;padding:5px 7px;background:var(--card);color:var(--muted)}.moduleStatus.done{background:rgba(79,139,104,.2);color:#7bc398}
-.sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:10px}.rowCard{border:1px solid var(--border);background:var(--soft);border-radius:16px;padding:12px;margin:9px 0}.rowGrid{display:grid;grid-template-columns:2fr .7fr .8fr .9fr auto;gap:8px;align-items:end}.rowGrid label{min-width:0}.rowSum{font-size:12px;color:var(--muted);margin-top:7px}.presetList{display:grid;gap:8px}.preset{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--border);background:var(--soft);border-radius:15px;padding:12px}.preset small{display:block;color:var(--muted);margin-top:3px}
-.photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.photo{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--soft);aspect-ratio:1}.photo img{width:100%;height:100%;object-fit:cover}.photo button{position:absolute;right:6px;top:6px;border:0;border-radius:999px;background:rgba(0,0,0,.68);color:#fff;width:30px;height:30px}.photo input{position:absolute;left:6px;right:6px;bottom:6px;width:calc(100% - 12px);font-size:11px;padding:7px;background:rgba(0,0,0,.72);color:#fff;border:0}
-.stage{display:grid;grid-template-columns:1.4fr .8fr .8fr auto;gap:8px;align-items:end;border:1px solid var(--border);background:var(--soft);border-radius:15px;padding:12px;margin:8px 0}.paidBadge{font-size:11px;color:#7bc398}
-.sheet{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center}.sheet.show{display:flex}.sheetPanel{width:min(680px,100%);background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.toast{position:fixed;z-index:400;left:50%;bottom:22px;transform:translateX(-50%);background:#34383c;color:#fff;border-radius:999px;padding:11px 16px;display:none;box-shadow:0 12px 35px rgba(0,0,0,.35)}.toast.show{display:block}
-.reviewRows{display:grid;gap:8px}.reviewRow{display:grid;grid-template-columns:2fr .65fr .7fr .8fr auto;gap:7px;align-items:end;border-bottom:1px solid var(--border);padding:8px 0}.reviewRow input,.reviewRow select{padding:9px;margin-top:3px}.reviewSummary{background:#34383c;color:#fff;border-radius:16px;padding:15px;margin-top:14px;display:flex;justify-content:space-between;align-items:center}.reviewSummary strong{font-size:24px}
-#documentView{position:fixed;inset:0;z-index:300;background:#e9e9e9;overflow:auto;padding:14px;color:#34383c}.docActions{max-width:920px;margin:0 auto 10px;display:flex;gap:8px;flex-wrap:wrap}.paper{max-width:920px;margin:auto;background:#fff;color:#34383c;padding:42px;min-height:100vh}.paperBrand{font-size:30px;font-weight:900}.paperTag{color:#b87533;font-style:italic}.paperHero{border-top:6px solid #34383c;margin-top:22px;padding-top:22px}.paperInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin:18px 0}.paperInfo div{padding:7px 0;border-bottom:1px solid #eee}.paperInfo span{display:block;font-size:12px;color:#777;margin-bottom:3px}.paper table{width:100%;border-collapse:collapse}.paper th,.paper td{padding:10px 7px;border-bottom:1px solid #ddd;text-align:left;font-size:14px}.paper th{background:#f5f3ee}.paper th:nth-child(n+2),.paper td:nth-child(n+2){text-align:right}.paper .group td{background:#34383c;color:#fff;font-weight:800;text-align:left}.paperTotal{background:#34383c;color:#fff;border-radius:13px;padding:19px;margin-top:22px}.paperTotal div{display:flex;justify-content:space-between;margin:7px 0}.paperTotal .grand{font-size:21px;font-weight:900}.signature{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:65px}.signature div{border-top:1px solid #777;padding-top:6px;font-size:12px;color:#777}.paperNote{font-size:13px;line-height:1.5;color:#777;margin-top:16px}
-.backupNote{border-left:4px solid var(--accent);background:rgba(201,125,47,.1);border-radius:12px;padding:11px;font-size:13px;color:var(--muted)}
-.themeBtns{display:flex;gap:5px}.themeBtns button{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px}
-.hidden{display:none!important}
-@media(max-width:700px){.grid.two,.grid.three,.paperInfo{grid-template-columns:1fr}.modules{grid-template-columns:1fr}.objectHero{grid-template-columns:1fr}.totalBox{min-width:0}.rowGrid,.reviewRow{grid-template-columns:1fr 1fr}.rowGrid label:first-child,.reviewRow label:first-child{grid-column:1/-1}.stage{grid-template-columns:1fr 1fr}.stage label:first-child{grid-column:1/-1}.photoGrid{grid-template-columns:repeat(2,1fr)}.paper{padding:25px 18px}.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}}
-@media print{body>*:not(#documentView){display:none!important}#documentView{display:block!important;position:static;padding:0;background:#fff}.docActions{display:none}.paper{max-width:none;margin:0;padding:20px;min-height:auto}.paper *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="shell">
-<header class="topbar"><div><div class="brand">FRAME</div><div class="tag">Design. Build. Finish.</div></div><div style="display:flex;align-items:center;gap:8px"><div class="themeBtns"><button id="darkBtn">🌙</button><button id="lightBtn">☀️</button></div><div class="build">Build 1.5.0 Field</div></div></header>
+<header class="topbar">
+  <div><div class="brand">FRAME</div><div class="tag">Design. Build. Finish.</div></div>
+  <div class="topActions">
+    <div class="themeSwitch" role="group" aria-label="Тема приложения">
+      <button id="lightBtn" type="button" aria-label="Дневная тема">☀️ <span>День</span></button>
+      <button id="darkBtn" type="button" aria-label="Ночная тема">🌙 <span>Ночь</span></button>
+    </div>
+    <div class="build">Build 1.6.0 Field</div>
+  </div>
+</header>
 
 <section id="dashboardView" class="view active">
- <div class="card"><h1>Рабочие объекты</h1><p class="help">Локальный кабинет мастера. Объекты сохраняются в IndexedDB и дублируются резервной копией на устройстве.</p>
-  <div class="stats"><div class="stat"><span>Объекты</span><strong id="statObjects">0</strong></div><div class="stat"><span>В работе</span><strong id="statActive">0</strong></div><div class="stat"><span>Общий бюджет</span><strong id="statBudget">0 ₽</strong></div></div>
-  <div class="actions"><button id="newObjectBtn" class="btn primary">＋ Новый объект</button><button id="exportBtn" class="btn ghost">Экспорт резервной копии</button><label class="btn ghost" style="display:inline-block">Импорт<input id="importInput" type="file" accept="application/json" hidden></label></div>
- </div>
- <div class="card"><div class="sectionTitle"><h2 style="margin:0">История объектов</h2><span id="storageStatus" class="muted" style="font-size:12px"></span></div><div id="objectList" class="list" style="margin-top:12px"></div></div>
+  <div class="card">
+    <h1>Рабочие объекты</h1>
+    <p class="help">Локальный кабинет мастера. Данные хранятся на этом устройстве и не показываются заказчику.</p>
+    <div class="stats">
+      <div class="stat"><span>Объекты</span><strong id="statObjects">0</strong></div>
+      <div class="stat"><span>В работе</span><strong id="statActive">0</strong></div>
+      <div class="stat"><span>Стоимость работ</span><strong id="statWork">0 ₽</strong></div>
+    </div>
+    <div class="actions">
+      <button id="newObjectBtn" class="btn primary">＋ Новый объект</button>
+      <button id="settingsBtn" class="btn ghost">Мои расценки</button>
+      <button id="exportBtn" class="btn ghost">Экспорт</button>
+      <label class="btn ghost fileBtn">Импорт<input id="importInput" type="file" accept="application/json" hidden></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sectionTitle"><h2>История объектов</h2><span id="storageStatus" class="muted tiny"></span></div>
+    <div id="objectList" class="list"></div>
+  </div>
+</section>
+
+<section id="settingsView" class="view">
+  <div class="actions pageBack"><button class="btn ghost" data-nav="dashboard">← Объекты</button></div>
+  <div class="card">
+    <h1>Мои расценки</h1>
+    <p class="help">FRAME подставляет эти ставки и перед PDF сравнивает расчёт только с вашими правилами. Разделы свёрнуты, чтобы настройки не превращались в приборную панель самолёта.</p>
+    <details open>
+      <summary>Полы и основание</summary>
+      <div class="settingsGrid">
+        <label>Укладка ламината / SPC, ₽/м²<input class="decimal" inputmode="decimal" data-rate="floor.install.standard"></label>
+        <label>Клеевой кварцвинил, ₽/м²<input class="decimal" inputmode="decimal" data-rate="floor.install.glue"></label>
+        <label>Грунтование, ₽/м²<input class="decimal" inputmode="decimal" data-rate="floor.prep.primer"></label>
+        <label>Минимальная стоимость заказа, ₽<input class="decimal" inputmode="decimal" data-rate="floor.minimum"></label>
+      </div>
+    </details>
+    <details>
+      <summary>Двери</summary>
+      <div class="settingsGrid">
+        <label>Межкомнатная без доборов, ₽/шт.<input class="decimal" inputmode="decimal" data-rate="door.interroom.base"></label>
+        <label>Добор до 100 мм, доплата ₽/шт.<input class="decimal" inputmode="decimal" data-rate="door.dobor.up100"></label>
+        <label>Демонтаж двери, ₽/шт.<input class="decimal" inputmode="decimal" data-rate="door.demo"></label>
+        <label>Отдельный выезд: замок, ₽<input class="decimal" inputmode="decimal" data-rate="door.lock.single"></label>
+        <label>Замок серией, ₽/шт.<input class="decimal" inputmode="decimal" data-rate="door.lock.series"></label>
+        <label>Ограничитель, ₽/шт.<input class="decimal" inputmode="decimal" data-rate="door.limiter"></label>
+        <label>Алюминиевый порог, ₽/пог. м<input class="decimal" inputmode="decimal" data-rate="door.threshold.aluminium"></label>
+        <label>Шов герметиком, ₽/пог. м<input class="decimal" inputmode="decimal" data-rate="door.threshold.seal"></label>
+        <label>Беспороговое примыкание, ₽/пог. м<input class="decimal" inputmode="decimal" data-rate="door.threshold.seamless"></label>
+      </div>
+    </details>
+    <div class="actions end"><button id="saveRatesBtn" class="btn primary">Сохранить расценки</button></div>
+  </div>
 </section>
 
 <section id="objectView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="dashboard">← Все объекты</button><button id="deleteObjectBtn" class="btn danger">Удалить объект</button></div>
- <div class="card"><div class="objectHero"><div><h1 id="objectTitle">Новый объект</h1><div id="objectSubtitle" class="objectMeta"></div></div><div class="totalBox"><span>Текущий бюджет</span><strong id="objectTotal">0 ₽</strong></div></div>
-  <h2>Карточка объекта</h2><div class="grid two">
-   <label>Заказчик<input id="customerName" placeholder="Имя или ФИО"></label><label>Телефон<input id="customerPhone" inputmode="tel" placeholder="+7 (___) ___-__-__"></label>
-   <label class="wide">Адрес объекта<input id="projectAddress" placeholder="Город, улица, дом, квартира"></label><label>Дата<input id="projectDate" type="date"></label>
-   <label>Статус<select id="projectStatus"><option value="estimate">Расчёт</option><option value="approval">Согласование</option><option value="work">В работе</option><option value="done">Завершён</option><option value="archive">Архив</option></select></label>
-   <label>Источник клиента<select id="customerSource"><option value="">Не указан</option><option>Рекомендация</option><option>Авито</option><option>Повторный клиент</option><option>Telegram</option><option>Другое</option></select></label>
-   <div class="wide"><span class="muted" style="font-size:13px">Мессенджеры</span><div class="checkline"><label class="check"><input id="msgWhatsapp" type="checkbox"> WhatsApp</label><label class="check"><input id="msgTelegram" type="checkbox"> Telegram</label><label class="check"><input id="msgMax" type="checkbox"> MAX</label></div></div>
-   <label class="wide">Комментарий<textarea id="projectComment" placeholder="Особенности объекта и договорённости"></textarea></label>
-  </div><div class="actions end" style="margin-top:14px"><button id="saveProjectBtn" class="btn primary">Сохранить карточку</button></div>
- </div>
- <div class="card"><h2 style="margin-top:0">Типы работ и разделы</h2><p class="help">Открывайте только нужный модуль. Полы не заставляют проходить двери, а двери не ведут через вопросы о покрытии.</p><div class="modules">
-  <button class="module" data-module="floor"><div class="moduleTop"><span class="moduleIcon">▱</span><span id="floorStatus" class="moduleStatus">Не заполнено</span></div><h3>Полы</h3><p>Покрытие, площадь, основание, плинтус и дополнительные работы.</p></button>
-  <button class="module" data-module="doors"><div class="moduleTop"><span class="moduleIcon">▯</span><span id="doorsStatus" class="moduleStatus">Не заполнено</span></div><h3>Двери</h3><p>Отдельный список дверных работ и индивидуальные цены.</p></button>
-  <button class="module" data-module="photos"><div class="moduleTop"><span class="moduleIcon">▧</span><span id="photosStatus" class="moduleStatus">Нет фото</span></div><h3>Фото</h3><p>Локальные фотографии объекта с короткими подписями.</p></button>
-  <button class="module" data-module="documents"><div class="moduleTop"><span class="moduleIcon">▤</span><span id="documentsStatus" class="moduleStatus">Документы</span></div><h3>Документы</h3><p>Коммерческое предложение, перечень работ или официальный акт.</p></button>
-  <button class="module" data-module="payments"><div class="moduleTop"><span class="moduleIcon">₽</span><span id="paymentsStatus" class="moduleStatus">Нет этапов</span></div><h3>Этапы и оплаты</h3><p>Поэтапная сдача, суммы и отметки об оплате.</p></button>
- </div></div>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="dashboard">← Все объекты</button><button id="deleteObjectBtn" class="btn danger">Удалить</button></div>
+  <div class="card">
+    <div class="objectHero">
+      <div><h1 id="objectTitle">Новый объект</h1><div id="objectSubtitle" class="objectMeta"></div></div>
+      <div class="moneyStack">
+        <div class="totalBox"><span>Стоимость работ</span><strong id="objectWorkTotal">0 ₽</strong></div>
+        <div class="materialHint"><span>Материалы для заказчика</span><strong id="objectMaterialTotal">0 ₽</strong><small>не входят в доход мастера</small></div>
+      </div>
+    </div>
+    <h2>Карточка объекта</h2>
+    <div class="grid two">
+      <label>Заказчик<input id="customerName" placeholder="Имя или ФИО"></label>
+      <label>Телефон<input id="customerPhone" inputmode="tel" placeholder="+7 (___) ___-__-__"></label>
+      <label class="wide">Адрес объекта<input id="projectAddress" placeholder="Город, улица, дом, квартира"></label>
+      <label>Дата<input id="projectDate" type="date"></label>
+      <label>Статус<select id="projectStatus"><option value="estimate">Расчёт</option><option value="approval">Согласование</option><option value="work">В работе</option><option value="done">Завершён</option><option value="archive">Архив</option></select></label>
+      <label>Источник клиента<select id="customerSource"><option value="">Не указан</option><option>Рекомендация</option><option>Авито</option><option>Повторный клиент</option><option>WhatsApp</option><option>Telegram</option><option>Другое</option></select></label>
+      <div class="wide"><span class="fieldTitle">Мессенджеры</span><div class="checkline"><label class="check"><input id="msgWhatsapp" type="checkbox"> WhatsApp</label><label class="check"><input id="msgTelegram" type="checkbox"> Telegram</label><label class="check"><input id="msgMax" type="checkbox"> MAX</label></div></div>
+      <label class="wide">Комментарий<textarea id="projectComment" placeholder="Особенности объекта и договорённости"></textarea></label>
+    </div>
+    <div class="actions end"><button id="saveProjectBtn" class="btn primary">Сохранить карточку</button></div>
+  </div>
+  <div class="card">
+    <h2>Разделы объекта</h2>
+    <p class="help">Открывайте только нужный модуль. Каждый раздел живёт самостоятельно.</p>
+    <div class="modules">
+      <button class="module" data-module="floor"><div class="moduleTop"><span class="moduleIcon">▱</span><span id="floorStatus" class="moduleStatus">Не заполнено</span></div><h3>Полы</h3><p>Покрытие, основание, плинтус, расходники.</p></button>
+      <button class="module" data-module="doors"><div class="moduleTop"><span class="moduleIcon">▯</span><span id="doorsStatus" class="moduleStatus">Не заполнено</span></div><h3>Двери</h3><p>Одинаковые группы и отдельные отличающиеся двери.</p></button>
+      <button class="module" data-module="photos"><div class="moduleTop"><span class="moduleIcon">▧</span><span id="photosStatus" class="moduleStatus">Нет фото</span></div><h3>Фото</h3><p>Локальные фотографии с подписями.</p></button>
+      <button class="module" data-module="documents"><div class="moduleTop"><span class="moduleIcon">▤</span><span id="documentsStatus" class="moduleStatus">Документы</span></div><h3>Документы</h3><p>КП, перечень работ и официальный акт.</p></button>
+      <button class="module" data-module="payments"><div class="moduleTop"><span class="moduleIcon">₽</span><span id="paymentsStatus" class="moduleStatus">Нет этапов</span></div><h3>Этапы и оплаты</h3><p>Суммы по этапам и отметки об оплате.</p></button>
+    </div>
+  </div>
 </section>
 
 <section id="floorView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
- <div class="card"><h1>Модуль «Полы»</h1><p class="help">Стандартные операции находятся здесь. Всё редкое добавляется свободной строкой ниже.</p>
-  <h2>Покрытие и объём</h2><div class="grid two">
-   <label>Покрытие<select id="floorCover"><option value="laminate">Ламинат</option><option value="spc">SPC / замковый кварцвинил</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
-   <label>Название другого покрытия<input id="floorOtherCover" placeholder="Например, инженерная доска"></label>
-   <label>Площадь, м²<input id="floorArea" type="number" min="0" step=".1"></label><label>Периметр плинтуса, м.п.<input id="floorPerimeter" type="number" min="0" step=".1"></label>
-   <label>Схема укладки<select id="floorPattern"><option value="straight">Прямая</option><option value="diagonal">Диагональная</option><option value="eng">Английская ёлка</option><option value="fr">Французская ёлка</option><option value="corner">Ёлка от угла</option><option value="other">Другая</option></select></label>
-   <label>Ставка укладки, ₽/м²<input id="floorInstallRate" type="number" min="0" step="50"><small class="muted">База для прямой укладки кварцвинила и ламината: 600 ₽/м².</small></label>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+  <div class="card">
+    <h1>Полы</h1><p class="help">Сначала основные параметры. Редкие работы добавляются отдельной строкой и не прячутся в жёстких пакетах.</p>
+    <h2>Покрытие и объём</h2>
+    <div class="grid two">
+      <label>Покрытие<select id="floorCover"><option value="laminate">Ламинат</option><option value="spc">SPC / замковый кварцвинил</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
+      <label>Название другого покрытия<input id="floorOtherCover" placeholder="Например, инженерная доска"></label>
+      <label>Площадь, м²<input id="floorArea" class="decimal" inputmode="decimal" placeholder="36,3"></label>
+      <label>Периметр плинтуса, м.п.<input id="floorPerimeter" class="decimal" inputmode="decimal" placeholder="24"></label>
+      <label>Схема укладки<select id="floorPattern"><option value="straight">Прямая</option><option value="diagonal">Диагональная</option><option value="eng">Английская ёлка</option><option value="fr">Французская ёлка</option><option value="corner">Ёлка от угла</option><option value="other">Другая</option></select></label>
+      <label>Ставка укладки, ₽/м²<input id="floorInstallRate" class="decimal" inputmode="decimal"><small class="muted">По умолчанию для ламината и SPC: 600 ₽/м².</small></label>
+    </div>
+
+    <h2>Демонтаж</h2>
+    <div class="grid two">
+      <label>Существующее покрытие<select id="floorOldCover"><option value="none">Нет / стяжка</option><option value="lino">Линолеум</option><option value="laminate">Ламинат</option><option value="spc">SPC</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
+      <label>Режим демонтажа<select id="floorDemoMode"><option value="discard">Без сохранения</option><option value="save">С сохранением</option><option value="hard">Сложный клеевой демонтаж</option></select></label>
+    </div>
+
+    <div class="sectionTitle"><div><h2>Подготовка основания</h2><p class="help compact">Грунтование, очистка и шлифовка считаются отдельно. Цена всегда редактируется.</p></div></div>
+    <div id="floorPrepRows"></div>
+    <div class="addBar"><select id="floorPrepPreset"><option value="primer">Грунтование</option><option value="clean">Очистка поверхности</option><option value="grindLocal">Локальная шлифовка</option><option value="grindFull">Сплошная шлифовка</option><option value="level">Наливной пол</option><option value="other">Другая подготовительная работа</option></select><button id="addFloorPrep" class="btn ghost">＋ Добавить</button></div>
+
+    <h2>Дополнительные стандартные работы</h2>
+    <div class="grid two">
+      <label>Плинтус<select id="floorBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="micro">Алюминиевый микроплинтус</option><option value="duro">Дюрополимер</option></select></label>
+      <label>Демонтаж плинтуса<select id="floorDemoBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="duro">Дюрополимер</option></select></label>
+      <label>Беспороговый стык, м.п.<input id="floorJoint" class="decimal" inputmode="decimal"></label>
+      <label>Перемещение мебели<select id="floorFurniture"><option value="none">Нет</option><option value="light">Лёгкое</option><option value="medium">Среднее</option><option value="hard">Сложное</option></select></label>
+      <label>Разборка / сборка кухни<select id="floorKitchen"><option value="none">Нет</option><option value="light">Частичный сдвиг</option><option value="medium">Средняя</option><option value="hard">Полная</option></select></label>
+    </div>
+
+    <details class="subsection">
+      <summary>Материалы для заказчика</summary>
+      <p class="help">Эти суммы не считаются доходом мастера.</p>
+      <div class="grid two">
+        <label>Ценовой сегмент покрытия<select id="floorSegment"><option value="practical">Практичный</option><option value="optimal">Оптимальный</option><option value="premium">Премиальный</option></select></label>
+        <label>Подложка<select id="floorUnderlay"><option value="auto">Автоматически</option><option value="none">Не требуется</option><option value="basic">Базовая 2 мм</option><option value="xps">XPS 3 мм</option><option value="acoustic">Акустическая</option><option value="spc">Для SPC</option></select></label>
+      </div>
+      <h3>Расходники</h3>
+      <div id="floorConsumableRows"></div>
+      <div class="addBar"><select id="floorConsumablePreset"><option value="primer">Грунтовка</option><option value="glue">Клей</option><option value="film">Защитная плёнка</option><option value="sealant">Герметик / монтажный состав</option><option value="other">Другой расходник</option></select><button id="addFloorConsumable" class="btn ghost">＋ Добавить</button></div>
+    </details>
+
+    <h2>Дополнительные работы</h2>
+    <div id="floorCustomRows"></div>
+    <button id="addFloorCustom" class="btn ghost wideBtn">＋ Добавить работу</button>
+
+    <div class="summaryGrid">
+      <div class="reviewSummary"><span>Стоимость работ</span><strong id="floorWorkTotal">0 ₽</strong></div>
+      <div class="reviewSummary secondary"><span>Материалы для заказчика</span><strong id="floorMaterialTotal">0 ₽</strong></div>
+    </div>
+    <div class="actions end"><button id="saveFloorBtn" class="btn primary">Сохранить модуль</button></div>
   </div>
-  <h2>Демонтаж и основание</h2><div class="grid two">
-   <label>Существующее покрытие<select id="floorOldCover"><option value="none">Нет / стяжка</option><option value="lino">Линолеум</option><option value="laminate">Ламинат</option><option value="spc">SPC</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
-   <label>Режим демонтажа<select id="floorDemoMode"><option value="discard">Без сохранения</option><option value="save">С сохранением</option><option value="hard">Сложный клеевой демонтаж</option></select></label>
-   <label class="wide">Подготовка основания<select id="floorPrep"><option value="none">Не требуется</option><option value="primer">Только грунтование</option><option value="grindLight">Лёгкая шлифовка + грунтование</option><option value="grindMed">Средняя шлифовка + грунтование</option><option value="grindHard">Сложная шлифовка + грунтование</option><option value="level5">Наливной пол до 5 мм + грунтование</option><option value="level10">Наливной пол 5–10 мм + грунтование</option><option value="plywood">Фанера 12 мм</option><option value="osb">OSB</option><option value="tileGlue">Удаление плиточного клея</option></select></label>
-  </div>
-  <h2>Дополнительные стандартные работы</h2><div class="grid two">
-   <label>Плинтус<select id="floorBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="micro">Алюминиевый микроплинтус</option><option value="duro">Дюрополимер</option></select></label>
-   <label>Демонтаж плинтуса<select id="floorDemoBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="duro">Дюрополимер</option></select></label>
-   <label>Беспороговый стык, м.п.<input id="floorJoint" type="number" min="0" step="1"></label>
-   <label>Перемещение мебели<select id="floorFurniture"><option value="none">Нет</option><option value="light">Лёгкое</option><option value="medium">Среднее</option><option value="hard">Сложное</option></select></label>
-   <label>Разборка / сборка кухни<select id="floorKitchen"><option value="none">Нет</option><option value="light">Частичный сдвиг</option><option value="medium">Средняя</option><option value="hard">Полная</option></select></label>
-   <label>Ценовой сегмент материалов<select id="floorSegment"><option value="practical">Практичный</option><option value="optimal">Оптимальный</option><option value="premium">Премиальный</option></select></label>
-   <label>Подложка<select id="floorUnderlay"><option value="auto">Автоматически</option><option value="none">Не требуется</option><option value="basic">Базовая 2 мм</option><option value="xps">XPS 3 мм</option><option value="acoustic">Акустическая</option><option value="spc">Для SPC</option></select></label>
-  </div>
-  <div class="sectionTitle"><h2>Дополнительные работы</h2><button id="addFloorCustom" class="btn ghost small">＋ Добавить работу</button></div><div id="floorCustomRows"></div>
-  <div class="reviewSummary"><span>Работы по модулю</span><strong id="floorWorkTotal">0 ₽</strong></div>
-  <div class="actions end" style="margin-top:14px"><button id="saveFloorBtn" class="btn primary">Сохранить модуль</button></div>
- </div>
 </section>
 
 <section id="doorsView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
- <div class="card"><h1>Модуль «Двери»</h1><p class="help">Дверные работы живут отдельно от полов. Добавленная позиция остаётся редактируемой.</p>
-  <div class="presetList">
-   <div class="preset"><div><strong>Обычная межкомнатная дверь</strong><small>Базовый монтаж</small></div><button class="btn ghost small doorPreset" data-name="Монтаж межкомнатной двери" data-price="5500">＋ 5 500 ₽</button></div>
-   <div class="preset"><div><strong>Двойная распашная дверь</strong><small>Два полотна</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двойной распашной двери" data-price="12000">＋ 12 000 ₽</button></div>
-   <div class="preset"><div><strong>Скрытая дверь</strong><small>Алюминиевая коробка</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двери скрытого типа с алюминиевой коробкой" data-price="10000">＋ 10 000 ₽</button></div>
-   <div class="preset"><div><strong>Раздвижная дверь с пеналом</strong><small>Монтаж кассеты и полотна</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двери с кассетой-пеналом" data-price="25000">＋ 25 000 ₽</button></div>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+  <div class="card">
+    <h1>Двери</h1>
+    <p class="help">Одинаковые двери настраиваются одной группой. Для отличающейся двери используйте «Дублировать и изменить».</p>
+    <h2>Добавить вид работы</h2>
+    <div class="doorChoices">
+      <button class="doorType" data-door-type="interroom"><strong>Межкомнатная дверь</strong><small>от 6 500 ₽</small></button>
+      <button class="doorType" data-door-type="entrance"><strong>Входная дверь</strong><small>цена вручную</small></button>
+      <button class="doorType" data-door-type="portal"><strong>Благоустройство портала</strong><small>доборы + наличники</small></button>
+      <button class="doorType" data-door-type="entrancePortal"><strong>Проём входной двери</strong><small>ориентир 5–10 тыс. ₽</small></button>
+    </div>
+    <details class="subsection">
+      <summary>Ещё виды</summary>
+      <div class="doorChoices nested">
+        <button class="doorType" data-door-type="sliding"><strong>Откатная дверь</strong><small>вдоль стены</small></button>
+        <button class="doorType" data-door-type="pocket"><strong>Дверь-пенал</strong><small>полотно уходит в стену</small></button>
+        <button class="doorType" data-door-type="double"><strong>Двустворчатая дверь</strong><small>два полотна</small></button>
+        <button class="doorType" data-door-type="hidden"><strong>Скрытая распашная</strong><small>алюминиевая коробка</small></button>
+      </div>
+    </details>
+    <div id="doorGroups"></div>
+
+    <h2>Дополнительные дверные работы</h2>
+    <div id="doorExtraRows"></div>
+    <div class="addBar"><select id="doorExtraPreset"><option value="demo">Демонтаж старой двери</option><option value="lockSingle">Отдельный выезд: установка замка</option><option value="lockSeries">Установка замков серией</option><option value="mortiseHinge">Врезные / нестандартные петли</option><option value="dobor">Дополнительные доборы</option><option value="limiter">Ограничитель</option><option value="thresholdAluminium">Алюминиевый порог</option><option value="thresholdSeal">Шов герметиком</option><option value="thresholdSeamless">Беспороговое примыкание</option><option value="opening">Подготовка / расширение проёма</option><option value="adjustment">Регулировка</option><option value="other">Своя работа</option></select><button id="addDoorExtra" class="btn ghost">＋ Добавить</button></div>
+    <button id="addDoorCustom" class="btn ghost wideBtn">＋ Добавить свою работу</button>
+
+    <div class="reviewSummary"><span>Стоимость дверных работ</span><strong id="doorsTotal">0 ₽</strong></div>
+    <div class="actions end"><button id="saveDoorsBtn" class="btn primary">Сохранить модуль</button></div>
   </div>
-  <div class="sectionTitle"><h2>Дверные работы</h2><button id="addDoorCustom" class="btn ghost small">＋ Добавить работу</button></div><div id="doorRows"></div>
-  <div class="reviewSummary"><span>Дверные работы</span><strong id="doorsTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="saveDoorsBtn" class="btn primary">Сохранить модуль</button></div>
- </div>
 </section>
 
 <section id="photosView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
- <div class="card"><h1>Фото объекта</h1><p class="help">Фотографии хранятся только на этом устройстве. Перед сохранением они уменьшаются, чтобы не раздувать локальную базу.</p><label class="btn primary" style="display:inline-block">＋ Добавить фотографии<input id="photoInput" type="file" accept="image/*" multiple hidden></label><div id="photoGrid" class="photoGrid" style="margin-top:14px"></div><div class="actions end" style="margin-top:14px"><button id="savePhotosBtn" class="btn primary">Сохранить фото</button></div></div>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+  <div class="card"><h1>Фото объекта</h1><p class="help">Фотографии хранятся только на этом устройстве и уменьшаются перед сохранением.</p><label class="btn primary fileBtn">＋ Добавить фотографии<input id="photoInput" type="file" accept="image/*" multiple hidden></label><div id="photoGrid" class="photoGrid"></div><div class="actions end"><button id="savePhotosBtn" class="btn primary">Сохранить фото</button></div></div>
 </section>
 
 <section id="paymentsView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
- <div class="card"><div class="sectionTitle"><div><h1>Этапы и оплаты</h1><p class="help">Выполнен этап → отправлен перечень → получена оплата → работа продолжается.</p></div><button id="addStageBtn" class="btn ghost small">＋ Этап</button></div><div id="stageRows"></div><div class="reviewSummary"><span>Оплачено / всего</span><strong id="paymentsTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="savePaymentsBtn" class="btn primary">Сохранить этапы</button></div></div>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+  <div class="card"><h1>Этапы и оплаты</h1><p class="help">Название и сумма редактируются без закрытия клавиатуры.</p><div id="stageRows"></div><button id="addStageBtn" class="btn ghost wideBtn">＋ Добавить этап</button><div class="reviewSummary"><span>Оплачено / всего</span><strong id="paymentsTotal">0 ₽</strong></div><div class="actions end"><button id="savePaymentsBtn" class="btn primary">Сохранить этапы</button></div></div>
 </section>
 
 <section id="documentsView" class="view">
- <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
- <div class="card"><h1>Документы FRAME</h1><p class="help">Перед PDF всегда открывается экран проверки. Там можно изменить название, количество, единицу и цену, удалить или добавить работу.</p>
-  <div class="grid two"><label>Тип документа<select id="docType"><option value="proposal">Коммерческое предложение</option><option value="worklist">Перечень выполненных работ</option><option value="act">Официальный акт выполненных работ</option></select></label><label>Материалы в коммерческом предложении<select id="docMaterials"><option value="yes">Включить</option><option value="no">Только работы</option></select></label></div>
-  <div class="backupNote" style="margin-top:14px">«Перечень выполненных работ» формируется без подписей и канцелярита. Официальный акт остаётся отдельным режимом.</div><div class="actions end" style="margin-top:14px"><button id="prepareDocBtn" class="btn primary">Проверить работы перед PDF</button></div>
- </div>
+  <div class="actions pageBack"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+  <div class="card">
+    <h1>Документы FRAME</h1>
+    <p class="help">Перед PDF открывается внутренняя проверка мастера. Заказчик видит только готовый документ.</p>
+    <div class="grid two">
+      <label>Тип документа<select id="docType"><option value="proposal">Коммерческое предложение</option><option value="worklist">Перечень выполненных работ</option><option value="act">Официальный акт выполненных работ</option></select></label>
+      <label>Что включить в КП<select id="docMaterialMode"><option value="work">Только работы</option><option value="consumables">Работы + расходники</option><option value="all">Работы + все материалы</option></select></label>
+      <label>Организация закупки<select id="docProcurement"><option value="none">Не показывать</option><option value="recommend">Предложить отдельно</option><option value="include">Включить в расчёт</option></select></label>
+      <label>Ориентировочная цена услуги, ₽<input id="docProcurementPrice" class="decimal" inputmode="decimal" value="0"></label>
+    </div>
+    <div class="backupNote">Материалы и доставка не считаются доходом мастера. Платная организация закупки учитывается как отдельная услуга.</div>
+    <div class="actions end"><button id="prepareDocBtn" class="btn primary">Проверить расчёт перед PDF</button></div>
+  </div>
 </section>
 </div>
 
-<div id="reviewSheet" class="sheet"><div class="sheetPanel"><div class="sectionTitle"><div><h1 style="margin-bottom:4px">Проверка документа</h1><p class="help" style="margin:0">Последний шанс поправить цифры и формулировки.</p></div><button id="closeReviewBtn" class="btn ghost small">Закрыть</button></div><div id="reviewRows" class="reviewRows"></div><button id="addReviewRowBtn" class="btn ghost small" style="margin-top:10px">＋ Добавить работу</button><div class="reviewSummary"><span>Итого</span><strong id="reviewTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="generateDocBtn" class="btn primary">Сформировать документ</button></div></div></div>
+<div id="reviewSheet" class="sheet">
+  <div class="sheetPanel">
+    <div class="sectionTitle"><div><h1>Проверка расчёта</h1><p class="help compact">Сравнение идёт с вашими расценками и не попадёт в PDF.</p></div><button id="closeReviewBtn" class="btn ghost small">Закрыть</button></div>
+    <div id="reviewRows" class="reviewRows"></div>
+    <button id="addReviewRowBtn" class="btn ghost wideBtn">＋ Добавить работу</button>
+    <div class="reviewSummary"><span>Итого документа</span><strong id="reviewTotal">0 ₽</strong></div>
+    <div class="actions end"><button id="generateDocBtn" class="btn primary">Сформировать документ</button></div>
+  </div>
+</div>
 
-<div id="moduleSheet" class="sheet"><div class="sheetPanel"><h2>Модуль сохранён</h2><p class="help">Куда перейти дальше?</p><div class="grid two"><button class="btn primary" data-after="object">Вернуться в карточку объекта</button><button class="btn ghost" data-after="documents">Открыть документы</button><button class="btn ghost" data-after="floor">Полы</button><button class="btn ghost" data-after="doors">Двери</button></div></div></div>
+<div id="moduleSheet" class="sheet"><div class="sheetPanel"><h2>Модуль сохранён</h2><p class="help">Куда перейти дальше?</p><div class="grid two"><button class="btn primary" data-after="object">В карточку объекта</button><button class="btn ghost" data-after="documents">Документы</button><button class="btn ghost" data-after="floor">Полы</button><button class="btn ghost" data-after="doors">Двери</button></div></div></div>
 
 <div id="documentView" class="hidden"><div class="docActions"><button id="closeDocumentBtn" class="btn ghost">Назад</button><button id="printDocumentBtn" class="btn primary">Сохранить PDF</button></div><div id="paper" class="paper"></div></div>
 <div id="toast" class="toast"></div>
-<script>
-'use strict';
-const $=id=>document.getElementById(id);const $$=sel=>[...document.querySelectorAll(sel)];
-const VERSION='1.5.0';const DB_NAME='FRAME_DB';const STORE='objects';const BACKUP_KEY='frameObjectsBackupV150';let db=null;let objects=[];let currentObject=null;let floorDraft=null;let doorDraft=[];let photoDraft=[];let stageDraft=[];let reviewRows=[];
-const money=n=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2}).format(Number(n)||0);
-const qty=n=>Number.isInteger(Number(n))?String(Number(n)):Number(n||0).toFixed(2).replace(/0+$/,'').replace(/\.$/,'').replace('.',',');
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2);
-const clone=v=>JSON.parse(JSON.stringify(v));
-const today=()=>new Date().toISOString().slice(0,10);
-function ruDate(v){if(!v)return '';const [y,m,d]=String(v).slice(0,10).split('-');return y&&m&&d?`${d}.${m}.${y} г.`:v}
-function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1700)}
-function formatPhone(value){let d=String(value||'').replace(/\D/g,'');if(!d)return '';if(d[0]==='8')d='7'+d.slice(1);else if(d[0]!=='7')d='7'+d;d=d.slice(0,11);const x=d.slice(1);let out='+7';if(x.length)out+=' ('+x.slice(0,3);if(x.length>=3)out+=')';if(x.length>3)out+=' '+x.slice(3,6);if(x.length>6)out+='-'+x.slice(6,8);if(x.length>8)out+='-'+x.slice(8,10);return out}
-$('customerPhone').addEventListener('input',e=>e.target.value=formatPhone(e.target.value));
-function applyTheme(t){document.body.classList.toggle('light',t==='light');localStorage.setItem('frameTheme',t)}$('darkBtn').onclick=()=>applyTheme('dark');$('lightBtn').onclick=()=>applyTheme('light');applyTheme(localStorage.getItem('frameTheme')||'dark');
-function show(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view+'View'));window.scrollTo({top:0,behavior:'smooth'})}
-$$('[data-nav]').forEach(b=>b.onclick=()=>{if(b.dataset.nav==='dashboard'){renderDashboard();show('dashboard')}else{renderObject();show('object')}});
-
-function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>{db=r.result;resolve(db)};r.onerror=()=>reject(r.error)})}
-function dbAll(){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readonly').objectStore(STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
-function dbPut(o){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).put(o);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
-function dbDelete(id){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
-function stripPhotos(o){const c=clone(o);c.photos=(c.photos||[]).map(p=>({id:p.id,caption:p.caption||'',missing:true}));return c}
-function mirrorBackup(){try{localStorage.setItem(BACKUP_KEY,JSON.stringify(objects.map(stripPhotos)))}catch(e){console.warn(e)}}
-function legacyToObject(o){const v=o.values||{},s=o.state||{};return {id:o.id||uid(),version:VERSION,createdAt:o.createdAt||o.updatedAt||new Date().toISOString(),updatedAt:o.updatedAt||new Date().toISOString(),project:{customer:o.customer||v.customerName||'',phone:o.phone||v.customerPhone||'',address:o.address||v.projectAddress||'',date:v.estimateDate||today(),status:o.status||v.projectStatus||'estimate',source:v.customerSource||'',messengers:o.messengers||[v.msgWhatsapp?'WhatsApp':'',v.msgTelegram?'Telegram':'',v.msgMax?'MAX':''].filter(Boolean),comment:v.projectComment||''},floor:{completed:true,cover:s.cover||'laminate',otherCover:v.otherCover||'',area:Number(v.area||0),perimeter:Number(v.perimeter||0),pattern:s.pattern||'straight',installRate:600,oldCover:s.oldCover||'none',demoMode:v.demoMode||'discard',prep:v.prep||'none',baseboard:v.baseboard||'none',demoBaseboard:v.demoBaseboard||'none',joint:Number(v.joint||0),furniture:v.furniture||'none',kitchen:v.kitchen||'none',segment:s.segment||'practical',underlay:v.underlay||'auto',custom:o.custom||[]},doors:{completed:false,rows:[]},photos:[],stages:[],documentHistory:[]}}
-async function migrateLegacy(){if(localStorage.getItem('frameMigration150Done'))return;const existing=await dbAll();const ids=new Set(existing.map(x=>x.id));for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!/^frameObjects/i.test(k||'')||k===BACKUP_KEY)continue;try{const a=JSON.parse(localStorage.getItem(k)||'[]');if(Array.isArray(a))for(const old of a){const o=legacyToObject(old);if(!ids.has(o.id)){await dbPut(o);ids.add(o.id)}}}catch(e){console.warn('legacy',k,e)}}try{const b=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');if(Array.isArray(b))for(const o of b){if(o.id&&!ids.has(o.id)){await dbPut(o);ids.add(o.id)}}}catch(e){}localStorage.setItem('frameMigration150Done',new Date().toISOString())}
-async function reloadObjects(){objects=await dbAll();objects.sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));mirrorBackup()}
-async function persist(o){o.updatedAt=new Date().toISOString();o.version=VERSION;await dbPut(o);await reloadObjects();currentObject=objects.find(x=>x.id===o.id)||o}
-function projectTotal(o){const f=calculateFloor(o.floor||defaultFloor()),doors=(o.doors?.rows||[]).reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0);return f.workTotal+f.materialTotal+doors}
-function statusName(v){return {estimate:'Расчёт',approval:'Согласование',work:'В работе',done:'Завершён',archive:'Архив'}[v]||'Расчёт'}
-function renderDashboard(){$('statObjects').textContent=objects.length;$('statActive').textContent=objects.filter(o=>o.project?.status==='work').length;$('statBudget').textContent=money(objects.reduce((s,o)=>s+projectTotal(o),0));$('storageStatus').textContent='IndexedDB · резервная копия';$('objectList').innerHTML=objects.length?objects.slice().reverse().map(o=>`<div class="objectItem"><div><h3>${esc(o.project?.address||'Объект без адреса')}</h3><p>${esc(o.project?.customer||'Заказчик не указан')} · ${esc(o.project?.phone||'без телефона')}</p><p>${money(projectTotal(o))} · обновлён ${ruDate((o.updatedAt||'').slice(0,10))}</p><div class="actions" style="margin-top:9px"><button class="btn ghost small openObj" data-id="${o.id}">Открыть</button></div></div><span class="pill">${statusName(o.project?.status)}</span></div>`).join(''):'<div class="help">Пока нет сохранённых объектов.</div>';$$('.openObj').forEach(b=>b.onclick=()=>openObject(b.dataset.id))}
-function defaultFloor(){return {completed:false,cover:'spc',otherCover:'',area:0,perimeter:0,pattern:'straight',installRate:600,oldCover:'none',demoMode:'discard',prep:'none',baseboard:'none',demoBaseboard:'none',joint:0,furniture:'none',kitchen:'none',segment:'practical',underlay:'auto',custom:[]}}
-function newObject(){const o={id:uid(),version:VERSION,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),project:{customer:'',phone:'',address:'',date:today(),status:'estimate',source:'',messengers:[],comment:''},floor:defaultFloor(),doors:{completed:false,rows:[]},photos:[],stages:[],documentHistory:[]};currentObject=o;fillProject(o);renderObject();show('object')}
-async function openObject(id){currentObject=objects.find(o=>o.id===id);if(!currentObject)return;fillProject(currentObject);renderObject();show('object')}
-function fillProject(o){const p=o.project||{};$('customerName').value=p.customer||'';$('customerPhone').value=formatPhone(p.phone||'');$('projectAddress').value=p.address||'';$('projectDate').value=p.date||today();$('projectStatus').value=p.status||'estimate';$('customerSource').value=p.source||'';$('projectComment').value=p.comment||'';$('msgWhatsapp').checked=(p.messengers||[]).includes('WhatsApp');$('msgTelegram').checked=(p.messengers||[]).includes('Telegram');$('msgMax').checked=(p.messengers||[]).includes('MAX')}
-function collectProject(){return {customer:$('customerName').value.trim(),phone:formatPhone($('customerPhone').value),address:$('projectAddress').value.trim(),date:$('projectDate').value||today(),status:$('projectStatus').value,source:$('customerSource').value,messengers:[$('msgWhatsapp').checked?'WhatsApp':'',$('msgTelegram').checked?'Telegram':'',$('msgMax').checked?'MAX':''].filter(Boolean),comment:$('projectComment').value.trim()}}
-function renderObject(){if(!currentObject)return;const p=currentObject.project||{};$('objectTitle').textContent=p.address||'Новый объект';$('objectSubtitle').textContent=[p.customer,p.phone,statusName(p.status)].filter(Boolean).join(' · ');$('objectTotal').textContent=money(projectTotal(currentObject));setModuleStatus('floorStatus',currentObject.floor?.completed,'Заполнено','Не заполнено');setModuleStatus('doorsStatus',currentObject.doors?.completed,`${currentObject.doors?.rows?.length||0} поз.`,`Не заполнено`);setModuleStatus('photosStatus',(currentObject.photos||[]).length>0,`${currentObject.photos?.length||0} фото`,'Нет фото');setModuleStatus('paymentsStatus',(currentObject.stages||[]).length>0,`${currentObject.stages?.length||0} этап.`,'Нет этапов')}
-function setModuleStatus(id,done,yes,no){$(id).textContent=done?yes:no;$(id).classList.toggle('done',done)}
-$('newObjectBtn').onclick=newObject;$('saveProjectBtn').onclick=async()=>{currentObject.project=collectProject();await persist(currentObject);renderObject();toast('Карточка объекта сохранена')};$('deleteObjectBtn').onclick=async()=>{if(!currentObject||!confirm('Удалить объект?'))return;await dbDelete(currentObject.id);currentObject=null;await reloadObjects();renderDashboard();show('dashboard')};
-$$('[data-module]').forEach(b=>b.onclick=()=>openModule(b.dataset.module));function openModule(m){if(!currentObject)return;if(m==='floor')openFloor();if(m==='doors')openDoors();if(m==='photos')openPhotos();if(m==='documents')show('documents');if(m==='payments')openPayments()}
-
-function defaultRate(cover,pattern){if(pattern==='eng')return cover==='glue'?850:1100;if(pattern==='fr'||pattern==='corner')return cover==='glue'?1300:1500;if(pattern==='diagonal')return cover==='glue'?950:750;if(cover==='glue')return 800;return 600}
-function openFloor(){floorDraft=clone(currentObject.floor||defaultFloor());fillFloor(floorDraft);renderFloorCustom();updateFloorTotals();show('floor')}
-function fillFloor(f){$('floorCover').value=f.cover||'spc';$('floorOtherCover').value=f.otherCover||'';$('floorArea').value=f.area||'';$('floorPerimeter').value=f.perimeter||'';$('floorPattern').value=f.pattern||'straight';$('floorInstallRate').value=f.installRate??defaultRate(f.cover,f.pattern);$('floorOldCover').value=f.oldCover||'none';$('floorDemoMode').value=f.demoMode||'discard';$('floorPrep').value=f.prep||'none';$('floorBaseboard').value=f.baseboard||'none';$('floorDemoBaseboard').value=f.demoBaseboard||'none';$('floorJoint').value=f.joint||'';$('floorFurniture').value=f.furniture||'none';$('floorKitchen').value=f.kitchen||'none';$('floorSegment').value=f.segment||'practical';$('floorUnderlay').value=f.underlay||'auto'}
-function collectFloor(){return {...floorDraft,cover:$('floorCover').value,otherCover:$('floorOtherCover').value.trim(),area:+$('floorArea').value||0,perimeter:+$('floorPerimeter').value||0,pattern:$('floorPattern').value,installRate:+$('floorInstallRate').value||0,oldCover:$('floorOldCover').value,demoMode:$('floorDemoMode').value,prep:$('floorPrep').value,baseboard:$('floorBaseboard').value,demoBaseboard:$('floorDemoBaseboard').value,joint:+$('floorJoint').value||0,furniture:$('floorFurniture').value,kitchen:$('floorKitchen').value,segment:$('floorSegment').value,underlay:$('floorUnderlay').value,custom:floorDraft.custom||[]}}
-['floorCover','floorPattern'].forEach(id=>$(id).addEventListener('change',()=>{$('floorInstallRate').value=defaultRate($('floorCover').value,$('floorPattern').value);updateFloorTotals()}));$$('#floorView input,#floorView select').forEach(e=>e.addEventListener('input',updateFloorTotals));
-function work(name,qtyN,unit,price,group='Работы'){return {id:uid(),kind:'work',group,name,qty:Number(qtyN)||0,unit,price:Number(price)||0}}
-function material(name,qtyN,unit,price){return {id:uid(),kind:'material',group:'Материалы',name,qty:Number(qtyN)||0,unit,price:Number(price)||0}}
-function floorNames(f){return {cover:{laminate:'Ламинат',spc:'Замковый кварцвинил',glue:'Клеевой кварцвинил',other:f.otherCover||'Другое покрытие'}[f.cover],old:{none:'',lino:'Линолеум',laminate:'Ламинат',spc:'SPC',glue:'Клеевой кварцвинил',other:'Другое покрытие'}[f.oldCover]}}
-function calculateFloor(f){f=f||defaultFloor();const a=+f.area||0,p=+f.perimeter||0,n=floorNames(f);const rows=[];let dr=0;if(f.oldCover==='lino')dr=150;if(f.oldCover==='laminate'||f.oldCover==='spc')dr=f.demoMode==='save'?300:200;if(f.oldCover==='glue')dr=f.demoMode==='hard'?1000:400;if(dr)rows.push(work(`Демонтаж: ${n.old}`,a,'м²',dr,'Демонтажные работы'));
- const prepRates={none:0,primer:75,grindLight:175,grindMed:375,grindHard:675,level5:525,level10:675,plywood:1000,osb:1000,tileGlue:800};const prepNames={primer:'Грунтование основания',grindLight:'Лёгкая шлифовка и грунтование',grindMed:'Средняя шлифовка и грунтование',grindHard:'Сложная шлифовка и грунтование',level5:'Наливной пол до 5 мм и грунтование',level10:'Наливной пол 5–10 мм и грунтование',plywood:'Монтаж фанеры 12 мм',osb:'Монтаж OSB',tileGlue:'Удаление плиточного клея'};if(prepRates[f.prep])rows.push(work(prepNames[f.prep],a,'м²',prepRates[f.prep],'Подготовительные и монтажные работы'));
- if(a&&f.installRate)rows.push(work(`Укладка: ${n.cover}`,a,'м²',f.installRate,'Подготовительные и монтажные работы'));
- const bbRates={none:0,pvc:300,mdf:500,micro:400,duro:800},bbNames={pvc:'ПВХ',mdf:'МДФ',micro:'алюминиевого микроплинтуса',duro:'дюрополимерного плинтуса'};if(p&&bbRates[f.baseboard])rows.push(work(`Монтаж плинтуса: ${bbNames[f.baseboard]}`,p,'м.п.',bbRates[f.baseboard],'Подготовительные и монтажные работы'));
- const db={pvc:150,mdf:300,duro:300};if(p&&db[f.demoBaseboard])rows.push(work('Демонтаж плинтуса',p,'м.п.',db[f.demoBaseboard],'Демонтажные работы'));if(f.joint)rows.push(work('Беспороговый стык',Math.ceil(f.joint),'м.п.',1500,'Подготовительные и монтажные работы'));
- const fr={none:0,light:3000,medium:7500,hard:15000};if(fr[f.furniture])rows.push(work('Перемещение мебели',1,'компл.',fr[f.furniture],'Дополнительные работы'));const kr={none:0,light:5000,medium:10000,hard:15000};if(kr[f.kitchen])rows.push(work('Разборка / сборка кухонного гарнитура',1,'компл.',kr[f.kitchen],'Дополнительные работы'));
- for(const c of f.custom||[])if((+c.qty||0)>0&&(+c.price||0)>0)rows.push({...clone(c),kind:'work',group:c.group||'Дополнительные работы'});
- const reserve={straight:1.05,diagonal:1.08,eng:1.10,fr:1.15,corner:1.15,other:1.12}[f.pattern]||1.05;const mat=[];const mr={laminate:{practical:800,optimal:1300,premium:2000},spc:{practical:1200,optimal:1600,premium:2200},glue:{practical:1300,optimal:1800,premium:2500},other:{practical:1500,optimal:2000,premium:3000}}[f.cover]?.[f.segment]||0;if(a&&mr)mat.push(material(`${n.cover} · ${f.segment==='practical'?'Практичный':f.segment==='optimal'?'Оптимальный':'Премиальный'}`,a*reserve,'м²',mr));let uk=f.underlay;if(uk==='auto')uk=(f.cover==='glue'||f.cover==='spc')?'none':'basic';const ur={none:0,basic:80,xps:180,acoustic:320,spc:220}[uk]||0,un={basic:'Подложка базовая 2 мм',xps:'Подложка XPS 3 мм',acoustic:'Подложка акустическая',spc:'Подложка для SPC'}[uk];if(a&&ur)mat.push(material(un,a,'м²',ur));
- const workTotal=rows.reduce((s,r)=>s+r.qty*r.price,0),materialTotal=mat.reduce((s,r)=>s+r.qty*r.price,0);return {rows,materials:mat,workTotal,materialTotal}}
-function updateFloorTotals(){if(!floorDraft)return;floorDraft=collectFloor();$('floorWorkTotal').textContent=money(calculateFloor(floorDraft).workTotal)}
-function rowEditorHtml(r,i,prefix){return `<div class="rowCard"><div class="rowGrid"><label>Название<input data-${prefix}-i="${i}" data-k="name" value="${esc(r.name||'')}"></label><label>Кол-во<input type="number" step=".1" min="0" data-${prefix}-i="${i}" data-k="qty" value="${r.qty??1}"></label><label>Ед.<select data-${prefix}-i="${i}" data-k="unit">${['шт.','м²','м.п.','компл.','час'].map(u=>`<option ${u===r.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input type="number" min="0" step="50" data-${prefix}-i="${i}" data-k="price" value="${r.price??''}"></label><button class="btn danger small" data-${prefix}-remove="${i}">×</button></div><div class="rowSum">Сумма: ${money((+r.qty||0)*(+r.price||0))}</div></div>`}
-function bindRowEditors(container,prefix,arr,onRender){container.querySelectorAll(`[data-${prefix}-i]`).forEach(el=>el.oninput=()=>{const i=+el.dataset[prefix+'I'],k=el.dataset.k;arr[i][k]=(k==='qty'||k==='price')?+el.value||0:el.value;onRender()});container.querySelectorAll(`[data-${prefix}-remove]`).forEach(b=>b.onclick=()=>{arr.splice(+b.dataset[prefix+'Remove'],1);onRender()})}
-function renderFloorCustom(){const c=$('floorCustomRows');c.innerHTML=(floorDraft.custom||[]).map((r,i)=>rowEditorHtml(r,i,'floor')).join('');bindRowEditors(c,'floor',floorDraft.custom,()=>{renderFloorCustom();updateFloorTotals()})}
-$('addFloorCustom').onclick=()=>{floorDraft.custom.push({id:uid(),kind:'work',group:'Дополнительные работы',name:'',qty:1,unit:'шт.',price:0});renderFloorCustom();updateFloorTotals()};
-$('saveFloorBtn').onclick=async()=>{floorDraft=collectFloor();floorDraft.completed=true;currentObject.floor=clone(floorDraft);currentObject.project=collectProject();await persist(currentObject);renderObject();showModuleSheet();toast('Модуль «Полы» сохранён')};
-
-function openDoors(){doorDraft=clone(currentObject.doors?.rows||[]);renderDoorRows();updateDoorsTotal();show('doors')}
-function renderDoorRows(){const c=$('doorRows');c.innerHTML=doorDraft.map((r,i)=>rowEditorHtml(r,i,'door')).join('');bindRowEditors(c,'door',doorDraft,()=>{renderDoorRows();updateDoorsTotal()})}
-function updateDoorsTotal(){$('doorsTotal').textContent=money(doorDraft.reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0))}
-$('addDoorCustom').onclick=()=>{doorDraft.push({id:uid(),kind:'work',group:'Дверные работы',name:'',qty:1,unit:'шт.',price:0});renderDoorRows();updateDoorsTotal()};$$('.doorPreset').forEach(b=>b.onclick=()=>{doorDraft.push({id:uid(),kind:'work',group:'Дверные работы',name:b.dataset.name,qty:1,unit:'шт.',price:+b.dataset.price});renderDoorRows();updateDoorsTotal()});
-$('saveDoorsBtn').onclick=async()=>{currentObject.doors={completed:doorDraft.length>0,rows:clone(doorDraft)};await persist(currentObject);renderObject();showModuleSheet();toast('Модуль «Двери» сохранён')};
-
-function showModuleSheet(){$('moduleSheet').classList.add('show')}$$('[data-after]').forEach(b=>b.onclick=()=>{$('moduleSheet').classList.remove('show');const m=b.dataset.after;if(m==='object'){renderObject();show('object')}else openModule(m)});
-function openPhotos(){photoDraft=clone(currentObject.photos||[]);renderPhotos();show('photos')}
-async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=reject;img.src=url})}
-$('photoInput').onchange=async e=>{for(const file of [...e.target.files]){try{photoDraft.push({id:uid(),data:await compressImage(file),caption:''})}catch(err){toast('Не удалось обработать фото')}}renderPhotos();e.target.value=''};
-function renderPhotos(){$('photoGrid').innerHTML=photoDraft.length?photoDraft.map((p,i)=>`<div class="photo"><img src="${p.data||''}" alt=""><button data-photo-remove="${i}">×</button><input data-photo-caption="${i}" value="${esc(p.caption||'')}" placeholder="Подпись"></div>`).join(''):'<div class="help">Фотографий пока нет.</div>';$$('[data-photo-remove]').forEach(b=>b.onclick=()=>{photoDraft.splice(+b.dataset.photoRemove,1);renderPhotos()});$$('[data-photo-caption]').forEach(i=>i.oninput=()=>photoDraft[+i.dataset.photoCaption].caption=i.value)}
-$('savePhotosBtn').onclick=async()=>{currentObject.photos=clone(photoDraft);await persist(currentObject);renderObject();showModuleSheet();toast('Фотографии сохранены')};
-
-function openPayments(){stageDraft=clone(currentObject.stages||[]);renderStages();show('payments')}
-function renderStages(){$('stageRows').innerHTML=stageDraft.length?stageDraft.map((s,i)=>`<div class="stage"><label>Этап<input data-stage-i="${i}" data-k="name" value="${esc(s.name||'')}"></label><label>Сумма<input type="number" data-stage-i="${i}" data-k="amount" value="${s.amount||0}"></label><label>Статус<select data-stage-i="${i}" data-k="paid"><option value="false" ${!s.paid?'selected':''}>Не оплачен</option><option value="true" ${s.paid?'selected':''}>Оплачен</option></select></label><button class="btn danger small" data-stage-remove="${i}">×</button></div>`).join(''):'<div class="help">Этапов пока нет.</div>';$$('[data-stage-i]').forEach(el=>el.oninput=()=>{const i=+el.dataset.stageI,k=el.dataset.k;stageDraft[i][k]=k==='amount'?+el.value||0:k==='paid'?el.value==='true':el.value;renderStages()});$$('[data-stage-remove]').forEach(b=>b.onclick=()=>{stageDraft.splice(+b.dataset.stageRemove,1);renderStages()});const total=stageDraft.reduce((s,x)=>s+(+x.amount||0),0),paid=stageDraft.filter(x=>x.paid).reduce((s,x)=>s+(+x.amount||0),0);$('paymentsTotal').textContent=`${money(paid)} / ${money(total)}`}
-$('addStageBtn').onclick=()=>{stageDraft.push({id:uid(),name:`Этап ${stageDraft.length+1}`,amount:0,paid:false,date:today()});renderStages()};$('savePaymentsBtn').onclick=async()=>{currentObject.stages=clone(stageDraft);await persist(currentObject);renderObject();showModuleSheet();toast('Этапы сохранены')};
-
-function documentRowsForObject(){const f=calculateFloor(currentObject.floor||defaultFloor()),d=(currentObject.doors?.rows||[]).map(r=>({...clone(r),kind:'work',group:r.group||'Дверные работы'}));let rows=[...f.rows,...d];if($('docType').value==='proposal'&&$('docMaterials').value==='yes')rows.push(...f.materials);return rows.map(r=>({...r,id:r.id||uid()}))}
-$('prepareDocBtn').onclick=()=>{reviewRows=documentRowsForObject();renderReview();$('reviewSheet').classList.add('show')};$('closeReviewBtn').onclick=()=>$('reviewSheet').classList.remove('show');$('addReviewRowBtn').onclick=()=>{reviewRows.push({id:uid(),kind:'work',group:'Дополнительные работы',name:'',qty:1,unit:'шт.',price:0});renderReview()};
-function renderReview(){$('reviewRows').innerHTML=reviewRows.length?reviewRows.map((r,i)=>`<div class="reviewRow"><label>Наименование<input data-review-i="${i}" data-k="name" value="${esc(r.name||'')}"></label><label>Кол-во<input type="number" step=".1" data-review-i="${i}" data-k="qty" value="${r.qty||0}"></label><label>Ед.<select data-review-i="${i}" data-k="unit">${['шт.','м²','м.п.','компл.','час'].map(u=>`<option ${u===r.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input type="number" data-review-i="${i}" data-k="price" value="${r.price||0}"></label><button class="btn danger small" data-review-remove="${i}">×</button></div>`).join(''):'<div class="help">Нет позиций. Добавьте работу вручную.</div>';$$('[data-review-i]').forEach(el=>el.oninput=()=>{const i=+el.dataset.reviewI,k=el.dataset.k;reviewRows[i][k]=(k==='qty'||k==='price')?+el.value||0:el.value;renderReview()});$$('[data-review-remove]').forEach(b=>b.onclick=()=>{reviewRows.splice(+b.dataset.reviewRemove,1);renderReview()});$('reviewTotal').textContent=money(reviewRows.reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0))}
-$('generateDocBtn').onclick=async()=>{$('reviewSheet').classList.remove('show');buildDocument();currentObject.documentHistory=currentObject.documentHistory||[];currentObject.documentHistory.push({id:uid(),type:$('docType').value,date:new Date().toISOString(),total:reviewRows.reduce((s,r)=>s+r.qty*r.price,0)});await persist(currentObject)};
-function buildDocument(){const type=$('docType').value,p=currentObject.project||{},titles={proposal:'Коммерческое предложение',worklist:'Перечень выполненных работ',act:'Акт выполненных работ'},title=titles[type];const groupOrder=[];for(const r of reviewRows)if(!groupOrder.includes(r.group))groupOrder.push(r.group);const body=groupOrder.map(g=>`<tr class="group"><td colspan="5">${esc(g||'Работы')}</td></tr>`+reviewRows.filter(r=>r.group===g).map(r=>`<tr><td>${esc(r.name)}</td><td>${qty(r.qty)}</td><td>${esc(r.unit)}</td><td>${money(r.price)}</td><td>${money(r.qty*r.price)}</td></tr>`).join('')).join('');const total=reviewRows.reduce((s,r)=>s+r.qty*r.price,0);const info=(l,v)=>v?`<div><span>${l}</span><strong>${esc(v)}</strong></div>`:'';const note=type==='proposal'?'Стоимость материалов, если они включены, является ориентировочной и уточняется после выбора конкретных позиций.':type==='worklist'?'Перечень отражает фактически выполненный объём и стоимость работ по объекту.':'Работы выполнены в указанном объёме. Подписи сторон подтверждают сдачу и приёмку.';const signatures=type==='act'?`<div class="signature"><div>Исполнитель / подпись</div><div>Заказчик / подпись</div></div>`:'';
- $('paper').innerHTML=`<div class="paperBrand">FRAME</div><div class="paperTag">Design. Build. Finish.</div><div class="paperHero"><h1>${title}</h1></div><div class="paperInfo">${info('Заказчик',p.customer)}${info('Телефон',p.phone)}${info('Адрес объекта',p.address)}${info(type==='proposal'?'Дата расчёта':'Дата выполнения',ruDate(p.date||today()))}${info('Мессенджеры',(p.messengers||[]).join(', '))}</div><h2>Работы и услуги</h2><div style="overflow-x:auto"><table><thead><tr><th>Наименование</th><th>Количество</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${body}</tbody></table></div><div class="paperTotal"><div class="grand"><span>${type==='proposal'?'Общий бюджет':'Итого к оплате'}</span><strong>${money(total)}</strong></div></div><p class="paperNote">${note}</p>${signatures}`;$('documentView').classList.remove('hidden');window.scrollTo(0,0)}
-$('closeDocumentBtn').onclick=()=>$('documentView').classList.add('hidden');$('printDocumentBtn').onclick=()=>window.print();
-
-$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({version:VERSION,exportedAt:new Date().toISOString(),objects},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FRAME-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-$('importInput').onchange=async e=>{try{const data=JSON.parse(await e.target.files[0].text()),arr=Array.isArray(data)?data:data.objects;if(!Array.isArray(arr))throw Error();for(const o of arr)if(o.id)await dbPut(o);await reloadObjects();renderDashboard();toast('Резервная копия импортирована')}catch(err){alert('Не удалось импортировать резервную копию')}e.target.value=''};
-
-async function init(){try{await openDB();await migrateLegacy();await reloadObjects();renderDashboard()}catch(e){console.error(e);$('storageStatus').textContent='Ошибка IndexedDB';try{objects=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');renderDashboard()}catch(_){}}if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.warn)}
-init();
-</script>
-</body></html>
+<script src="app.js"></script>
+</body>
+</html>
