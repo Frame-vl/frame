@@ -3,703 +3,233 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#34383c">
+<meta name="theme-color" content="#0f1113">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FRAME">
-<title>FRAME Floors & Doors 1.4.0</title>
+<title>FRAME 1.5.0 Field</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
-:root{
---bg:#0f1113;--card:#181b1f;--text:#f4f4f2;--muted:#a5a9ad;--border:#30353a;
---accent:#c47b34;--dark:#0d0f11;--warn:#2a2318;--soft:#202429;--input:#14171a;
---proposal-bg:#ffffff;--proposal-text:#34383c
-}
-body.light{
---bg:#f4f2ed;--card:#ffffff;--text:#34383c;--muted:#777b7e;--border:#d5d1c9;
---accent:#b87533;--dark:#34383c;--warn:#fff3d1;--soft:#faf8f4;--input:#ffffff
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding-bottom:94px}
-.app{max-width:760px;margin:auto;padding:14px}
-header{display:flex;justify-content:space-between;align-items:center;margin:6px 0 16px}
-.brand{font-size:24px;font-weight:850}.sub{font-size:12px;color:var(--accent);font-style:italic}.version{font-size:12px;border:1px solid var(--border);background:var(--card);border-radius:999px;padding:6px 9px}
-.progressText{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}.track{height:8px;background:#e4e0d8;border-radius:99px;overflow:hidden;margin:7px 0 16px}.bar{height:100%;background:var(--accent);width:0;transition:.2s}
-.step{display:none}.step.active{display:block}.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px}
-h1{font-size:22px;margin:0 0 8px}h2{font-size:17px;margin:22px 0 8px}h3{font-size:15px;margin:18px 0 8px}
-.help{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 16px}
-.choices{display:grid;gap:10px}.choice{width:100%;padding:15px;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:15px;font-size:16px;font-weight:700;color:var(--text)}
-.choice.selected{background:rgba(196,123,52,.16);border-color:var(--accent);box-shadow:0 0 0 2px rgba(196,123,52,.16)}
-label{display:block;color:var(--muted);font-size:13px;margin:11px 0}
-input,select,textarea{width:100%;margin-top:6px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:16px}
-textarea{min-height:88px;resize:vertical}
-.grid{display:grid;gap:10px}.hidden{display:none!important}.nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap}
-button{border:0;border-radius:12px;padding:12px 15px;font-size:15px;font-weight:750;cursor:pointer}
-.primary{background:var(--accent);color:#fff}.primary:hover{filter:brightness(.96)}
-.secondary{background:var(--soft);color:var(--text)}.ghost{background:var(--card);color:var(--text);border:1px solid var(--border)}
-.danger{background:#34383c;color:#fff;border:1px solid #34383c}.danger:hover{background:#25282b}
-.heroTotal{background:#34383c;color:#fff;border-radius:20px;padding:20px;margin-bottom:14px}
-.heroTotal span{display:block;font-size:13px;color:#d7d7d7}.heroTotal strong{display:block;font-size:34px;margin-top:4px}
-.proposalPrimary{width:100%;padding:16px 18px;font-size:17px}
-.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.metric{background:var(--soft);border:1px solid var(--border);border-radius:15px;padding:11px}.metric span{font-size:12px;color:var(--muted)}.metric strong{display:block;font-size:19px;margin-top:4px}
-.line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 0;border-bottom:1px solid #ece8e1}.line:last-child{border-bottom:0}.line strong{text-align:right}.detail{display:block;color:var(--muted);font-size:12px;margin-top:3px}
-.note{background:var(--warn);border-left:4px solid var(--accent);padding:12px;border-radius:12px;font-size:13px;line-height:1.45;margin-top:14px}
-.customCard{border:1px solid var(--border);border-radius:16px;padding:12px;margin:10px 0;background:var(--soft)}.customGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wide{grid-column:1/-1}.customSum{margin:8px 0;font-size:13px;color:var(--muted)}.customSum strong{color:var(--text)}
-.sticky{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(52,56,60,.98);color:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center}.sticky span{font-size:12px;color:#d8d8d8}.sticky strong{font-size:22px}
-#proposalView{display:none;position:fixed;inset:0;background:#eee;z-index:100;overflow:auto;padding:14px}.proposalActions{max-width:920px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap}.proposalPage{max-width:920px;margin:auto;background:var(--proposal-bg);padding:42px;color:var(--proposal-text)}.proposalBrand{font-size:30px;font-weight:850}.proposalTag{color:#b87533;font-style:italic}.proposalHero{border-top:6px solid #34383c;margin-top:22px;padding-top:22px}
-.infoGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin:18px 0}.infoGrid div{padding:7px 0;border-bottom:1px solid #eee}.infoGrid span{display:block;font-size:12px;color:#777;margin-bottom:3px}
-.tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.proposalTable{width:100%;border-collapse:collapse;min-width:650px}.proposalTable th,.proposalTable td{padding:10px 7px;border-bottom:1px solid #ddd;text-align:left;font-size:14px}.proposalTable th{background:#f5f3ee!important;color:#34383c!important}.proposalTable th:nth-child(n+2),.proposalTable td:nth-child(n+2){text-align:right}.groupRow td{background:var(--soft);font-weight:800;text-align:left!important}
-.proposalTotals{background:#34383c;color:#fff;border-radius:12px;padding:20px;margin-top:22px}.proposalTotals div{display:flex;justify-content:space-between;margin:8px 0}.proposalGrand{font-size:21px;font-weight:850}
-.status{padding:9px 12px;border-radius:12px;background:var(--soft);font-size:13px;color:var(--muted);margin-top:10px}
-.startScreen{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:18px}
-.startPanel{width:min(520px,100%);background:var(--card);border:1px solid var(--border);border-radius:24px;padding:24px}
-.startPanel h1{font-size:28px;margin-bottom:8px}.startActions{display:grid;gap:12px;margin-top:20px}.startActions button{padding:18px;font-size:17px;text-align:left}
-.startActions button small{display:block;font-weight:500;color:var(--muted);margin-top:5px}.startActions button:disabled{opacity:.45;cursor:not-allowed}
-
-.printHelp{max-width:920px;margin:0 auto 12px;background:var(--warn);border-left:4px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13px}
-.themeToggle{display:flex;gap:6px;align-items:center}
-.themeToggle button{padding:8px 10px;border-radius:999px;background:var(--card);color:var(--text);border:1px solid var(--border)}
-.themeToggle button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.phoneHint{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
-
-#proposalView,#proposalView *{color-scheme:light}
-.proposalPage,.proposalPage *{--text:#34383c;--muted:#777;--border:#ddd}
-.proposalPage table,.proposalPage td,.proposalPage th{color:#34383c}
-.proposalPage .groupRow td{background:#34383c!important;color:#fff!important}
-@media print{
-  html,body,#proposalView,.proposalPage{background:#fff!important;color:#34383c!important}
-  .proposalPage *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  .proposalTable th{background:#f5f3ee!important;color:#34383c!important}
-  .proposalTable td{background:#fff;color:#34383c!important}
-  .proposalTable .groupRow td{background:#34383c!important;color:#fff!important}
-  .proposalTotals{background:#34383c!important;color:#fff!important}
-  .proposalTotals *{color:#fff!important}
-  .printHelp{display:none!important}
-}
-
-
-/* Motion and interaction */
-.step{display:none;opacity:1;transform:none}
-.step.active{display:block;opacity:1;transform:none;animation:stepIn .24s ease both}
-.step.leaving-left{display:block;opacity:1;transform:none;animation:stepOutLeft .18s ease both}
-.step.leaving-right{display:block;opacity:1;transform:none;animation:stepOutRight .18s ease both}
-@keyframes stepIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
-@keyframes stepOutLeft{to{opacity:0;transform:translateX(-24px)}}
-@keyframes stepOutRight{to{opacity:0;transform:translateX(24px)}}
-button{transition:transform .12s ease,filter .12s ease,box-shadow .12s ease}
-button:active{transform:scale(.97)}
-.choice{position:relative;padding-right:48px}
-.choice::after{content:"✓";position:absolute;right:17px;top:50%;transform:translateY(-50%) scale(.65);opacity:0;color:#fff;background:var(--accent);width:25px;height:25px;border-radius:50%;display:grid;place-items:center;font-size:15px;transition:.16s}
-.choice.selected::after{opacity:1;transform:translateY(-50%) scale(1)}
-.bar{transition:width .34s cubic-bezier(.2,.8,.2,1)}
-.heroTotal strong{font-variant-numeric:tabular-nums}
-.loadingOverlay{position:fixed;inset:0;z-index:300;background:rgba(15,17,19,.94);display:none;align-items:center;justify-content:center;padding:22px}
-.loadingOverlay.show{display:flex}
-.loadingCard{width:min(420px,100%);background:#181b1f;border:1px solid #343a40;border-radius:24px;padding:28px;text-align:center;color:#fff}
-.loadingIcon{font-size:48px;animation:floatDoc 1s ease-in-out infinite alternate}
-@keyframes floatDoc{to{transform:translateY(-7px)}}
-.loadingTrack{height:8px;background:#2c3136;border-radius:99px;overflow:hidden;margin:20px 0}
-.loadingFill{height:100%;width:0;background:#c47b34;border-radius:99px;transition:width .22s}
-.loadingChecks{text-align:left;display:grid;gap:10px;color:#aeb3b7}
-.loadingChecks .done{color:#fff}
-.updateBanner{position:fixed;left:14px;right:14px;bottom:calc(94px + env(safe-area-inset-bottom));z-index:80;background:#181b1f;border:1px solid #41474d;border-radius:17px;padding:12px;display:none;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 15px 40px rgba(0,0,0,.35)}
-.updateBanner.show{display:flex}
-.updateBanner strong{display:block;color:#fff}.updateBanner small{color:#aeb3b7}
-.updateBanner button{white-space:nowrap}
-@media(prefers-reduced-motion:reduce){
- .step.active{display:block!important;opacity:1!important;transform:none!important;animation:none!important}
- .step.leaving-left,.step.leaving-right{display:none!important;opacity:1!important;transform:none!important;animation:none!important}
- .loadingIcon{animation:none!important}
- *,*::before,*::after{transition-duration:.01ms!important}
-}
-
-@media(min-width:620px){.choices.two,.grid.two{grid-template-columns:repeat(2,1fr)}.summary{grid-template-columns:repeat(4,1fr)}}
-@media(max-width:620px){.infoGrid{grid-template-columns:1fr}.proposalPage{padding:24px 18px}.customGrid{grid-template-columns:1fr}.wide{grid-column:auto}}
-@media print{body{background:#fff!important;color:#34383c!important}body>*:not(#proposalView){display:none!important}#proposalView{display:block!important;position:static;padding:0;background:#fff}.proposalActions{display:none}.proposalPage{max-width:none;margin:0;padding:20px}.proposalTable{min-width:0}.tableWrap{overflow:visible}}
-
-/* Document theme is independent from application theme */
-#proposalView{background:#ededed!important;color:#34383c!important;color-scheme:light!important}
-#proposalView .proposalPage{background:#fff!important;color:#34383c!important;color-scheme:light!important}
-#proposalView .proposalPage *{color:#34383c}
-#proposalView .proposalTable th{background:#f5f3ee!important;color:#34383c!important}
-#proposalView .proposalTable td{background:#fff!important;color:#34383c!important}
-#proposalView .proposalTable tr.groupRow td{background:#34383c!important;color:#fff!important}
-#proposalView .proposalTotals{background:#34383c!important;color:#fff!important}
-#proposalView .proposalTotals *{color:#fff!important}
-#proposalView .proposalTag{color:#b87533!important}
-#proposalView .help{color:#777!important}
-@media print{
- html,body,#proposalView,#proposalView .proposalPage{background:#fff!important;color:#34383c!important;color-scheme:light!important}
- #proposalView .proposalPage *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- #proposalView .proposalTable th{background:#f5f3ee!important;color:#34383c!important}
- #proposalView .proposalTable td{background:#fff!important;color:#34383c!important}
- #proposalView .proposalTable tr.groupRow td{background:#34383c!important;color:#fff!important}
- #proposalView .proposalTotals{background:#34383c!important;color:#fff!important}
- #proposalView .proposalTotals *{color:#fff!important}
- .printHelp{display:none!important}
-}
-
-
-@supports (-webkit-touch-callout:none){
-  .step.active{display:block;opacity:1;transform:none}
-  .card{visibility:visible;opacity:1}
-}
-
-
-.dashboardStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.dashMetric{background:var(--soft);border:1px solid var(--border);border-radius:15px;padding:12px}.dashMetric span{display:block;font-size:11px;color:var(--muted)}.dashMetric strong{font-size:20px}.objectList{display:grid;gap:10px;max-height:42vh;overflow:auto}.objectCard{border:1px solid var(--border);background:var(--soft);border-radius:16px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:8px}.objectCard h3{margin:0 0 4px}.objectCard p{margin:2px 0;color:var(--muted);font-size:13px}.statusPill{font-size:11px;border-radius:999px;padding:5px 8px;background:rgba(196,123,52,.18);color:var(--accent);height:max-content}.miniActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.miniActions button{padding:8px 10px;font-size:12px}.checks{display:flex;gap:9px;flex-wrap:wrap;margin-top:7px}.checkChip{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:9px 11px;background:var(--soft);color:var(--text);font-size:13px}.checkChip input{width:auto;margin:0}.moduleTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.moduleTab{border:1px solid var(--border);background:var(--soft);border-radius:15px;padding:12px;text-align:center;font-weight:800}.doorPresets{display:grid;gap:8px;margin-top:10px}.doorPreset{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid var(--border);background:var(--soft);border-radius:14px;padding:11px}.doorPreset small{display:block;color:var(--muted);margin-top:3px}.docButtons{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.topHome{position:fixed;right:14px;bottom:82px;z-index:25;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-@media(max-width:520px){.dashboardStats{grid-template-columns:1fr 1fr}.dashboardStats .dashMetric:last-child{grid-column:1/-1}.moduleTabs{grid-template-columns:1fr}.docButtons{grid-template-columns:1fr}}
+:root{--bg:#0f1113;--card:#181b1f;--soft:#202429;--input:#14171a;--text:#f4f4f2;--muted:#a5a9ad;--border:#30353a;--accent:#c97d2f;--danger:#8f3d3d;--paper:#fff;--ink:#34383c;--paperSoft:#f5f3ee;--ok:#4f8b68}
+body.light{--bg:#f3f0e9;--card:#fff;--soft:#f8f5ef;--input:#fff;--text:#34383c;--muted:#767a7e;--border:#d8d2c8;--danger:#a64545}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.shell{max-width:920px;margin:auto;padding:14px 14px 100px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}.brand{font-size:25px;font-weight:900;letter-spacing:.2px}.tag{font-size:12px;color:var(--accent);font-style:italic}.build{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:7px 10px;background:var(--card)}
+.view{display:none}.view.active{display:block;animation:fade .18s ease}@keyframes fade{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:18px;margin-bottom:14px}.card h1,.card h2,.card h3{margin-top:0}h1{font-size:24px}h2{font-size:18px;margin:24px 0 10px}h3{font-size:15px}.help{color:var(--muted);font-size:14px;line-height:1.5}.muted{color:var(--muted)}
+.actions{display:flex;gap:9px;flex-wrap:wrap}.actions.end{justify-content:flex-end}.btn{border:1px solid transparent;border-radius:13px;padding:12px 15px;font-weight:800;background:var(--soft);color:var(--text)}.btn.primary{background:var(--accent);color:#fff}.btn.ghost{border-color:var(--border);background:var(--card)}.btn.danger{background:var(--danger);color:#fff}.btn.small{padding:8px 10px;font-size:12px}.btn.wide{width:100%}.btn:active{transform:scale(.98)}
+.grid{display:grid;gap:11px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.wide{grid-column:1/-1}label{display:block;color:var(--muted);font-size:13px}input,select,textarea{width:100%;margin-top:6px;padding:12px 13px;border:1px solid var(--border);border-radius:12px;background:var(--input);color:var(--text)}textarea{min-height:82px;resize:vertical}.checkline{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}.check{display:flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--soft);border-radius:999px;padding:9px 11px;color:var(--text)}.check input{width:auto;margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}.stat{background:var(--soft);border:1px solid var(--border);border-radius:16px;padding:12px}.stat span{font-size:11px;color:var(--muted);display:block}.stat strong{font-size:21px;display:block;margin-top:4px}.list{display:grid;gap:10px}.objectItem{background:var(--soft);border:1px solid var(--border);border-radius:17px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px}.objectItem h3{margin:0 0 5px}.objectItem p{margin:3px 0;font-size:13px;color:var(--muted)}.pill{height:max-content;border-radius:999px;padding:6px 9px;font-size:11px;background:rgba(201,125,47,.17);color:var(--accent)}
+.objectHero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}.objectHero h1{margin-bottom:4px}.objectMeta{font-size:13px;color:var(--muted);line-height:1.5}.totalBox{background:#34383c;color:#fff;border-radius:18px;padding:14px;min-width:170px}.totalBox span{display:block;font-size:11px;color:#d7d7d7}.totalBox strong{display:block;font-size:25px;margin-top:4px}
+.modules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.module{border:1px solid var(--border);background:var(--soft);border-radius:18px;padding:15px;text-align:left;color:var(--text)}.moduleTop{display:flex;justify-content:space-between;gap:8px;align-items:center}.moduleIcon{font-size:24px}.module h3{margin:10px 0 4px;font-size:17px}.module p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}.moduleStatus{font-size:10px;border-radius:999px;padding:5px 7px;background:var(--card);color:var(--muted)}.moduleStatus.done{background:rgba(79,139,104,.2);color:#7bc398}
+.sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:10px}.rowCard{border:1px solid var(--border);background:var(--soft);border-radius:16px;padding:12px;margin:9px 0}.rowGrid{display:grid;grid-template-columns:2fr .7fr .8fr .9fr auto;gap:8px;align-items:end}.rowGrid label{min-width:0}.rowSum{font-size:12px;color:var(--muted);margin-top:7px}.presetList{display:grid;gap:8px}.preset{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--border);background:var(--soft);border-radius:15px;padding:12px}.preset small{display:block;color:var(--muted);margin-top:3px}
+.photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.photo{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--soft);aspect-ratio:1}.photo img{width:100%;height:100%;object-fit:cover}.photo button{position:absolute;right:6px;top:6px;border:0;border-radius:999px;background:rgba(0,0,0,.68);color:#fff;width:30px;height:30px}.photo input{position:absolute;left:6px;right:6px;bottom:6px;width:calc(100% - 12px);font-size:11px;padding:7px;background:rgba(0,0,0,.72);color:#fff;border:0}
+.stage{display:grid;grid-template-columns:1.4fr .8fr .8fr auto;gap:8px;align-items:end;border:1px solid var(--border);background:var(--soft);border-radius:15px;padding:12px;margin:8px 0}.paidBadge{font-size:11px;color:#7bc398}
+.sheet{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center}.sheet.show{display:flex}.sheetPanel{width:min(680px,100%);background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.toast{position:fixed;z-index:400;left:50%;bottom:22px;transform:translateX(-50%);background:#34383c;color:#fff;border-radius:999px;padding:11px 16px;display:none;box-shadow:0 12px 35px rgba(0,0,0,.35)}.toast.show{display:block}
+.reviewRows{display:grid;gap:8px}.reviewRow{display:grid;grid-template-columns:2fr .65fr .7fr .8fr auto;gap:7px;align-items:end;border-bottom:1px solid var(--border);padding:8px 0}.reviewRow input,.reviewRow select{padding:9px;margin-top:3px}.reviewSummary{background:#34383c;color:#fff;border-radius:16px;padding:15px;margin-top:14px;display:flex;justify-content:space-between;align-items:center}.reviewSummary strong{font-size:24px}
+#documentView{position:fixed;inset:0;z-index:300;background:#e9e9e9;overflow:auto;padding:14px;color:#34383c}.docActions{max-width:920px;margin:0 auto 10px;display:flex;gap:8px;flex-wrap:wrap}.paper{max-width:920px;margin:auto;background:#fff;color:#34383c;padding:42px;min-height:100vh}.paperBrand{font-size:30px;font-weight:900}.paperTag{color:#b87533;font-style:italic}.paperHero{border-top:6px solid #34383c;margin-top:22px;padding-top:22px}.paperInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin:18px 0}.paperInfo div{padding:7px 0;border-bottom:1px solid #eee}.paperInfo span{display:block;font-size:12px;color:#777;margin-bottom:3px}.paper table{width:100%;border-collapse:collapse}.paper th,.paper td{padding:10px 7px;border-bottom:1px solid #ddd;text-align:left;font-size:14px}.paper th{background:#f5f3ee}.paper th:nth-child(n+2),.paper td:nth-child(n+2){text-align:right}.paper .group td{background:#34383c;color:#fff;font-weight:800;text-align:left}.paperTotal{background:#34383c;color:#fff;border-radius:13px;padding:19px;margin-top:22px}.paperTotal div{display:flex;justify-content:space-between;margin:7px 0}.paperTotal .grand{font-size:21px;font-weight:900}.signature{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:65px}.signature div{border-top:1px solid #777;padding-top:6px;font-size:12px;color:#777}.paperNote{font-size:13px;line-height:1.5;color:#777;margin-top:16px}
+.backupNote{border-left:4px solid var(--accent);background:rgba(201,125,47,.1);border-radius:12px;padding:11px;font-size:13px;color:var(--muted)}
+.themeBtns{display:flex;gap:5px}.themeBtns button{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:8px}
+.hidden{display:none!important}
+@media(max-width:700px){.grid.two,.grid.three,.paperInfo{grid-template-columns:1fr}.modules{grid-template-columns:1fr}.objectHero{grid-template-columns:1fr}.totalBox{min-width:0}.rowGrid,.reviewRow{grid-template-columns:1fr 1fr}.rowGrid label:first-child,.reviewRow label:first-child{grid-column:1/-1}.stage{grid-template-columns:1fr 1fr}.stage label:first-child{grid-column:1/-1}.photoGrid{grid-template-columns:repeat(2,1fr)}.paper{padding:25px 18px}.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}}
+@media print{body>*:not(#documentView){display:none!important}#documentView{display:block!important;position:static;padding:0;background:#fff}.docActions{display:none}.paper{max-width:none;margin:0;padding:20px;min-height:auto}.paper *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
 </style>
 </head>
 <body>
+<div class="shell">
+<header class="topbar"><div><div class="brand">FRAME</div><div class="tag">Design. Build. Finish.</div></div><div style="display:flex;align-items:center;gap:8px"><div class="themeBtns"><button id="darkBtn">🌙</button><button id="lightBtn">☀️</button></div><div class="build">Build 1.5.0 Field</div></div></header>
 
-<div id="startScreen" class="startScreen">
-  <div class="startPanel">
-    <div class="brand">FRAME</div><div class="sub">Design. Build. Finish.</div>
-    <h1>Рабочие объекты</h1>
-    <p class="help">Локальный кабинет мастера. Всё хранится на этом устройстве.</p>
-    <div class="dashboardStats"><div class="dashMetric"><span>Объекты</span><strong id="dashCount">0</strong></div><div class="dashMetric"><span>В работе</span><strong id="dashActive">0</strong></div><div class="dashMetric"><span>Общий бюджет</span><strong id="dashTotal">0 ₽</strong></div></div>
-    <div class="startActions">
-      <button id="newCalculation" class="primary" type="button">＋ Новый объект<small>Floors, Doors и другие работы</small></button>
-      <button id="continueCalculation" class="ghost" type="button">Продолжить черновик<small>Открыть последний незавершённый расчёт</small></button>
-    </div>
-    <h2>История объектов</h2><div id="objectList" class="objectList"><div class="status">Пока нет сохранённых объектов</div></div>
+<section id="dashboardView" class="view active">
+ <div class="card"><h1>Рабочие объекты</h1><p class="help">Локальный кабинет мастера. Объекты сохраняются в IndexedDB и дублируются резервной копией на устройстве.</p>
+  <div class="stats"><div class="stat"><span>Объекты</span><strong id="statObjects">0</strong></div><div class="stat"><span>В работе</span><strong id="statActive">0</strong></div><div class="stat"><span>Общий бюджет</span><strong id="statBudget">0 ₽</strong></div></div>
+  <div class="actions"><button id="newObjectBtn" class="btn primary">＋ Новый объект</button><button id="exportBtn" class="btn ghost">Экспорт резервной копии</button><label class="btn ghost" style="display:inline-block">Импорт<input id="importInput" type="file" accept="application/json" hidden></label></div>
+ </div>
+ <div class="card"><div class="sectionTitle"><h2 style="margin:0">История объектов</h2><span id="storageStatus" class="muted" style="font-size:12px"></span></div><div id="objectList" class="list" style="margin-top:12px"></div></div>
+</section>
+
+<section id="objectView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="dashboard">← Все объекты</button><button id="deleteObjectBtn" class="btn danger">Удалить объект</button></div>
+ <div class="card"><div class="objectHero"><div><h1 id="objectTitle">Новый объект</h1><div id="objectSubtitle" class="objectMeta"></div></div><div class="totalBox"><span>Текущий бюджет</span><strong id="objectTotal">0 ₽</strong></div></div>
+  <h2>Карточка объекта</h2><div class="grid two">
+   <label>Заказчик<input id="customerName" placeholder="Имя или ФИО"></label><label>Телефон<input id="customerPhone" inputmode="tel" placeholder="+7 (___) ___-__-__"></label>
+   <label class="wide">Адрес объекта<input id="projectAddress" placeholder="Город, улица, дом, квартира"></label><label>Дата<input id="projectDate" type="date"></label>
+   <label>Статус<select id="projectStatus"><option value="estimate">Расчёт</option><option value="approval">Согласование</option><option value="work">В работе</option><option value="done">Завершён</option><option value="archive">Архив</option></select></label>
+   <label>Источник клиента<select id="customerSource"><option value="">Не указан</option><option>Рекомендация</option><option>Авито</option><option>Повторный клиент</option><option>Telegram</option><option>Другое</option></select></label>
+   <div class="wide"><span class="muted" style="font-size:13px">Мессенджеры</span><div class="checkline"><label class="check"><input id="msgWhatsapp" type="checkbox"> WhatsApp</label><label class="check"><input id="msgTelegram" type="checkbox"> Telegram</label><label class="check"><input id="msgMax" type="checkbox"> MAX</label></div></div>
+   <label class="wide">Комментарий<textarea id="projectComment" placeholder="Особенности объекта и договорённости"></textarea></label>
+  </div><div class="actions end" style="margin-top:14px"><button id="saveProjectBtn" class="btn primary">Сохранить карточку</button></div>
+ </div>
+ <div class="card"><h2 style="margin-top:0">Типы работ и разделы</h2><p class="help">Открывайте только нужный модуль. Полы не заставляют проходить двери, а двери не ведут через вопросы о покрытии.</p><div class="modules">
+  <button class="module" data-module="floor"><div class="moduleTop"><span class="moduleIcon">▱</span><span id="floorStatus" class="moduleStatus">Не заполнено</span></div><h3>Полы</h3><p>Покрытие, площадь, основание, плинтус и дополнительные работы.</p></button>
+  <button class="module" data-module="doors"><div class="moduleTop"><span class="moduleIcon">▯</span><span id="doorsStatus" class="moduleStatus">Не заполнено</span></div><h3>Двери</h3><p>Отдельный список дверных работ и индивидуальные цены.</p></button>
+  <button class="module" data-module="photos"><div class="moduleTop"><span class="moduleIcon">▧</span><span id="photosStatus" class="moduleStatus">Нет фото</span></div><h3>Фото</h3><p>Локальные фотографии объекта с короткими подписями.</p></button>
+  <button class="module" data-module="documents"><div class="moduleTop"><span class="moduleIcon">▤</span><span id="documentsStatus" class="moduleStatus">Документы</span></div><h3>Документы</h3><p>Коммерческое предложение, перечень работ или официальный акт.</p></button>
+  <button class="module" data-module="payments"><div class="moduleTop"><span class="moduleIcon">₽</span><span id="paymentsStatus" class="moduleStatus">Нет этапов</span></div><h3>Этапы и оплаты</h3><p>Поэтапная сдача, суммы и отметки об оплате.</p></button>
+ </div></div>
+</section>
+
+<section id="floorView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+ <div class="card"><h1>Модуль «Полы»</h1><p class="help">Стандартные операции находятся здесь. Всё редкое добавляется свободной строкой ниже.</p>
+  <h2>Покрытие и объём</h2><div class="grid two">
+   <label>Покрытие<select id="floorCover"><option value="laminate">Ламинат</option><option value="spc">SPC / замковый кварцвинил</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
+   <label>Название другого покрытия<input id="floorOtherCover" placeholder="Например, инженерная доска"></label>
+   <label>Площадь, м²<input id="floorArea" type="number" min="0" step=".1"></label><label>Периметр плинтуса, м.п.<input id="floorPerimeter" type="number" min="0" step=".1"></label>
+   <label>Схема укладки<select id="floorPattern"><option value="straight">Прямая</option><option value="diagonal">Диагональная</option><option value="eng">Английская ёлка</option><option value="fr">Французская ёлка</option><option value="corner">Ёлка от угла</option><option value="other">Другая</option></select></label>
+   <label>Ставка укладки, ₽/м²<input id="floorInstallRate" type="number" min="0" step="50"><small class="muted">База для прямой укладки кварцвинила и ламината: 600 ₽/м².</small></label>
   </div>
-</div>
-<button id="homeBtn" class="ghost topHome hidden" type="button">⌂ Объекты</button><div class="app">
-<header>
-<div><div class="brand">FRAME</div><div class="sub">Design. Build. Finish.</div></div>
-<div class="themeToggle">
-<button id="themeDark" type="button" aria-label="Тёмная тема">🌙</button>
-<button id="themeLight" type="button" aria-label="Светлая тема">☀️</button>
-<div class="version" title="Версия приложения">Build 1.4.0 Field</div>
-</div>
-</header>
-<div class="progressText"><span id="stepLabel"></span><span id="stepTitle"></span></div><div class="track"><div id="bar" class="bar"></div></div>
-
-<main>
-<section class="step active" data-step="mode"><div class="card">
-<h1>Что нужно рассчитать?</h1><p class="help">Выберите формат расчёта для этого объекта.</p>
-<div class="choices" data-field="calcMode">
-<button class="choice selected" data-value="full">Полное коммерческое предложение</button>
-<button class="choice" data-value="work">Только стоимость работ</button>
-</div>
-<div class="nav"><span></span><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="project"><div class="card">
-<h1>Новый объект</h1><p class="help">Эти данные автоматически попадут в итоговый документ.</p>
-<div class="grid two">
-<label>Адрес объекта<input id="projectAddress" placeholder="Город, улица, дом, квартира"></label>
-<label>Имя заказчика<input id="customerName" placeholder="Имя или ФИО"></label>
-<label>Контактный телефон<input id="customerPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="+7 (___) ___-__-__"><small class="phoneHint">Можно начать с 8, 7 или +7</small></label>
-<label>Дата расчёта<input id="estimateDate" type="date"></label>
-<label>Статус объекта<select id="projectStatus"><option value="estimate">Расчёт</option><option value="approval">Согласование</option><option value="work">В работе</option><option value="done">Завершён</option><option value="archive">Архив</option></select></label>
-<label>Источник клиента<select id="customerSource"><option value="">Не указан</option><option>Рекомендация</option><option>Авито</option><option>Повторный клиент</option><option>Telegram</option><option>Другое</option></select></label>
-<div class="wide"><span style="font-size:13px;color:var(--muted)">Мессенджеры заказчика</span><div class="checks"><label class="checkChip"><input id="msgWhatsapp" type="checkbox"> WhatsApp</label><label class="checkChip"><input id="msgTelegram" type="checkbox"> Telegram</label><label class="checkChip"><input id="msgMax" type="checkbox"> MAX</label></div></div>
-<label class="wide">Комментарий<textarea id="projectComment" placeholder="Особенности объекта, пожелания заказчика"></textarea></label>
-</div>
-<div class="nav"><span></span><button class="primary next">Начать расчёт</button></div></div></section>
-
-<section class="step" data-step="cover"><div class="card">
-<h1>Что будем укладывать?</h1><div class="choices two" data-field="cover">
-<button class="choice selected" data-value="laminate">Ламинат</button><button class="choice" data-value="spc">SPC / замковый кварцвинил</button>
-<button class="choice" data-value="glue">Клеевой кварцвинил</button><button class="choice" data-value="other">Другое</button></div>
-<label id="otherCoverWrap" class="hidden">Название покрытия<input id="otherCover" placeholder="Например, инженерная доска"></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="area"><div class="card">
-<h1>Площадь и периметр</h1>
-<label>Площадь покрытия, м²<input id="area" type="number" value="" placeholder="Введите площадь" min="0" step=".1"></label>
-<label>Периметр плинтуса, м.п.<input id="perimeter" type="number" value="" placeholder="Введите периметр" min="0" step=".1"></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="pattern"><div class="card">
-<h1>Схема укладки</h1><div class="choices two" data-field="pattern">
-<button class="choice selected" data-value="straight">Прямая</button><button class="choice" data-value="diagonal">Диагональная</button>
-<button class="choice" data-value="eng">Английская ёлка</button><button class="choice" data-value="fr">Французская ёлка</button>
-<button class="choice" data-value="corner">Ёлка от угла</button><button class="choice" data-value="other">Другое</button></div>
-<label id="otherPatternWrap" class="hidden">Название схемы<input id="otherPattern" placeholder="Например, сложный модульный рисунок"></label>
-<label id="manualRateWrap" class="hidden">Ручная ставка, ₽/м²<input id="manualRate" type="number" placeholder="Введите ставку" min="0"></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="thickness"><div class="card">
-<h1>Толщина ламината</h1><div class="choices two" data-field="thickness">
-<button class="choice selected" data-value="under12">До 12 мм</button><button class="choice" data-value="12plus">12 мм и более</button></div>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="geometry"><div class="card">
-<h1>Геометрия помещения</h1><div class="choices" data-field="geometry">
-<button class="choice selected" data-value="simple">Простая комната</button><button class="choice" data-value="corridor">Комната + коридор</button><button class="choice" data-value="complex">Сложная геометрия</button></div>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="demo"><div class="card">
-<h1>Существующее покрытие</h1><div class="choices two" data-field="oldCover">
-<button class="choice" data-value="none">Нет / стяжка</button><button class="choice" data-value="lino">Линолеум</button>
-<button class="choice selected" data-value="laminate">Ламинат</button><button class="choice" data-value="spc">SPC</button>
-<button class="choice" data-value="glue">Клеевой кварцвинил</button><button class="choice" data-value="other">Другое</button></div>
-<label>Режим демонтажа<select id="demoMode"><option value="discard">Без сохранения</option><option value="save">С сохранением</option><option value="hard">Сложный клеевой демонтаж</option></select></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="prep"><div class="card">
-<h1>Подготовка основания</h1><label>Выберите вариант<select id="prep">
-<option value="none">Нет</option><option value="primer">Только грунтование</option><option value="grindLight">Лёгкая шлифовка + грунтование</option>
-<option value="grindMed">Средняя шлифовка + грунтование</option><option value="grindHard">Сложная шлифовка + грунтование</option>
-<option value="level5">Наливной пол до 5 мм + грунтование</option><option value="level10">Наливной пол 5–10 мм + грунтование</option>
-<option value="plywood">Фанера 12 мм</option><option value="osb">OSB</option><option value="tileGlue">Удаление плиточного клея</option></select></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="extras"><div class="card">
-<h1>Дополнительные работы</h1><div class="grid two">
-<label>Плинтус<select id="baseboard"><option value="none">Нет</option><option value="pvc" selected>ПВХ</option><option value="mdf">МДФ</option><option value="micro">Алюминиевый микроплинтус</option><option value="duro">Дюрополимер</option></select></label>
-<label>Демонтаж плинтуса<select id="demoBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="duro">Дюрополимер</option></select></label>
-<label>Беспороговый стык, целых м.п.<input id="joint" type="number" value="" placeholder="0" min="0" step="1" inputmode="numeric"></label>
-<label>Тёплый пол<select id="heat"><option value="none">Нет</option><option value="ir">Инфракрасный</option><option value="cable">Кабельный</option></select></label>
-<label id="heatAreaWrap" class="hidden">Площадь тёплого пола, м²<input id="heatArea" type="number" value="" placeholder="Введите площадь" min="0" step=".1"></label>
-<label>Перемещение мебели<select id="furniture"><option value="none">Нет</option><option value="light">Лёгкое</option><option value="medium">Среднее</option><option value="hard">Сложное</option></select></label>
-<label>Разборка / сборка кухни<select id="kitchen"><option value="none">Нет</option><option value="light">Частичный сдвиг</option><option value="medium">Средняя</option><option value="hard">Полная</option></select></label>
-<label>Необходим демонтаж и повторный монтаж дверей для укладки пола?<select id="floorDoors"><option value="no">Не требуется</option><option value="yes">Требуется</option></select></label>
-<label id="doorQtyWrap" class="hidden">Количество дверей, шт.<input id="doorQty" type="number" value="" placeholder="Введите количество" min="0" step="1"></label>
-<label id="doorPriceWrap" class="hidden">Цена за дверь, ₽<input id="doorPrice" type="number" placeholder="Введите цену" min="0"></label>
-</div><div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="materials"><div class="card">
-<h1>Материалы</h1><p class="help">Ориентировочная стоимость по ценовому сегменту.</p>
-<div class="choices" data-field="segment">
-<button class="choice selected" data-value="practical">Практичный</button><button class="choice" data-value="optimal">Оптимальный</button><button class="choice" data-value="premium">Премиальный</button></div>
-<label>Подложка<select id="underlay"><option value="auto">Автоматическая рекомендация</option><option value="none">Не требуется</option><option value="basic">Базовая 2 мм</option><option value="xps">XPS 3 мм</option><option value="acoustic">Акустическая</option><option value="spc">Для SPC</option></select></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="procurement"><div class="card">
-<h1>Организация закупки</h1><div class="choices" data-field="procurement">
-<button class="choice selected" data-value="none">Заказчик закупает самостоятельно</button>
-<button class="choice" data-value="standard">Стандартная организация закупки — 5 000 ₽</button>
-<button class="choice" data-value="complex">Сложная организация закупки — 15 000 ₽</button></div>
-<p class="help">Доставка оплачивается отдельно по тарифу магазина или перевозчика.</p>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-
-<section class="step" data-step="discount"><div class="card">
-<h1>Индивидуальная скидка</h1>
-<p class="help">Оставьте поле пустым или укажите 0, если скидка не требуется.</p>
-<label>Индивидуальная скидка, %<input id="discountPercent" type="number" value="" placeholder="Например, 10" min="0" max="100" step="1"></label>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="doors"><div class="card">
-<h1>Doors</h1><p class="help">Добавьте дверные работы. Цена сохраняется только в текущем объекте и может быть изменена.</p>
-<div class="doorPresets">
-<div class="doorPreset"><div><strong>Обычная межкомнатная дверь</strong><small>Базовый монтаж</small></div><button class="ghost doorAdd" data-name="Монтаж межкомнатной двери" data-price="5500">+ 5 500 ₽</button></div>
-<div class="doorPreset"><div><strong>Двойная распашная дверь</strong><small>Два полотна или основная створка + малая</small></div><button class="ghost doorAdd" data-name="Монтаж двойной распашной двери" data-price="12000">+ 12 000 ₽</button></div>
-<div class="doorPreset"><div><strong>Скрытая дверь</strong><small>Алюминиевая коробка, повышенный риск повреждения</small></div><button class="ghost doorAdd" data-name="Монтаж двери скрытого типа с алюминиевой коробкой" data-price="10000">+ 10 000 ₽</button></div>
-<div class="doorPreset"><div><strong>Раздвижная дверь с пеналом</strong><small>Монтаж кассеты и полотна, без отделки стены</small></div><button class="ghost doorAdd" data-name="Монтаж двери с кассетой-пеналом" data-price="25000">+ 25 000 ₽</button></div>
-<div class="doorPreset"><div><strong>Доборы</strong><small>Монтаж комплекта</small></div><button class="ghost doorAdd" data-name="Монтаж дверных доборов" data-price="1500">+ 1 500 ₽</button></div>
-<div class="doorPreset"><div><strong>Магнитный замок</strong><small>Точная врезка замка и ответной части</small></div><button class="ghost doorAdd" data-name="Врезка магнитного замка" data-price="1000">+ 1 000 ₽</button></div>
-<div class="doorPreset"><div><strong>Врезные петли</strong><small>Разметка и врезка комплекта</small></div><button class="ghost doorAdd" data-name="Врезка дверных петель" data-price="900">+ 900 ₽</button></div>
-</div>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Далее</button></div></div></section>
-
-<section class="step" data-step="custom"><div class="card">
-<h1>Нестандартные работы</h1><p class="help">Добавьте розетки, выключатели или любую другую позицию.</p>
-<div id="customRows"></div><button id="addCustom" class="ghost" type="button">+ Добавить работу</button>
-<div class="nav"><button class="secondary back">Назад</button><button class="primary next">Показать итог</button></div></div></section>
-
-<section class="step" data-step="summary"><div class="card">
-<h1>Расчёт готов</h1>
-<div class="heroTotal"><span id="heroTotalLabel">Общий бюджет</span><strong id="heroTotalValue">0 ₽</strong></div>
-<div class="summary">
-<div class="metric"><span id="mWorkLabel">Работы</span><strong id="mWork">0 ₽</strong></div>
-<div id="materialsMetric" class="metric"><span>Материалы</span><strong id="mMaterials">0 ₽</strong></div>
-<div id="discountMetric" class="metric hidden"><span>Скидка</span><strong id="mDiscount">0 ₽</strong></div>
-<div id="procurementMetric" class="metric"><span>Закупка</span><strong id="mProcurement">0 ₽</strong></div>
-<div class="metric hidden"><span>Общий бюджет</span><strong id="mTotal">0 ₽</strong></div></div>
-<h2>Демонтажные работы</h2><div id="demoRows"></div>
-<h2>Подготовительные и монтажные работы</h2><div id="installRows"></div>
-<h2>Дополнительные услуги</h2><div id="extraRows"></div>
-<div id="materialsSummary"><h2>Материалы</h2><div id="materialRows"></div>
-<div class="note">Стоимость материалов ориентировочная. Доставка оплачивается отдельно.</div></div>
-<div class="docButtons"><button id="saveObjectBtn" class="ghost" type="button">Сохранить объект</button><button id="actBtn" class="secondary" type="button">Создать акт выполненных работ</button></div><div class="nav"><button class="secondary back">Назад</button><button id="proposalBtn" class="primary proposalPrimary">Создать коммерческое предложение</button></div>
-<div class="nav"><button id="copyBtn" class="ghost">Скопировать расчёт</button><button id="resetBtn" class="danger">Начать новый расчёт</button></div></div></section>
-</main>
-</div>
-
-<div class="sticky"><div><span id="stickyTotalLabel">Общий бюджет</span><br><strong id="stickyTotal">0 ₽</strong></div><button id="quickSummary" class="primary">К итогу</button></div>
-
-
-<div id="loadingOverlay" class="loadingOverlay" aria-live="polite">
-  <div class="loadingCard">
-    <div class="loadingIcon">📄</div>
-    <h1 id="loadingTitle">Формируем коммерческое предложение</h1>
-    <div class="loadingTrack"><div id="loadingFill" class="loadingFill"></div></div>
-    <div class="loadingChecks">
-      <div id="checkWork">○ Работы и услуги</div>
-      <div id="checkMaterials">○ Материалы</div>
-      <div id="checkTotals">○ Итоговый бюджет</div>
-    </div>
+  <h2>Демонтаж и основание</h2><div class="grid two">
+   <label>Существующее покрытие<select id="floorOldCover"><option value="none">Нет / стяжка</option><option value="lino">Линолеум</option><option value="laminate">Ламинат</option><option value="spc">SPC</option><option value="glue">Клеевой кварцвинил</option><option value="other">Другое</option></select></label>
+   <label>Режим демонтажа<select id="floorDemoMode"><option value="discard">Без сохранения</option><option value="save">С сохранением</option><option value="hard">Сложный клеевой демонтаж</option></select></label>
+   <label class="wide">Подготовка основания<select id="floorPrep"><option value="none">Не требуется</option><option value="primer">Только грунтование</option><option value="grindLight">Лёгкая шлифовка + грунтование</option><option value="grindMed">Средняя шлифовка + грунтование</option><option value="grindHard">Сложная шлифовка + грунтование</option><option value="level5">Наливной пол до 5 мм + грунтование</option><option value="level10">Наливной пол 5–10 мм + грунтование</option><option value="plywood">Фанера 12 мм</option><option value="osb">OSB</option><option value="tileGlue">Удаление плиточного клея</option></select></label>
   </div>
-</div>
-<div id="updateBanner" class="updateBanner">
-  <div><strong>Доступна новая версия FRAME</strong><small>Обновление займёт несколько секунд</small></div>
-  <button id="updateNow" class="primary" type="button">Обновить</button>
+  <h2>Дополнительные стандартные работы</h2><div class="grid two">
+   <label>Плинтус<select id="floorBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="micro">Алюминиевый микроплинтус</option><option value="duro">Дюрополимер</option></select></label>
+   <label>Демонтаж плинтуса<select id="floorDemoBaseboard"><option value="none">Нет</option><option value="pvc">ПВХ</option><option value="mdf">МДФ</option><option value="duro">Дюрополимер</option></select></label>
+   <label>Беспороговый стык, м.п.<input id="floorJoint" type="number" min="0" step="1"></label>
+   <label>Перемещение мебели<select id="floorFurniture"><option value="none">Нет</option><option value="light">Лёгкое</option><option value="medium">Среднее</option><option value="hard">Сложное</option></select></label>
+   <label>Разборка / сборка кухни<select id="floorKitchen"><option value="none">Нет</option><option value="light">Частичный сдвиг</option><option value="medium">Средняя</option><option value="hard">Полная</option></select></label>
+   <label>Ценовой сегмент материалов<select id="floorSegment"><option value="practical">Практичный</option><option value="optimal">Оптимальный</option><option value="premium">Премиальный</option></select></label>
+   <label>Подложка<select id="floorUnderlay"><option value="auto">Автоматически</option><option value="none">Не требуется</option><option value="basic">Базовая 2 мм</option><option value="xps">XPS 3 мм</option><option value="acoustic">Акустическая</option><option value="spc">Для SPC</option></select></label>
+  </div>
+  <div class="sectionTitle"><h2>Дополнительные работы</h2><button id="addFloorCustom" class="btn ghost small">＋ Добавить работу</button></div><div id="floorCustomRows"></div>
+  <div class="reviewSummary"><span>Работы по модулю</span><strong id="floorWorkTotal">0 ₽</strong></div>
+  <div class="actions end" style="margin-top:14px"><button id="saveFloorBtn" class="btn primary">Сохранить модуль</button></div>
+ </div>
+</section>
+
+<section id="doorsView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+ <div class="card"><h1>Модуль «Двери»</h1><p class="help">Дверные работы живут отдельно от полов. Добавленная позиция остаётся редактируемой.</p>
+  <div class="presetList">
+   <div class="preset"><div><strong>Обычная межкомнатная дверь</strong><small>Базовый монтаж</small></div><button class="btn ghost small doorPreset" data-name="Монтаж межкомнатной двери" data-price="5500">＋ 5 500 ₽</button></div>
+   <div class="preset"><div><strong>Двойная распашная дверь</strong><small>Два полотна</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двойной распашной двери" data-price="12000">＋ 12 000 ₽</button></div>
+   <div class="preset"><div><strong>Скрытая дверь</strong><small>Алюминиевая коробка</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двери скрытого типа с алюминиевой коробкой" data-price="10000">＋ 10 000 ₽</button></div>
+   <div class="preset"><div><strong>Раздвижная дверь с пеналом</strong><small>Монтаж кассеты и полотна</small></div><button class="btn ghost small doorPreset" data-name="Монтаж двери с кассетой-пеналом" data-price="25000">＋ 25 000 ₽</button></div>
+  </div>
+  <div class="sectionTitle"><h2>Дверные работы</h2><button id="addDoorCustom" class="btn ghost small">＋ Добавить работу</button></div><div id="doorRows"></div>
+  <div class="reviewSummary"><span>Дверные работы</span><strong id="doorsTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="saveDoorsBtn" class="btn primary">Сохранить модуль</button></div>
+ </div>
+</section>
+
+<section id="photosView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+ <div class="card"><h1>Фото объекта</h1><p class="help">Фотографии хранятся только на этом устройстве. Перед сохранением они уменьшаются, чтобы не раздувать локальную базу.</p><label class="btn primary" style="display:inline-block">＋ Добавить фотографии<input id="photoInput" type="file" accept="image/*" multiple hidden></label><div id="photoGrid" class="photoGrid" style="margin-top:14px"></div><div class="actions end" style="margin-top:14px"><button id="savePhotosBtn" class="btn primary">Сохранить фото</button></div></div>
+</section>
+
+<section id="paymentsView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+ <div class="card"><div class="sectionTitle"><div><h1>Этапы и оплаты</h1><p class="help">Выполнен этап → отправлен перечень → получена оплата → работа продолжается.</p></div><button id="addStageBtn" class="btn ghost small">＋ Этап</button></div><div id="stageRows"></div><div class="reviewSummary"><span>Оплачено / всего</span><strong id="paymentsTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="savePaymentsBtn" class="btn primary">Сохранить этапы</button></div></div>
+</section>
+
+<section id="documentsView" class="view">
+ <div class="actions" style="margin-bottom:10px"><button class="btn ghost" data-nav="object">← Карточка объекта</button></div>
+ <div class="card"><h1>Документы FRAME</h1><p class="help">Перед PDF всегда открывается экран проверки. Там можно изменить название, количество, единицу и цену, удалить или добавить работу.</p>
+  <div class="grid two"><label>Тип документа<select id="docType"><option value="proposal">Коммерческое предложение</option><option value="worklist">Перечень выполненных работ</option><option value="act">Официальный акт выполненных работ</option></select></label><label>Материалы в коммерческом предложении<select id="docMaterials"><option value="yes">Включить</option><option value="no">Только работы</option></select></label></div>
+  <div class="backupNote" style="margin-top:14px">«Перечень выполненных работ» формируется без подписей и канцелярита. Официальный акт остаётся отдельным режимом.</div><div class="actions end" style="margin-top:14px"><button id="prepareDocBtn" class="btn primary">Проверить работы перед PDF</button></div>
+ </div>
+</section>
 </div>
 
-<div id="proposalView">
-<div class="proposalActions"><button id="closeProposal" class="secondary">Назад к расчёту</button><button id="printProposal" class="primary">Сохранить PDF</button></div>
-<div class="printHelp">На ПК в окне печати отключите «Колонтитулы», чтобы в PDF не попадали адрес страницы и путь к файлу.</div>
-<div id="proposalContent" class="proposalPage"></div>
-</div>
+<div id="reviewSheet" class="sheet"><div class="sheetPanel"><div class="sectionTitle"><div><h1 style="margin-bottom:4px">Проверка документа</h1><p class="help" style="margin:0">Последний шанс поправить цифры и формулировки.</p></div><button id="closeReviewBtn" class="btn ghost small">Закрыть</button></div><div id="reviewRows" class="reviewRows"></div><button id="addReviewRowBtn" class="btn ghost small" style="margin-top:10px">＋ Добавить работу</button><div class="reviewSummary"><span>Итого</span><strong id="reviewTotal">0 ₽</strong></div><div class="actions end" style="margin-top:14px"><button id="generateDocBtn" class="btn primary">Сформировать документ</button></div></div></div>
 
+<div id="moduleSheet" class="sheet"><div class="sheetPanel"><h2>Модуль сохранён</h2><p class="help">Куда перейти дальше?</p><div class="grid two"><button class="btn primary" data-after="object">Вернуться в карточку объекта</button><button class="btn ghost" data-after="documents">Открыть документы</button><button class="btn ghost" data-after="floor">Полы</button><button class="btn ghost" data-after="doors">Двери</button></div></div></div>
+
+<div id="documentView" class="hidden"><div class="docActions"><button id="closeDocumentBtn" class="btn ghost">Назад</button><button id="printDocumentBtn" class="btn primary">Сохранить PDF</button></div><div id="paper" class="paper"></div></div>
+<div id="toast" class="toast"></div>
 <script>
-const $=id=>document.getElementById(id);
-const money=n=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(Math.round(Number(n)||0));
-const num=id=>Math.max(0,Number($(id)?.value||0));
-const state={calcMode:'full',cover:'laminate',pattern:'straight',thickness:'under12',geometry:'simple',oldCover:'laminate',segment:'practical',procurement:'none'};
-let current=0, custom=[], documentMode='proposal', editingObjectId=null;
-const stepsAll=['mode','project','cover','area','pattern','thickness','geometry','demo','prep','extras','materials','procurement','discount','doors','custom','summary'];
-const titles=['Режим','Объект','Покрытие','Площадь','Укладка','Толщина','Геометрия','Демонтаж','Основание','Допработы','Материалы','Закупка','Скидка','Doors','Другие работы','Итог'];
+'use strict';
+const $=id=>document.getElementById(id);const $$=sel=>[...document.querySelectorAll(sel)];
+const VERSION='1.5.0';const DB_NAME='FRAME_DB';const STORE='objects';const BACKUP_KEY='frameObjectsBackupV150';let db=null;let objects=[];let currentObject=null;let floorDraft=null;let doorDraft=[];let photoDraft=[];let stageDraft=[];let reviewRows=[];
+const money=n=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2}).format(Number(n)||0);
+const qty=n=>Number.isInteger(Number(n))?String(Number(n)):Number(n||0).toFixed(2).replace(/0+$/,'').replace(/\.$/,'').replace('.',',');
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2);
+const clone=v=>JSON.parse(JSON.stringify(v));
+const today=()=>new Date().toISOString().slice(0,10);
+function ruDate(v){if(!v)return '';const [y,m,d]=String(v).slice(0,10).split('-');return y&&m&&d?`${d}.${m}.${y} г.`:v}
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1700)}
+function formatPhone(value){let d=String(value||'').replace(/\D/g,'');if(!d)return '';if(d[0]==='8')d='7'+d.slice(1);else if(d[0]!=='7')d='7'+d;d=d.slice(0,11);const x=d.slice(1);let out='+7';if(x.length)out+=' ('+x.slice(0,3);if(x.length>=3)out+=')';if(x.length>3)out+=' '+x.slice(3,6);if(x.length>6)out+='-'+x.slice(6,8);if(x.length>8)out+='-'+x.slice(8,10);return out}
+$('customerPhone').addEventListener('input',e=>e.target.value=formatPhone(e.target.value));
+function applyTheme(t){document.body.classList.toggle('light',t==='light');localStorage.setItem('frameTheme',t)}$('darkBtn').onclick=()=>applyTheme('dark');$('lightBtn').onclick=()=>applyTheme('light');applyTheme(localStorage.getItem('frameTheme')||'dark');
+function show(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view+'View'));window.scrollTo({top:0,behavior:'smooth'})}
+$$('[data-nav]').forEach(b=>b.onclick=()=>{if(b.dataset.nav==='dashboard'){renderDashboard();show('dashboard')}else{renderObject();show('object')}});
 
-
-function applyTheme(theme){
- document.body.classList.toggle('light',theme==='light');
- $('themeDark').classList.toggle('active',theme==='dark');
- $('themeLight').classList.toggle('active',theme==='light');
- localStorage.setItem('frameTheme',theme);
-}
-$('themeDark').addEventListener('click',()=>applyTheme('dark'));
-$('themeLight').addEventListener('click',()=>applyTheme('light'));
-applyTheme(localStorage.getItem('frameTheme')||'dark');
-
-function activeSteps(){return stepsAll.filter(s=>!(s==='thickness'&&state.cover!=='laminate')&&!((s==='materials'||s==='procurement')&&state.calcMode==='work'))}
-function showStep(i){
- const ss=activeSteps();
- const nextIndex=Math.max(0,Math.min(i,ss.length-1));
- const oldStep=document.querySelector('.step.active');
- const direction=nextIndex>=current?'left':'right';
- if(oldStep && nextIndex!==current){
-   oldStep.classList.remove('active');
-   oldStep.classList.add(direction==='left'?'leaving-left':'leaving-right');
-   setTimeout(()=>oldStep.classList.remove('leaving-left','leaving-right'),190);
- }
- current=nextIndex;
- const nextStep=document.querySelector(`[data-step="${ss[current]}"]`);
- document.querySelectorAll('.step').forEach(x=>{if(x!==oldStep)x.classList.remove('active','leaving-left','leaving-right')});
- nextStep.classList.add('active');
- $('stepLabel').textContent=`Шаг ${current+1} из ${ss.length}`;$('stepTitle').textContent=titles[stepsAll.indexOf(ss[current])];
- $('bar').style.width=((current+1)/ss.length*100)+'%';calculate();saveState();window.scrollTo({top:0,behavior:'smooth'});
-}
-document.querySelectorAll('.next').forEach(b=>b.addEventListener('click',()=>showStep(current+1)));
-document.querySelectorAll('.back').forEach(b=>b.addEventListener('click',()=>showStep(current-1)));
-$('quickSummary').addEventListener('click',()=>showStep(activeSteps().indexOf('summary')));
-
-document.querySelectorAll('[data-field]').forEach(box=>box.addEventListener('click',e=>{
- const b=e.target.closest('.choice');if(!b)return;state[box.dataset.field]=b.dataset.value;
- box.querySelectorAll('.choice').forEach(x=>x.classList.toggle('selected',x===b));
- updateVisibility();calculate();saveState();
-}));
-function updateVisibility(){
- $('otherCoverWrap').classList.toggle('hidden',state.cover!=='other');
- $('otherPatternWrap').classList.toggle('hidden',state.pattern!=='other');
- $('manualRateWrap').classList.toggle('hidden',state.cover!=='other'&&state.pattern!=='other');
- const heatOn=$('heat').value!=='none';$('heatAreaWrap').classList.toggle('hidden',!heatOn);
- const doorsOn=$('floorDoors').value==='yes';$('doorQtyWrap').classList.toggle('hidden',!doorsOn);$('doorPriceWrap').classList.toggle('hidden',!doorsOn);
- const workOnly=state.calcMode==='work';
- $('materialsMetric').classList.toggle('hidden',workOnly);
- $('procurementMetric').classList.toggle('hidden',workOnly);
- $('materialsSummary').classList.toggle('hidden',workOnly);
- $('heroTotalLabel').textContent=workOnly?'Стоимость работ':'Общий бюджет';
- $('stickyTotalLabel').textContent=workOnly?'Стоимость работ':'Общий бюджет';
- $('proposalBtn').textContent=workOnly?'Создать смету на работы':'Создать коммерческое предложение';
- $('loadingTitle').textContent=workOnly?'Формируем смету на работы':'Формируем коммерческое предложение';
-
-}
-$('heat').addEventListener('change',updateVisibility);$('floorDoors').addEventListener('change',updateVisibility);$('baseboard').addEventListener('change',updateVisibility);
-
-$('joint').addEventListener('change',()=>{
- const v=Math.max(0,Math.ceil(Number($('joint').value)||0));$('joint').value=v;calculate();saveState();
-});
-
-
-document.addEventListener('focusin',e=>{
- if(e.target.matches('input[type="number"]')){
-   if(e.target.value==='0') e.target.value='';
-   requestAnimationFrame(()=>e.target.select && e.target.select());
- }
-});
-
-function formatRussianPhone(value){
- let digits=String(value||'').replace(/\D/g,'');
- if(!digits)return '';
- if(digits[0]==='8')digits='7'+digits.slice(1);
- else if(digits[0]!=='7')digits='7'+digits;
- digits=digits.slice(0,11);
- const local=digits.slice(1);
- let out='+7';
- if(local.length>0)out+=' ('+local.slice(0,3);
- if(local.length>=3)out+=')';
- if(local.length>3)out+=' '+local.slice(3,6);
- if(local.length>6)out+='-'+local.slice(6,8);
- if(local.length>8)out+='-'+local.slice(8,10);
- return out;
-}
-function phoneCaretAfterDigits(value,digitCount){
- if(digitCount<=0)return 0;
- let seen=0;
- for(let i=0;i<value.length;i++){
-  if(/\d/.test(value[i]))seen++;
-  if(seen>=digitCount)return i+1;
- }
- return value.length;
-}
-$('customerPhone').addEventListener('keydown',e=>{
- const input=e.currentTarget;
- if(e.key!=='Backspace'||input.selectionStart!==input.selectionEnd||!input.selectionStart)return;
- const caret=input.selectionStart;
- if(/\d/.test(input.value[caret-1]))return;
- let digitIndex=caret-1;
- while(digitIndex>=0&&!/\d/.test(input.value[digitIndex]))digitIndex--;
- if(digitIndex<=1)return; // не удаляем код страны +7
- e.preventDefault();
- const digitsBefore=input.value.slice(0,digitIndex).replace(/\D/g,'').length;
- const next=input.value.slice(0,digitIndex)+input.value.slice(digitIndex+1);
- input.value=formatRussianPhone(next);
- const nextCaret=phoneCaretAfterDigits(input.value,digitsBefore);
- input.setSelectionRange(nextCaret,nextCaret);
- input.dispatchEvent(new Event('change',{bubbles:true}));
-});
-$('customerPhone').addEventListener('input',e=>{
- const input=e.currentTarget;
- const caret=input.selectionStart??input.value.length;
- const digitsBefore=input.value.slice(0,caret).replace(/\D/g,'').length;
- input.value=formatRussianPhone(input.value);
- const nextCaret=phoneCaretAfterDigits(input.value,digitsBefore);
- requestAnimationFrame(()=>input.setSelectionRange(nextCaret,nextCaret));
-});
-$('customerPhone').addEventListener('blur',e=>{e.target.value=formatRussianPhone(e.target.value);saveState()});
-
-function addCustom(item={name:'',unit:'шт.',qty:1,price:''}){custom.push(item);renderCustom();calculate();saveState()}
-function renderCustom(){
- $('customRows').innerHTML='';
- custom.forEach((it,i)=>{
-  const c=document.createElement('div');c.className='customCard';
-  c.innerHTML=`<div class="customGrid">
-   <label class="wide">Название работы<input data-i="${i}" data-k="name" value="${escapeHtml(it.name)}" placeholder="Например, замена розетки"></label>
-   <label>Единица измерения<select data-i="${i}" data-k="unit">
-    <option ${it.unit==='шт.'?'selected':''}>шт.</option><option ${it.unit==='м²'?'selected':''}>м²</option>
-    <option ${it.unit==='м.п.'?'selected':''}>м.п.</option><option ${it.unit==='компл.'?'selected':''}>компл.</option><option ${it.unit==='час'?'selected':''}>час</option>
-   </select></label>
-   <label>Количество<input data-i="${i}" data-k="qty" type="number" value="${it.qty}" min="0" step=".1"></label>
-   <label class="wide">Цена за единицу, ₽<input data-i="${i}" data-k="price" type="number" value="${it.price}" placeholder="Введите цену" min="0" step="50"></label>
-  </div><div class="customSum">Сумма: <strong>${it.price===''?'Не рассчитано':money((Number(it.qty)||0)*(Number(it.price)||0))}</strong></div>
-  <button class="danger remove" data-i="${i}" type="button">Удалить</button>`;
-  $('customRows').appendChild(c);
- });
- $('customRows').querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{
-  const i=+el.dataset.i,k=el.dataset.k;custom[i][k]=(k==='qty')?Number(el.value||0):(k==='price'?(el.value===''?'':Number(el.value)):el.value);
-  calculate();saveState();
-  const s=el.closest('.customCard').querySelector('.customSum strong');s.textContent=custom[i].price===''?'Не рассчитано':money(custom[i].qty*custom[i].price);
- }));
- $('customRows').querySelectorAll('.remove').forEach(b=>b.addEventListener('click',()=>{custom.splice(+b.dataset.i,1);renderCustom();calculate();saveState()}));
-}
-function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-$('addCustom').addEventListener('click',()=>addCustom());
-
-document.querySelectorAll('.doorAdd').forEach(b=>b.addEventListener('click',()=>{
- addCustom({name:b.dataset.name,unit:'шт.',qty:1,price:Number(b.dataset.price)});
- b.textContent='✓ Добавлено';setTimeout(()=>b.textContent='+ '+money(Number(b.dataset.price)),900);
-}));
-function installRate(area){
- if(state.cover==='other'||state.pattern==='other')return num('manualRate');
- if(state.pattern==='eng')return state.cover==='glue'?850:1100;
- if(state.pattern==='fr'||state.pattern==='corner')return state.cover==='glue'?1300:1500;
- if(state.cover==='glue')return 800;
- if(state.cover==='laminate'&&state.thickness==='12plus')return area>=40?750:900;
- return area>=40?600:750
-}
-function reserve(){return state.pattern==='straight'?1.05:state.pattern==='diagonal'?1.08:state.pattern==='eng'?1.10:1.15}
-function coverName(){return {laminate:'Ламинат',spc:'Замковый SPC',glue:'Клеевой кварцвинил',other:($('otherCover').value||'Другое покрытие')}[state.cover]}
-function oldCoverName(){return {none:'Покрытие отсутствует',lino:'Линолеум',laminate:'Ламинат',spc:'Замковый SPC',glue:'Клеевой кварцвинил',other:'Другое покрытие'}[state.oldCover]}
-function patternName(){return {straight:'Прямая',diagonal:'Диагональная',eng:'Английская ёлка',fr:'Французская ёлка',corner:'Ёлка от угла',other:($('otherPattern').value||'Нестандартная')}[state.pattern]}
-function segmentName(){return {practical:'Практичный',optimal:'Оптимальный',premium:'Премиальный'}[state.segment]}
-function baseboardName(){return {none:'Не выбран',pvc:'ПВХ',mdf:'МДФ',micro:'Алюминиевый микроплинтус',duro:'Дюрополимерный'}[$('baseboard').value]}
-function materialRate(){return {laminate:{practical:800,optimal:1300,premium:2000},spc:{practical:1200,optimal:1600,premium:2200},glue:{practical:1300,optimal:1800,premium:2500},other:{practical:1500,optimal:2000,premium:3000}}[state.cover][state.segment]}
-function underKey(){const v=$('underlay').value;if(v!=='auto')return v;if(state.cover==='glue'||state.cover==='spc')return 'none';return state.thickness==='12plus'?'xps':'basic'}
-function prepName(){return {none:'Не требуется',primer:'Грунтование',grindLight:'Лёгкая шлифовка и грунтование',grindMed:'Средняя шлифовка и грунтование',grindHard:'Сложная шлифовка и грунтование',level5:'Наливной пол до 5 мм и грунтование',level10:'Наливной пол 5–10 мм и грунтование',plywood:'Монтаж фанеры 12 мм',osb:'Монтаж OSB',tileGlue:'Удаление плиточного клея'}[$('prep').value]}
-
-function item(group,name,unit,qty,rate){
- const q=Number(qty)||0,r=Number(rate)||0;return {group,name,unit,qty:q,rate:r,sum:q*r};
-}
-function calculate(){
- const area=num('area'),per=num('perimeter');let r=installRate(area);
- if(state.pattern==='diagonal')r*=1.15;if(state.geometry==='corridor')r*=1.15;if(state.geometry==='complex')r*=1.25;
- const install=item('install',`Укладка: ${coverName()}`,'м²',area,r);
- let dr=0;if(state.oldCover==='lino')dr=150;if(state.oldCover==='laminate'||state.oldCover==='spc')dr=$('demoMode').value==='save'?300:200;if(state.oldCover==='glue')dr=$('demoMode').value==='hard'?1000:400;
- const demo=item('demo',`Демонтаж: ${oldCoverName()}`,'м²',area,dr);
- const prepRate={none:0,primer:75,grindLight:175,grindMed:375,grindHard:675,level5:525,level10:675,plywood:1000,osb:1000,tileGlue:800}[$('prep').value]||0;
- const prep=item('install',prepName(),'м²',area,prepRate);
- const bbRate={none:0,pvc:300,mdf:500,micro:400,duro:800}[$('baseboard').value]||0;
- const bb=item('install',`Монтаж плинтуса: ${baseboardName()}`,'м.п.',per,bbRate);
- const dbbRate={none:0,pvc:150,mdf:300,duro:300}[$('demoBaseboard').value]||0;
- const dbbName={none:'',pvc:'Демонтаж плинтуса ПВХ',mdf:'Демонтаж плинтуса МДФ',duro:'Демонтаж дюрополимерного плинтуса'}[$('demoBaseboard').value];
- const dbb=item('demo',dbbName,'м.п.',per,dbbRate);
- const jointQty=Math.max(0,Math.ceil(num('joint')));const joint=item('install','Беспороговый стык','м.п.',jointQty,1500);
- let heatRate=0,heatFixed=0;if($('heat').value==='ir'){heatRate=550;heatFixed=2500}if($('heat').value==='cable'){heatRate=650;heatFixed=2500}
- const heat=item('install',$('heat').value==='ir'?'Монтаж инфракрасного тёплого пола':$('heat').value==='cable'?'Монтаж кабельного тёплого пола':'','м²',num('heatArea'),heatRate);
- const heatConnect=item('install',$('heat').value==='none'?'':'Подключение и проверка тёплого пола','компл.',heatFixed?1:0,heatFixed);
- const furniture=item('extra','Перемещение мебели','компл.',({none:0,light:1,medium:1,hard:1}[$('furniture').value]),({none:0,light:3000,medium:7500,hard:15000}[$('furniture').value]));
- const kitchen=item('extra','Разборка / сборка кухонного гарнитура','компл.',({none:0,light:1,medium:1,hard:1}[$('kitchen').value]),({none:0,light:5000,medium:10000,hard:15000}[$('kitchen').value]));
- const doors=item('extra','Демонтаж / повторный монтаж дверей для укладки пола','шт.',$('floorDoors').value==='yes'?num('doorQty'):0,num('doorPrice'));
- const customItems=custom.filter(x=>x.price!==''&&(Number(x.qty)||0)>0).map(x=>item('extra',x.name||'Нестандартная работа',x.unit,Number(x.qty),Number(x.price)));
- let workItems=[demo,dbb,prep,install,bb,joint,heat,heatConnect,furniture,kitchen,doors,...customItems].filter(x=>x.name&&x.sum>0);
- const rawWork=workItems.reduce((s,x)=>s+x.sum,0),work=rawWork>0?Math.max(rawWork,10000):0;
- if(work>rawWork)workItems.push(item('extra','Корректировка до минимальной стоимости работ','компл.',1,work-rawWork));
-
- const floorQty=area*reserve(),floorRate=materialRate();
- const matItems=[item('material',`${coverName()} · ${segmentName()}`,'м²',floorQty,floorRate)];
- const uk=underKey(),underRate={none:0,basic:80,xps:180,acoustic:320,spc:220}[uk]||0;
- const underName={none:'',basic:'Подложка базовая 2 мм',xps:'Подложка XPS 3 мм',acoustic:'Подложка акустическая',spc:'Подложка для SPC'}[uk];
- if(underRate>0)matItems.push(item('material',underName,'м²',area,underRate));
- const btype=$('baseboard').value;
- const brates={pvc:{practical:220,optimal:350,premium:550},mdf:{practical:450,optimal:700,premium:1100},micro:{practical:700,optimal:1000,premium:1500},duro:{practical:700,optimal:1000,premium:1500}};
- if(btype!=='none'&&per>0)matItems.push(item('material',`Плинтус ${baseboardName()}`,'м.п.',per*1.05,brates[btype][state.segment]));
- if(btype==='pvc'&&per>0)matItems.push(item('material','Комплектующие для плинтуса ПВХ','компл.',1,1500));
- if(state.cover==='glue')matItems.push(item('material','Клей для клеевого кварцвинила','ведро',Math.ceil(area/6),({practical:3500,optimal:4500,premium:6000}[state.segment])));
- if(btype==='duro'&&per>0){
-   matItems.push(item('material','Монтажный клей для дюрополимерного плинтуса','картридж',Math.ceil(per/10),700));
-   matItems.push(item('material','Сверхлёгкая шпаклёвка для стыков','картридж',Math.ceil(per/10),700));
-   matItems.push(item('material','Двухкомпонентный цианоакрилатный клей с активатором','компл.',Math.max(1,Math.ceil(per/30)),460));
-   matItems.push(item('material','Краска для дюрополимерного плинтуса','л',Math.max(0.1,per*0.06),700));
- }
- const workOnly=state.calcMode==='work';
- const materials=workOnly?0:matItems.reduce((s,x)=>s+x.sum,0);
- const procurement=workOnly?0:{none:0,standard:5000,complex:15000}[state.procurement];
- const discountPercent=Math.min(100,Math.max(0,Number($('discountPercent').value)||0));
- const discountAmount=work*discountPercent/100;
- const discountedWork=work-discountAmount;
- const total=discountedWork+materials+procurement;
-
- const demoItems=workItems.filter(x=>x.group==='demo'),installItems=workItems.filter(x=>x.group==='install'),extraItems=workItems.filter(x=>x.group==='extra');
- renderRows('demoRows',demoItems);renderRows('installRows',installItems);renderRows('extraRows',extraItems);renderRows('materialRows',workOnly?[]:matItems);
- $('mWorkLabel').textContent=discountAmount>0?'Работы со скидкой':'Работы';$('mWork').textContent=money(discountedWork);$('mMaterials').textContent=money(materials);$('mProcurement').textContent=money(procurement);$('mTotal').textContent=money(total);animateMoney($('heroTotalValue'),total);$('stickyTotal').textContent=money(total);
- $('discountMetric').classList.toggle('hidden',discountAmount<=0);$('mDiscount').textContent='− '+money(discountAmount);
- window.summary={workOnly,demoItems,installItems,extraItems,matItems:workOnly?[]:matItems,work,discountedWork,discountPercent,discountAmount,materials,procurement,total,area,per,cover:coverName(),pattern:patternName(),segment:segmentName(),baseboard:baseboardName(),hasBaseboard:btype!=='none'&&per>0,prep:prepName()};
-}
-function animateMoney(el,target){
- const start=Number(el.dataset.value||0),end=Number(target||0),duration=420,startTime=performance.now();
- function tick(now){
-  const t=Math.min(1,(now-startTime)/duration),eased=1-Math.pow(1-t,3);
-  const value=start+(end-start)*eased;el.textContent=money(value);
-  if(t<1)requestAnimationFrame(tick);else el.dataset.value=String(end);
- }
- requestAnimationFrame(tick);
-}
-function renderRows(id,items){$(id).innerHTML=items.length?items.map(x=>`<div class="line"><span>${escapeHtml(x.name)}<small class="detail">${formatQty(x.qty)} ${x.unit} × ${money(x.rate)}</small></span><strong>${money(x.sum)}</strong></div>`).join(''):'<div class="status">Нет выбранных позиций</div>'}
-function formatQty(n){return Number.isInteger(n)?String(n):Number(n).toFixed(2).replace(/0+$/,'').replace(/\.$/,'').replace('.',',')}
-
-function buildProposal(){
- calculate();
- const s=window.summary;
- const project={address:$('projectAddress').value.trim(),name:$('customerName').value.trim(),phone:formatRussianPhone($('customerPhone').value),date:$('estimateDate').value.trim(),comment:$('projectComment').value.trim(),status:$('projectStatus').value,messengers:[$('msgWhatsapp').checked?'WhatsApp':'',$('msgTelegram').checked?'Telegram':'',$('msgMax').checked?'MAX':''].filter(Boolean).join(', ')};
- const rows=items=>items.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${formatQty(x.qty)}</td><td>${x.unit}</td><td>${money(x.rate)}</td><td>${money(x.sum)}</td></tr>`).join('');
- const group=(title,items)=>items.length?`<tr class="groupRow"><td colspan="5">${title}</td></tr>${rows(items)}`:'';
- const info=(label,value)=>value?`<div><span>${label}</span><strong>${escapeHtml(value)}</strong></div>`:'';
- const workOnly=s.workOnly;
- const title=documentMode==='act'?'Акт выполненных работ':(workOnly?'Смета на выполнение работ':'Коммерческое предложение');
- const materialsBlock=workOnly?'':`<h2>Ориентировочная стоимость материалов</h2><div class="tableWrap"><table class="proposalTable"><thead><tr><th>Материал</th><th>Количество</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows(s.matItems)}</tbody></table></div>`;
- const procurementLine=!workOnly&&s.procurement>0?`<div><span>Организация закупки</span><strong>${money(s.procurement)}</strong></div>`:'';
- const materialsLine=!workOnly?`<div><span>Материалы</span><strong>${money(s.materials)}</strong></div>`:'';
- const footer=workOnly?'Материалы предоставляются заказчиком. В смету включена только стоимость выполнения работ.':'Стоимость материалов является ориентировочной и уточняется после выбора конкретных коллекций и проверки актуальных цен. Доставка материалов оплачивается отдельно.';
- $('proposalContent').innerHTML=`<div class="proposalBrand">FRAME</div><div class="proposalTag">Design. Build. Finish.</div>
- <div class="proposalHero"><h1>${title}</h1></div>
- <div class="infoGrid">
-  ${info('Заказчик',project.name)}${info('Телефон',project.phone)}${info('Мессенджеры',project.messengers)}${info('Адрес объекта',project.address)}${info(documentMode==='act'?'Дата выполнения':'Дата расчёта',project.date)}
-  ${info('Напольное покрытие',`${s.cover}, ${formatQty(s.area)} м²`)}${info('Схема укладки',s.pattern)}
-  ${s.hasBaseboard?info('Плинтус',`${s.baseboard}, ${formatQty(s.per)} м.п.`):''}${info('Подготовка основания',s.prep)}
- </div>${project.comment?`<p><strong>Комментарий:</strong> ${escapeHtml(project.comment)}</p>`:''}
- <h2>Работы и услуги</h2><div class="tableWrap"><table class="proposalTable"><thead><tr><th>Наименование</th><th>Количество</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>
- ${group('Демонтажные работы',s.demoItems)}${group('Подготовительные и монтажные работы',s.installItems)}${group('Дополнительные услуги',s.extraItems)}
- </tbody></table></div>
- ${materialsBlock}
- <div class="proposalTotals"><div><span>Работы</span><strong>${money(s.work)}</strong></div>${s.discountAmount>0?`<div><span>Индивидуальная скидка ${formatQty(s.discountPercent)}%</span><strong>− ${money(s.discountAmount)}</strong></div><div><span>Работы со скидкой</span><strong>${money(s.discountedWork)}</strong></div>`:''}${procurementLine}${materialsLine}<div class="proposalGrand"><span>${workOnly?'Итого за работы':'Общий бюджет'}</span><strong>${money(s.total)}</strong></div></div>
- <p class="help">${documentMode==='act'?'Работы выполнены в указанном объёме. Дополнительные позиции отражены в перечне работ.':footer}</p>`;
- $('proposalView').style.display='block';
-}
-async function openProposal(){
- const overlay=$('loadingOverlay'),fill=$('loadingFill');
- overlay.classList.add('show');fill.style.width='8%';
- const workOnly=state.calcMode==='work';
- const labels={'checkWork':'Работы и услуги','checkMaterials':workOnly?'Материалы заказчика':'Материалы','checkTotals':workOnly?'Итог за работы':'Итоговый бюджет'};
- ['checkWork','checkMaterials','checkTotals'].forEach(id=>{$(id).classList.remove('done');$(id).textContent='○ '+labels[id]});
- await new Promise(r=>setTimeout(r,180));fill.style.width='38%';$('checkWork').classList.add('done');$('checkWork').textContent='✓ Работы и услуги';
- await new Promise(r=>setTimeout(r,180));fill.style.width='70%';$('checkMaterials').classList.add('done');$('checkMaterials').textContent=workOnly?'✓ Материалы заказчика':'✓ Материалы';
- await new Promise(r=>setTimeout(r,180));fill.style.width='100%';$('checkTotals').classList.add('done');$('checkTotals').textContent=workOnly?'✓ Итог за работы':'✓ Итоговый бюджет';
- await new Promise(r=>setTimeout(r,160));buildProposal();overlay.classList.remove('show');
-}
-$('proposalBtn').addEventListener('click',()=>{documentMode='proposal';openProposal()});$('actBtn').addEventListener('click',()=>{documentMode='act';openProposal()});$('closeProposal').addEventListener('click',()=>{$('proposalView').style.display='none'});$('printProposal').addEventListener('click',()=>window.print());
-
-function getObjects(){try{return JSON.parse(localStorage.getItem('frameObjectsV140')||'[]')}catch(e){return []}}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>{db=r.result;resolve(db)};r.onerror=()=>reject(r.error)})}
+function dbAll(){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readonly').objectStore(STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+function dbPut(o){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).put(o);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function dbDelete(id){return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).delete(id);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
+function stripPhotos(o){const c=clone(o);c.photos=(c.photos||[]).map(p=>({id:p.id,caption:p.caption||'',missing:true}));return c}
+function mirrorBackup(){try{localStorage.setItem(BACKUP_KEY,JSON.stringify(objects.map(stripPhotos)))}catch(e){console.warn(e)}}
+function legacyToObject(o){const v=o.values||{},s=o.state||{};return {id:o.id||uid(),version:VERSION,createdAt:o.createdAt||o.updatedAt||new Date().toISOString(),updatedAt:o.updatedAt||new Date().toISOString(),project:{customer:o.customer||v.customerName||'',phone:o.phone||v.customerPhone||'',address:o.address||v.projectAddress||'',date:v.estimateDate||today(),status:o.status||v.projectStatus||'estimate',source:v.customerSource||'',messengers:o.messengers||[v.msgWhatsapp?'WhatsApp':'',v.msgTelegram?'Telegram':'',v.msgMax?'MAX':''].filter(Boolean),comment:v.projectComment||''},floor:{completed:true,cover:s.cover||'laminate',otherCover:v.otherCover||'',area:Number(v.area||0),perimeter:Number(v.perimeter||0),pattern:s.pattern||'straight',installRate:600,oldCover:s.oldCover||'none',demoMode:v.demoMode||'discard',prep:v.prep||'none',baseboard:v.baseboard||'none',demoBaseboard:v.demoBaseboard||'none',joint:Number(v.joint||0),furniture:v.furniture||'none',kitchen:v.kitchen||'none',segment:s.segment||'practical',underlay:v.underlay||'auto',custom:o.custom||[]},doors:{completed:false,rows:[]},photos:[],stages:[],documentHistory:[]}}
+async function migrateLegacy(){if(localStorage.getItem('frameMigration150Done'))return;const existing=await dbAll();const ids=new Set(existing.map(x=>x.id));for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!/^frameObjects/i.test(k||'')||k===BACKUP_KEY)continue;try{const a=JSON.parse(localStorage.getItem(k)||'[]');if(Array.isArray(a))for(const old of a){const o=legacyToObject(old);if(!ids.has(o.id)){await dbPut(o);ids.add(o.id)}}}catch(e){console.warn('legacy',k,e)}}try{const b=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');if(Array.isArray(b))for(const o of b){if(o.id&&!ids.has(o.id)){await dbPut(o);ids.add(o.id)}}}catch(e){}localStorage.setItem('frameMigration150Done',new Date().toISOString())}
+async function reloadObjects(){objects=await dbAll();objects.sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));mirrorBackup()}
+async function persist(o){o.updatedAt=new Date().toISOString();o.version=VERSION;await dbPut(o);await reloadObjects();currentObject=objects.find(x=>x.id===o.id)||o}
+function projectTotal(o){const f=calculateFloor(o.floor||defaultFloor()),doors=(o.doors?.rows||[]).reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0);return f.workTotal+f.materialTotal+doors}
 function statusName(v){return {estimate:'Расчёт',approval:'Согласование',work:'В работе',done:'Завершён',archive:'Архив'}[v]||'Расчёт'}
-function renderDashboard(){
- const objects=getObjects();$('dashCount').textContent=objects.length;$('dashActive').textContent=objects.filter(o=>o.status==='work').length;$('dashTotal').textContent=money(objects.reduce((a,o)=>a+(o.total||0),0));
- $('objectList').innerHTML=objects.length?objects.slice().reverse().map(o=>`<div class="objectCard"><div><h3>${escapeHtml(o.address||'Объект без адреса')}</h3><p>${escapeHtml(o.customer||'Заказчик не указан')} · ${escapeHtml(o.phone||'без телефона')}</p><p>${escapeHtml((o.messengers||[]).join(', ')||'мессенджеры не отмечены')} · ${money(o.total)}</p><div class="miniActions"><button class="ghost openObject" data-id="${o.id}">Открыть</button><button class="danger deleteObject" data-id="${o.id}">Удалить</button></div></div><span class="statusPill">${statusName(o.status)}</span></div>`).join(''):'<div class="status">Пока нет сохранённых объектов</div>';
- document.querySelectorAll('.openObject').forEach(b=>b.onclick=()=>loadObject(b.dataset.id));document.querySelectorAll('.deleteObject').forEach(b=>b.onclick=()=>{if(confirm('Удалить объект?')){localStorage.setItem('frameObjectsV140',JSON.stringify(getObjects().filter(o=>o.id!==b.dataset.id)));renderDashboard()}})
-}
-function collectSnapshot(){calculate();const values={};document.querySelectorAll('input,select,textarea').forEach(x=>{if(x.id)values[x.id]=x.type==='checkbox'?x.checked:x.value});return {id:editingObjectId||String(Date.now()),updatedAt:new Date().toISOString(),address:$('projectAddress').value.trim(),customer:$('customerName').value.trim(),phone:formatRussianPhone($('customerPhone').value),messengers:[$('msgWhatsapp').checked?'WhatsApp':'',$('msgTelegram').checked?'Telegram':'',$('msgMax').checked?'MAX':''].filter(Boolean),status:$('projectStatus').value,total:window.summary?.total||0,state:{...state},custom:JSON.parse(JSON.stringify(custom)),values}}
-function saveObject(){const snap=collectSnapshot();editingObjectId=snap.id;const arr=getObjects();const i=arr.findIndex(o=>o.id===snap.id);if(i>=0)arr[i]=snap;else arr.push(snap);localStorage.setItem('frameObjectsV140',JSON.stringify(arr));saveState();alert('Объект сохранён на этом устройстве');renderDashboard()}
-function loadObject(id){const o=getObjects().find(x=>x.id===id);if(!o)return;editingObjectId=id;Object.assign(state,o.state||{});custom=o.custom||[];Object.entries(o.values||{}).forEach(([id,v])=>{const el=$(id);if(el){if(el.type==='checkbox')el.checked=!!v;else el.value=v}});document.querySelectorAll('[data-field]').forEach(box=>box.querySelectorAll('.choice').forEach(x=>x.classList.toggle('selected',x.dataset.value===state[box.dataset.field])));renderCustom();updateVisibility();calculate();$('startScreen').style.display='none';$('homeBtn').classList.remove('hidden');showStep(1)}
-$('saveObjectBtn').addEventListener('click',saveObject);$('homeBtn').addEventListener('click',()=>{saveState();renderDashboard();$('startScreen').style.display='flex';$('homeBtn').classList.add('hidden')});
-function clearFormForNewCalculation(){
- localStorage.removeItem('frameCalculatorV140');
- editingObjectId=null;
- document.querySelectorAll('input,textarea').forEach(el=>{
-   if(el.type==='date') el.value=new Date().toISOString().slice(0,10);
-   else if(el.type==='checkbox')el.checked=false;
-   else el.value='';
- });
- document.querySelectorAll('select').forEach(el=>el.selectedIndex=0);
- Object.assign(state,{calcMode:'full',cover:'laminate',pattern:'straight',thickness:'under12',geometry:'simple',oldCover:'laminate',segment:'practical',procurement:'none'});
- custom=[];renderCustom();
- document.querySelectorAll('[data-field]').forEach(box=>box.querySelectorAll('.choice').forEach(x=>x.classList.toggle('selected',x.dataset.value===state[box.dataset.field])));
- updateVisibility();calculate();showStep(0);renderDashboard();$('startScreen').style.display='none';$('homeBtn').classList.remove('hidden');
-}
-function refreshContinueButton(){
- if(!localStorage.getItem('frameCalculatorV140')&&localStorage.getItem('frameCalculatorV122')){
-   localStorage.setItem('frameCalculatorV140',localStorage.getItem('frameCalculatorV122'));
- }
- $('continueCalculation').disabled=!localStorage.getItem('frameCalculatorV140');
-}
-$('newCalculation').addEventListener('click',clearFormForNewCalculation);
-$('continueCalculation').addEventListener('click',()=>{$('startScreen').style.display='none';$('homeBtn').classList.remove('hidden');restoreState();showStep(0)});
-refreshContinueButton();
+function renderDashboard(){$('statObjects').textContent=objects.length;$('statActive').textContent=objects.filter(o=>o.project?.status==='work').length;$('statBudget').textContent=money(objects.reduce((s,o)=>s+projectTotal(o),0));$('storageStatus').textContent='IndexedDB · резервная копия';$('objectList').innerHTML=objects.length?objects.slice().reverse().map(o=>`<div class="objectItem"><div><h3>${esc(o.project?.address||'Объект без адреса')}</h3><p>${esc(o.project?.customer||'Заказчик не указан')} · ${esc(o.project?.phone||'без телефона')}</p><p>${money(projectTotal(o))} · обновлён ${ruDate((o.updatedAt||'').slice(0,10))}</p><div class="actions" style="margin-top:9px"><button class="btn ghost small openObj" data-id="${o.id}">Открыть</button></div></div><span class="pill">${statusName(o.project?.status)}</span></div>`).join(''):'<div class="help">Пока нет сохранённых объектов.</div>';$$('.openObj').forEach(b=>b.onclick=()=>openObject(b.dataset.id))}
+function defaultFloor(){return {completed:false,cover:'spc',otherCover:'',area:0,perimeter:0,pattern:'straight',installRate:600,oldCover:'none',demoMode:'discard',prep:'none',baseboard:'none',demoBaseboard:'none',joint:0,furniture:'none',kitchen:'none',segment:'practical',underlay:'auto',custom:[]}}
+function newObject(){const o={id:uid(),version:VERSION,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),project:{customer:'',phone:'',address:'',date:today(),status:'estimate',source:'',messengers:[],comment:''},floor:defaultFloor(),doors:{completed:false,rows:[]},photos:[],stages:[],documentHistory:[]};currentObject=o;fillProject(o);renderObject();show('object')}
+async function openObject(id){currentObject=objects.find(o=>o.id===id);if(!currentObject)return;fillProject(currentObject);renderObject();show('object')}
+function fillProject(o){const p=o.project||{};$('customerName').value=p.customer||'';$('customerPhone').value=formatPhone(p.phone||'');$('projectAddress').value=p.address||'';$('projectDate').value=p.date||today();$('projectStatus').value=p.status||'estimate';$('customerSource').value=p.source||'';$('projectComment').value=p.comment||'';$('msgWhatsapp').checked=(p.messengers||[]).includes('WhatsApp');$('msgTelegram').checked=(p.messengers||[]).includes('Telegram');$('msgMax').checked=(p.messengers||[]).includes('MAX')}
+function collectProject(){return {customer:$('customerName').value.trim(),phone:formatPhone($('customerPhone').value),address:$('projectAddress').value.trim(),date:$('projectDate').value||today(),status:$('projectStatus').value,source:$('customerSource').value,messengers:[$('msgWhatsapp').checked?'WhatsApp':'',$('msgTelegram').checked?'Telegram':'',$('msgMax').checked?'MAX':''].filter(Boolean),comment:$('projectComment').value.trim()}}
+function renderObject(){if(!currentObject)return;const p=currentObject.project||{};$('objectTitle').textContent=p.address||'Новый объект';$('objectSubtitle').textContent=[p.customer,p.phone,statusName(p.status)].filter(Boolean).join(' · ');$('objectTotal').textContent=money(projectTotal(currentObject));setModuleStatus('floorStatus',currentObject.floor?.completed,'Заполнено','Не заполнено');setModuleStatus('doorsStatus',currentObject.doors?.completed,`${currentObject.doors?.rows?.length||0} поз.`,`Не заполнено`);setModuleStatus('photosStatus',(currentObject.photos||[]).length>0,`${currentObject.photos?.length||0} фото`,'Нет фото');setModuleStatus('paymentsStatus',(currentObject.stages||[]).length>0,`${currentObject.stages?.length||0} этап.`,'Нет этапов')}
+function setModuleStatus(id,done,yes,no){$(id).textContent=done?yes:no;$(id).classList.toggle('done',done)}
+$('newObjectBtn').onclick=newObject;$('saveProjectBtn').onclick=async()=>{currentObject.project=collectProject();await persist(currentObject);renderObject();toast('Карточка объекта сохранена')};$('deleteObjectBtn').onclick=async()=>{if(!currentObject||!confirm('Удалить объект?'))return;await dbDelete(currentObject.id);currentObject=null;await reloadObjects();renderDashboard();show('dashboard')};
+$$('[data-module]').forEach(b=>b.onclick=()=>openModule(b.dataset.module));function openModule(m){if(!currentObject)return;if(m==='floor')openFloor();if(m==='doors')openDoors();if(m==='photos')openPhotos();if(m==='documents')show('documents');if(m==='payments')openPayments()}
 
-$('copyBtn').addEventListener('click',async()=>{calculate();const s=window.summary;const all=[...s.demoItems,...s.installItems,...s.extraItems,...(s.workOnly?[]:s.matItems)];const txt=['FRAME',...all.map(x=>`${x.name}: ${formatQty(x.qty)} ${x.unit} × ${money(x.rate)} = ${money(x.sum)}`),`ИТОГО: ${money(s.total)}`].join('\n');try{await navigator.clipboard.writeText(txt)}catch(e){alert(txt)}});
-$('resetBtn').addEventListener('click',()=>{localStorage.removeItem('frameCalculatorV140');location.reload()});
+function defaultRate(cover,pattern){if(pattern==='eng')return cover==='glue'?850:1100;if(pattern==='fr'||pattern==='corner')return cover==='glue'?1300:1500;if(pattern==='diagonal')return cover==='glue'?950:750;if(cover==='glue')return 800;return 600}
+function openFloor(){floorDraft=clone(currentObject.floor||defaultFloor());fillFloor(floorDraft);renderFloorCustom();updateFloorTotals();show('floor')}
+function fillFloor(f){$('floorCover').value=f.cover||'spc';$('floorOtherCover').value=f.otherCover||'';$('floorArea').value=f.area||'';$('floorPerimeter').value=f.perimeter||'';$('floorPattern').value=f.pattern||'straight';$('floorInstallRate').value=f.installRate??defaultRate(f.cover,f.pattern);$('floorOldCover').value=f.oldCover||'none';$('floorDemoMode').value=f.demoMode||'discard';$('floorPrep').value=f.prep||'none';$('floorBaseboard').value=f.baseboard||'none';$('floorDemoBaseboard').value=f.demoBaseboard||'none';$('floorJoint').value=f.joint||'';$('floorFurniture').value=f.furniture||'none';$('floorKitchen').value=f.kitchen||'none';$('floorSegment').value=f.segment||'practical';$('floorUnderlay').value=f.underlay||'auto'}
+function collectFloor(){return {...floorDraft,cover:$('floorCover').value,otherCover:$('floorOtherCover').value.trim(),area:+$('floorArea').value||0,perimeter:+$('floorPerimeter').value||0,pattern:$('floorPattern').value,installRate:+$('floorInstallRate').value||0,oldCover:$('floorOldCover').value,demoMode:$('floorDemoMode').value,prep:$('floorPrep').value,baseboard:$('floorBaseboard').value,demoBaseboard:$('floorDemoBaseboard').value,joint:+$('floorJoint').value||0,furniture:$('floorFurniture').value,kitchen:$('floorKitchen').value,segment:$('floorSegment').value,underlay:$('floorUnderlay').value,custom:floorDraft.custom||[]}}
+['floorCover','floorPattern'].forEach(id=>$(id).addEventListener('change',()=>{$('floorInstallRate').value=defaultRate($('floorCover').value,$('floorPattern').value);updateFloorTotals()}));$$('#floorView input,#floorView select').forEach(e=>e.addEventListener('input',updateFloorTotals));
+function work(name,qtyN,unit,price,group='Работы'){return {id:uid(),kind:'work',group,name,qty:Number(qtyN)||0,unit,price:Number(price)||0}}
+function material(name,qtyN,unit,price){return {id:uid(),kind:'material',group:'Материалы',name,qty:Number(qtyN)||0,unit,price:Number(price)||0}}
+function floorNames(f){return {cover:{laminate:'Ламинат',spc:'Замковый кварцвинил',glue:'Клеевой кварцвинил',other:f.otherCover||'Другое покрытие'}[f.cover],old:{none:'',lino:'Линолеум',laminate:'Ламинат',spc:'SPC',glue:'Клеевой кварцвинил',other:'Другое покрытие'}[f.oldCover]}}
+function calculateFloor(f){f=f||defaultFloor();const a=+f.area||0,p=+f.perimeter||0,n=floorNames(f);const rows=[];let dr=0;if(f.oldCover==='lino')dr=150;if(f.oldCover==='laminate'||f.oldCover==='spc')dr=f.demoMode==='save'?300:200;if(f.oldCover==='glue')dr=f.demoMode==='hard'?1000:400;if(dr)rows.push(work(`Демонтаж: ${n.old}`,a,'м²',dr,'Демонтажные работы'));
+ const prepRates={none:0,primer:75,grindLight:175,grindMed:375,grindHard:675,level5:525,level10:675,plywood:1000,osb:1000,tileGlue:800};const prepNames={primer:'Грунтование основания',grindLight:'Лёгкая шлифовка и грунтование',grindMed:'Средняя шлифовка и грунтование',grindHard:'Сложная шлифовка и грунтование',level5:'Наливной пол до 5 мм и грунтование',level10:'Наливной пол 5–10 мм и грунтование',plywood:'Монтаж фанеры 12 мм',osb:'Монтаж OSB',tileGlue:'Удаление плиточного клея'};if(prepRates[f.prep])rows.push(work(prepNames[f.prep],a,'м²',prepRates[f.prep],'Подготовительные и монтажные работы'));
+ if(a&&f.installRate)rows.push(work(`Укладка: ${n.cover}`,a,'м²',f.installRate,'Подготовительные и монтажные работы'));
+ const bbRates={none:0,pvc:300,mdf:500,micro:400,duro:800},bbNames={pvc:'ПВХ',mdf:'МДФ',micro:'алюминиевого микроплинтуса',duro:'дюрополимерного плинтуса'};if(p&&bbRates[f.baseboard])rows.push(work(`Монтаж плинтуса: ${bbNames[f.baseboard]}`,p,'м.п.',bbRates[f.baseboard],'Подготовительные и монтажные работы'));
+ const db={pvc:150,mdf:300,duro:300};if(p&&db[f.demoBaseboard])rows.push(work('Демонтаж плинтуса',p,'м.п.',db[f.demoBaseboard],'Демонтажные работы'));if(f.joint)rows.push(work('Беспороговый стык',Math.ceil(f.joint),'м.п.',1500,'Подготовительные и монтажные работы'));
+ const fr={none:0,light:3000,medium:7500,hard:15000};if(fr[f.furniture])rows.push(work('Перемещение мебели',1,'компл.',fr[f.furniture],'Дополнительные работы'));const kr={none:0,light:5000,medium:10000,hard:15000};if(kr[f.kitchen])rows.push(work('Разборка / сборка кухонного гарнитура',1,'компл.',kr[f.kitchen],'Дополнительные работы'));
+ for(const c of f.custom||[])if((+c.qty||0)>0&&(+c.price||0)>0)rows.push({...clone(c),kind:'work',group:c.group||'Дополнительные работы'});
+ const reserve={straight:1.05,diagonal:1.08,eng:1.10,fr:1.15,corner:1.15,other:1.12}[f.pattern]||1.05;const mat=[];const mr={laminate:{practical:800,optimal:1300,premium:2000},spc:{practical:1200,optimal:1600,premium:2200},glue:{practical:1300,optimal:1800,premium:2500},other:{practical:1500,optimal:2000,premium:3000}}[f.cover]?.[f.segment]||0;if(a&&mr)mat.push(material(`${n.cover} · ${f.segment==='practical'?'Практичный':f.segment==='optimal'?'Оптимальный':'Премиальный'}`,a*reserve,'м²',mr));let uk=f.underlay;if(uk==='auto')uk=(f.cover==='glue'||f.cover==='spc')?'none':'basic';const ur={none:0,basic:80,xps:180,acoustic:320,spc:220}[uk]||0,un={basic:'Подложка базовая 2 мм',xps:'Подложка XPS 3 мм',acoustic:'Подложка акустическая',spc:'Подложка для SPC'}[uk];if(a&&ur)mat.push(material(un,a,'м²',ur));
+ const workTotal=rows.reduce((s,r)=>s+r.qty*r.price,0),materialTotal=mat.reduce((s,r)=>s+r.qty*r.price,0);return {rows,materials:mat,workTotal,materialTotal}}
+function updateFloorTotals(){if(!floorDraft)return;floorDraft=collectFloor();$('floorWorkTotal').textContent=money(calculateFloor(floorDraft).workTotal)}
+function rowEditorHtml(r,i,prefix){return `<div class="rowCard"><div class="rowGrid"><label>Название<input data-${prefix}-i="${i}" data-k="name" value="${esc(r.name||'')}"></label><label>Кол-во<input type="number" step=".1" min="0" data-${prefix}-i="${i}" data-k="qty" value="${r.qty??1}"></label><label>Ед.<select data-${prefix}-i="${i}" data-k="unit">${['шт.','м²','м.п.','компл.','час'].map(u=>`<option ${u===r.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input type="number" min="0" step="50" data-${prefix}-i="${i}" data-k="price" value="${r.price??''}"></label><button class="btn danger small" data-${prefix}-remove="${i}">×</button></div><div class="rowSum">Сумма: ${money((+r.qty||0)*(+r.price||0))}</div></div>`}
+function bindRowEditors(container,prefix,arr,onRender){container.querySelectorAll(`[data-${prefix}-i]`).forEach(el=>el.oninput=()=>{const i=+el.dataset[prefix+'I'],k=el.dataset.k;arr[i][k]=(k==='qty'||k==='price')?+el.value||0:el.value;onRender()});container.querySelectorAll(`[data-${prefix}-remove]`).forEach(b=>b.onclick=()=>{arr.splice(+b.dataset[prefix+'Remove'],1);onRender()})}
+function renderFloorCustom(){const c=$('floorCustomRows');c.innerHTML=(floorDraft.custom||[]).map((r,i)=>rowEditorHtml(r,i,'floor')).join('');bindRowEditors(c,'floor',floorDraft.custom,()=>{renderFloorCustom();updateFloorTotals()})}
+$('addFloorCustom').onclick=()=>{floorDraft.custom.push({id:uid(),kind:'work',group:'Дополнительные работы',name:'',qty:1,unit:'шт.',price:0});renderFloorCustom();updateFloorTotals()};
+$('saveFloorBtn').onclick=async()=>{floorDraft=collectFloor();floorDraft.completed=true;currentObject.floor=clone(floorDraft);currentObject.project=collectProject();await persist(currentObject);renderObject();showModuleSheet();toast('Модуль «Полы» сохранён')};
 
-function saveState(){const values={};document.querySelectorAll('input,select,textarea').forEach(x=>{if(x.id)values[x.id]=x.type==='checkbox'?x.checked:x.value});localStorage.setItem('frameCalculatorV140',JSON.stringify({state,custom,values}))}
-function restoreState(){
- try{const s=JSON.parse(localStorage.getItem('frameCalculatorV140')||'{}');if(s.state)Object.assign(state,s.state);custom=s.custom||[];if(s.values)Object.entries(s.values).forEach(([id,v])=>{if($(id)){if($(id).type==='checkbox')$(id).checked=!!v;else $(id).value=v}})}catch(e){}
- document.querySelectorAll('[data-field]').forEach(box=>{box.querySelectorAll('.choice').forEach(x=>x.classList.toggle('selected',x.dataset.value===state[box.dataset.field]))});
- renderCustom();$('customerPhone').value=formatRussianPhone($('customerPhone').value);updateVisibility();
-}
-document.querySelectorAll('input,select,textarea').forEach(x=>{
- x.addEventListener('input',()=>{calculate();saveState()});
- x.addEventListener('change',()=>{calculate();saveState()});
-});
-if(!$('estimateDate').value)$('estimateDate').value=new Date().toISOString().slice(0,10);
-calculate();showStep(0);
-if('serviceWorker' in navigator){
- navigator.serviceWorker.register('./sw.js').then(reg=>{
-   function showUpdate(worker){
-     $('updateBanner').classList.add('show');
-     $('updateNow').onclick=()=>worker.postMessage({type:'SKIP_WAITING'});
-   }
-   if(reg.waiting)showUpdate(reg.waiting);
-   reg.addEventListener('updatefound',()=>{
-     const worker=reg.installing;
-     worker.addEventListener('statechange',()=>{
-       if(worker.state==='installed'&&navigator.serviceWorker.controller)showUpdate(worker);
-     });
-   });
-   setInterval(()=>reg.update(),60*60*1000);
- });
- navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
-}
+function openDoors(){doorDraft=clone(currentObject.doors?.rows||[]);renderDoorRows();updateDoorsTotal();show('doors')}
+function renderDoorRows(){const c=$('doorRows');c.innerHTML=doorDraft.map((r,i)=>rowEditorHtml(r,i,'door')).join('');bindRowEditors(c,'door',doorDraft,()=>{renderDoorRows();updateDoorsTotal()})}
+function updateDoorsTotal(){$('doorsTotal').textContent=money(doorDraft.reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0))}
+$('addDoorCustom').onclick=()=>{doorDraft.push({id:uid(),kind:'work',group:'Дверные работы',name:'',qty:1,unit:'шт.',price:0});renderDoorRows();updateDoorsTotal()};$$('.doorPreset').forEach(b=>b.onclick=()=>{doorDraft.push({id:uid(),kind:'work',group:'Дверные работы',name:b.dataset.name,qty:1,unit:'шт.',price:+b.dataset.price});renderDoorRows();updateDoorsTotal()});
+$('saveDoorsBtn').onclick=async()=>{currentObject.doors={completed:doorDraft.length>0,rows:clone(doorDraft)};await persist(currentObject);renderObject();showModuleSheet();toast('Модуль «Двери» сохранён')};
+
+function showModuleSheet(){$('moduleSheet').classList.add('show')}$$('[data-after]').forEach(b=>b.onclick=()=>{$('moduleSheet').classList.remove('show');const m=b.dataset.after;if(m==='object'){renderObject();show('object')}else openModule(m)});
+function openPhotos(){photoDraft=clone(currentObject.photos||[]);renderPhotos();show('photos')}
+async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=reject;img.src=url})}
+$('photoInput').onchange=async e=>{for(const file of [...e.target.files]){try{photoDraft.push({id:uid(),data:await compressImage(file),caption:''})}catch(err){toast('Не удалось обработать фото')}}renderPhotos();e.target.value=''};
+function renderPhotos(){$('photoGrid').innerHTML=photoDraft.length?photoDraft.map((p,i)=>`<div class="photo"><img src="${p.data||''}" alt=""><button data-photo-remove="${i}">×</button><input data-photo-caption="${i}" value="${esc(p.caption||'')}" placeholder="Подпись"></div>`).join(''):'<div class="help">Фотографий пока нет.</div>';$$('[data-photo-remove]').forEach(b=>b.onclick=()=>{photoDraft.splice(+b.dataset.photoRemove,1);renderPhotos()});$$('[data-photo-caption]').forEach(i=>i.oninput=()=>photoDraft[+i.dataset.photoCaption].caption=i.value)}
+$('savePhotosBtn').onclick=async()=>{currentObject.photos=clone(photoDraft);await persist(currentObject);renderObject();showModuleSheet();toast('Фотографии сохранены')};
+
+function openPayments(){stageDraft=clone(currentObject.stages||[]);renderStages();show('payments')}
+function renderStages(){$('stageRows').innerHTML=stageDraft.length?stageDraft.map((s,i)=>`<div class="stage"><label>Этап<input data-stage-i="${i}" data-k="name" value="${esc(s.name||'')}"></label><label>Сумма<input type="number" data-stage-i="${i}" data-k="amount" value="${s.amount||0}"></label><label>Статус<select data-stage-i="${i}" data-k="paid"><option value="false" ${!s.paid?'selected':''}>Не оплачен</option><option value="true" ${s.paid?'selected':''}>Оплачен</option></select></label><button class="btn danger small" data-stage-remove="${i}">×</button></div>`).join(''):'<div class="help">Этапов пока нет.</div>';$$('[data-stage-i]').forEach(el=>el.oninput=()=>{const i=+el.dataset.stageI,k=el.dataset.k;stageDraft[i][k]=k==='amount'?+el.value||0:k==='paid'?el.value==='true':el.value;renderStages()});$$('[data-stage-remove]').forEach(b=>b.onclick=()=>{stageDraft.splice(+b.dataset.stageRemove,1);renderStages()});const total=stageDraft.reduce((s,x)=>s+(+x.amount||0),0),paid=stageDraft.filter(x=>x.paid).reduce((s,x)=>s+(+x.amount||0),0);$('paymentsTotal').textContent=`${money(paid)} / ${money(total)}`}
+$('addStageBtn').onclick=()=>{stageDraft.push({id:uid(),name:`Этап ${stageDraft.length+1}`,amount:0,paid:false,date:today()});renderStages()};$('savePaymentsBtn').onclick=async()=>{currentObject.stages=clone(stageDraft);await persist(currentObject);renderObject();showModuleSheet();toast('Этапы сохранены')};
+
+function documentRowsForObject(){const f=calculateFloor(currentObject.floor||defaultFloor()),d=(currentObject.doors?.rows||[]).map(r=>({...clone(r),kind:'work',group:r.group||'Дверные работы'}));let rows=[...f.rows,...d];if($('docType').value==='proposal'&&$('docMaterials').value==='yes')rows.push(...f.materials);return rows.map(r=>({...r,id:r.id||uid()}))}
+$('prepareDocBtn').onclick=()=>{reviewRows=documentRowsForObject();renderReview();$('reviewSheet').classList.add('show')};$('closeReviewBtn').onclick=()=>$('reviewSheet').classList.remove('show');$('addReviewRowBtn').onclick=()=>{reviewRows.push({id:uid(),kind:'work',group:'Дополнительные работы',name:'',qty:1,unit:'шт.',price:0});renderReview()};
+function renderReview(){$('reviewRows').innerHTML=reviewRows.length?reviewRows.map((r,i)=>`<div class="reviewRow"><label>Наименование<input data-review-i="${i}" data-k="name" value="${esc(r.name||'')}"></label><label>Кол-во<input type="number" step=".1" data-review-i="${i}" data-k="qty" value="${r.qty||0}"></label><label>Ед.<select data-review-i="${i}" data-k="unit">${['шт.','м²','м.п.','компл.','час'].map(u=>`<option ${u===r.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input type="number" data-review-i="${i}" data-k="price" value="${r.price||0}"></label><button class="btn danger small" data-review-remove="${i}">×</button></div>`).join(''):'<div class="help">Нет позиций. Добавьте работу вручную.</div>';$$('[data-review-i]').forEach(el=>el.oninput=()=>{const i=+el.dataset.reviewI,k=el.dataset.k;reviewRows[i][k]=(k==='qty'||k==='price')?+el.value||0:el.value;renderReview()});$$('[data-review-remove]').forEach(b=>b.onclick=()=>{reviewRows.splice(+b.dataset.reviewRemove,1);renderReview()});$('reviewTotal').textContent=money(reviewRows.reduce((s,r)=>s+(+r.qty||0)*(+r.price||0),0))}
+$('generateDocBtn').onclick=async()=>{$('reviewSheet').classList.remove('show');buildDocument();currentObject.documentHistory=currentObject.documentHistory||[];currentObject.documentHistory.push({id:uid(),type:$('docType').value,date:new Date().toISOString(),total:reviewRows.reduce((s,r)=>s+r.qty*r.price,0)});await persist(currentObject)};
+function buildDocument(){const type=$('docType').value,p=currentObject.project||{},titles={proposal:'Коммерческое предложение',worklist:'Перечень выполненных работ',act:'Акт выполненных работ'},title=titles[type];const groupOrder=[];for(const r of reviewRows)if(!groupOrder.includes(r.group))groupOrder.push(r.group);const body=groupOrder.map(g=>`<tr class="group"><td colspan="5">${esc(g||'Работы')}</td></tr>`+reviewRows.filter(r=>r.group===g).map(r=>`<tr><td>${esc(r.name)}</td><td>${qty(r.qty)}</td><td>${esc(r.unit)}</td><td>${money(r.price)}</td><td>${money(r.qty*r.price)}</td></tr>`).join('')).join('');const total=reviewRows.reduce((s,r)=>s+r.qty*r.price,0);const info=(l,v)=>v?`<div><span>${l}</span><strong>${esc(v)}</strong></div>`:'';const note=type==='proposal'?'Стоимость материалов, если они включены, является ориентировочной и уточняется после выбора конкретных позиций.':type==='worklist'?'Перечень отражает фактически выполненный объём и стоимость работ по объекту.':'Работы выполнены в указанном объёме. Подписи сторон подтверждают сдачу и приёмку.';const signatures=type==='act'?`<div class="signature"><div>Исполнитель / подпись</div><div>Заказчик / подпись</div></div>`:'';
+ $('paper').innerHTML=`<div class="paperBrand">FRAME</div><div class="paperTag">Design. Build. Finish.</div><div class="paperHero"><h1>${title}</h1></div><div class="paperInfo">${info('Заказчик',p.customer)}${info('Телефон',p.phone)}${info('Адрес объекта',p.address)}${info(type==='proposal'?'Дата расчёта':'Дата выполнения',ruDate(p.date||today()))}${info('Мессенджеры',(p.messengers||[]).join(', '))}</div><h2>Работы и услуги</h2><div style="overflow-x:auto"><table><thead><tr><th>Наименование</th><th>Количество</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${body}</tbody></table></div><div class="paperTotal"><div class="grand"><span>${type==='proposal'?'Общий бюджет':'Итого к оплате'}</span><strong>${money(total)}</strong></div></div><p class="paperNote">${note}</p>${signatures}`;$('documentView').classList.remove('hidden');window.scrollTo(0,0)}
+$('closeDocumentBtn').onclick=()=>$('documentView').classList.add('hidden');$('printDocumentBtn').onclick=()=>window.print();
+
+$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({version:VERSION,exportedAt:new Date().toISOString(),objects},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`FRAME-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('importInput').onchange=async e=>{try{const data=JSON.parse(await e.target.files[0].text()),arr=Array.isArray(data)?data:data.objects;if(!Array.isArray(arr))throw Error();for(const o of arr)if(o.id)await dbPut(o);await reloadObjects();renderDashboard();toast('Резервная копия импортирована')}catch(err){alert('Не удалось импортировать резервную копию')}e.target.value=''};
+
+async function init(){try{await openDB();await migrateLegacy();await reloadObjects();renderDashboard()}catch(e){console.error(e);$('storageStatus').textContent='Ошибка IndexedDB';try{objects=JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]');renderDashboard()}catch(_){}}if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.warn)}
+init();
 </script>
-</body>
-</html>
+</body></html>

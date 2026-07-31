@@ -1,42 +1,6 @@
-const C='frame-v140-field';
-const A=['./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
-self.addEventListener('install',event=>{
-  self.skipWaiting();
-  event.waitUntil(caches.open(C).then(cache=>cache.addAll(A)));
-});
-self.addEventListener('activate',event=>{
-  event.waitUntil(
-    caches.keys()
-      .then(keys=>Promise.all(keys.filter(key=>key!==C).map(key=>caches.delete(key))))
-      .then(()=>self.clients.claim())
-  );
-});
-self.addEventListener('message',event=>{
-  if(event.data&&event.data.type==='SKIP_WAITING') self.skipWaiting();
-  if(event.data&&event.data.type==='CLEAR_CACHES'){
-    event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))));
-  }
-});
-self.addEventListener('fetch',event=>{
-  if(event.request.mode==='navigate'){
-    event.respondWith(
-      fetch(event.request,{cache:'no-store'})
-        .then(response=>{
-          const copy=response.clone();
-          caches.open(C).then(cache=>cache.put('./index.html',copy));
-          return response;
-        })
-        .catch(()=>caches.match('./index.html'))
-    );
-    return;
-  }
-  event.respondWith(
-    fetch(event.request,{cache:'no-store'})
-      .then(response=>{
-        const copy=response.clone();
-        caches.open(C).then(cache=>cache.put(event.request,copy));
-        return response;
-      })
-      .catch(()=>caches.match(event.request))
-  );
-});
+const CACHE='frame-v150-field';
+const ASSETS=['./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./refresh.html'];
+self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();if(event.data?.type==='CLEAR_CACHES')event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))))});
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;if(event.request.mode==='navigate'){event.respondWith(fetch(event.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));return}event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return r}))) });
