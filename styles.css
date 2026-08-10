@@ -302,3 +302,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 }
 .documentView.preparing .paperStage{visibility:hidden}
 .documentView.preparing::after{content:'Готовим предпросмотр…';position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);padding:11px 14px;border-radius:12px;background:#34383c;color:#fff;font-size:13px;z-index:2}
+
+/* FRAME 2.0.1 Field Fix */
+.statButton{appearance:none;border:1px solid var(--border);background:var(--soft);color:inherit;text-align:left;cursor:pointer}.statButton:active{transform:scale(.985)}.statButton:hover{border-color:var(--accent)}
+.wideStat{grid-column:1/-1}.dashboardActions{display:grid;grid-template-columns:1.2fr 1fr 1fr}.dashboardActions .btn{width:100%}
+.sheetCloseIcon{width:44px;height:44px;min-width:44px;padding:0;border:1px solid var(--border);border-radius:14px;background:var(--soft);color:var(--text);font-size:30px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.docFilterTabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.docFilterTabs .active{border-color:var(--accent);color:var(--accent)}
+.docHistoryCard{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:8px;align-items:stretch;padding:0!important;overflow:hidden}.historyMain{border:0;background:transparent;color:inherit;text-align:left;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;min-width:0}.historyMain span:first-child{min-width:0}.historyMain strong,.historyMain small{display:block}.historyMain small{color:var(--muted);margin-top:4px}.docDelete{border:0;border-left:1px solid var(--border);background:transparent;color:var(--muted);font-size:25px;cursor:pointer}.docDelete:active{background:rgba(210,83,74,.12);color:var(--bad)}
+.clickableSummary{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.cameraLoading[hidden]{display:none!important}.cameraViewport video.ready{background:#000}
+@media(max-width:720px){.dashboardActions{grid-template-columns:1fr 1fr}.dashboardActions #newObjectBtn{grid-column:1/-1}}
