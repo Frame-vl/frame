@@ -1,25 +1,39 @@
-FRAME 2.0.1 Field Fix — проверка сборки
+FRAME 2.0.2 Clean UX — проверка сборки
 Дата: 10.08.2026
 
-Автоматическая статическая проверка: 17/17.
+Статическая проверка: 32/32.
 
-Проверено:
-1. JavaScript проходит node --check.
-2. Версия приложения 2.0.1.
-3. IndexedDB остаётся FRAME_DB, DB_VERSION=2.
-4. Исправлен сценарий live-preview камеры: обработчики loadedmetadata/canplay/playing + принудительное скрытие загрузочной плашки.
-5. Прайс-лист использует компактный крестик закрытия.
-6. Нижний блок «История объектов» удалён с главной.
-7. Карточки «Объекты», «В работе», «Стоимость работ» кликабельны.
-8. Есть общая картотека документов.
-9. Есть удаление документов из истории.
-10. Есть универсальный модуль «Работы».
-11. Есть категория расходов «Материалы в цене под ключ» и фото чека.
-12. Предзаполнение детейлинга: 23 000 ₽ работ + 7 651 ₽ к возмещению.
-13. Предзаполнение Веселковой: 74 000 ₽ договорная цена, 28 500 ₽ фактических материалов внутри цены.
-14. На Леонова 54 добавляется отдельный заказ «Сборка кухни» 40 000 ₽.
-15. Старый заказ 33 362,50 ₽ на Леонова помечается оплаченным только если найден точный совпадающий заказ и в нём ещё нет оплаты.
-16. Добавлены реальные ставки текущих отдельных работ.
-17. Кэш и ресурсы переведены на v201.
+1. OK — Version 2.0.2
+2. OK — IndexedDB FRAME_DB
+3. OK — DB version unchanged 2
+4. OK — Dashboard Orders
+5. OK — Orders list route
+6. OK — Active excludes drafts
+7. OK — Monthly goal default 300k
+8. OK — Dashboard uses month
+9. OK — Finance tabs
+10. OK — Clickable order links
+11. OK — Tax rate order field
+12. OK — Synthetic tax expense
+13. OK — Awaiting payment status
+14. OK — Order dates
+15. OK — Floating back CSS
+16. OK — Document filter hidden CSS
+17. OK — Filtered docs empty state
+18. OK — Document delete
+19. OK — Amount mobile stacking
+20. OK — Camera ready polling
+21. OK — Camera overlay forced hide
+22. OK — Splash screen
+23. OK — Clean other rates
+24. OK — Current detailing seed
+25. OK — Current Veselkovaya seed
+26. OK — Veselkovaya NPD 6
+27. OK — Leonova kitchen 40k
+28. OK — Manifest 202
+29. OK — SW cache 202
+30. OK — Refresh 2.0.2
+31. OK — Passport exists
+32. OK — Roadmap exists
 
-Ограничение: нативный Mobile Safari/iPhone в среде сборки недоступен. Камера требует финальной полевой проверки после публикации на телефоне.
+Дополнительно: app.js проверен node --check. Нативную камеру Mobile Safari окончательно проверяем на iPhone после публикации.
