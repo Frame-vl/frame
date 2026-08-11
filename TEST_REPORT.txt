@@ -1,61 +1,99 @@
-FRAME 2.1.0 Progress Closures — проверка сборки
+FRAME 2.2.0 Modules & Order Ledger - проверка сборки
 Дата: 11.08.2026
 
-Проверки выполняются перед упаковкой релиза.
-
-Критические сценарии:
-- Version 2.1.0.
-- IndexedDB FRAME_DB, DB_VERSION 2 без destructive migration.
-- Тестовый заказ Архангельская, 21 создаётся один раз и начинает с 0% прогресса.
-- Тап = 100%, долгое нажатие = меню, partial slider step 5%.
-- «К закрытию» = doneAmount - closedAmount по каждой строке.
-- Контрольная сумма текущего фактического объёма Архангельской = 129 040 ₽.
-- После закрытия готовая к закрытию сумма = 0 ₽.
-- Поддон: после закрытых 60% дальнейшие 100% дают новую дельту 10 000 ₽.
-- Закрытие хранит immutable snapshot и может породить перечень/акт.
-- Оплата может быть связана с closureId.
-- Строки с закрытым объёмом защищены от изменения цены/количества и удаления.
-- manifest, service worker и refresh имеют cache-bust 210.
+Проверено перед упаковкой релиза:
+- FRAME_DB сохранена, DB_VERSION=2.
+- Патч 2.2.0 одноразовый и не выполняет destructive migration.
+- Объект и заказы разделены в UX; остаток каждого заказа считается по его собственным платежам.
+- Леонова 54: SPC 33 362,50 ₽ / фактическая оплата 33 363 ₽; кухня 43 000 ₽ отдельно.
+- «К возмещению» ведёт напрямую к покупкам нужного заказа.
+- Работы сгруппированы по модулям без дублирования строк.
+- Архангельская, 21 получает чистый workflow v2 с 0% прогресса.
+- Контрольный текущий объём Архангельской = 129 040 ₽.
+- После закрытия ready = 0; поддон 60% → 100% создаёт новую дельту 10 000 ₽.
+- Снимок закрытия сохраняет физические qty/unit/rate.
+- Последнее закрытие можно отменить только до оплаты и сохранённого документа.
+- PDF использует реальные единицы и компактные рубли, денежные колонки зафиксированы.
 - app.js и sw.js проходят node --check.
-- ZIP проходит integrity test.
+- manifest.webmanifest проходит JSON parse.
 
-Результаты финального прогона добавлены в секцию ниже автоматически при упаковке.
-
-ФИНАЛЬНЫЙ ПРОГОН
-01. PASS | Version 2.1.0
+СТАТИЧЕСКИЙ ПРОГОН
+01. PASS | Version 2.2.0
 02. PASS | DB name FRAME_DB
 03. PASS | DB version unchanged 2
-04. PASS | Progress fields normalized
-05. PASS | Closure array in order
-06. PASS | Tap sets full progress
-07. PASS | Long press threshold
-08. PASS | Partial slider 5 percent
-09. PASS | Dynamic slider money
-10. PASS | Ready amount is delta
-11. PASS | Close volume action
-12. PASS | Closure has frozen snapshot
-13. PASS | Closure documents
-14. PASS | Closure-linked payments
-15. PASS | Closed rows lock core pricing
-16. PASS | Arch21 one-time workflow key
-17. PASS | Arch21 starts zero progress
-18. PASS | Tray stays one 25k row
-19. PASS | Arch21 current stage = 129040 | 129040.00
-20. PASS | After close ready = 0 | 0.00
-21. PASS | Tray 60 to 100 delta = 10000 | 10000.00
-22. PASS | Manifest cache bust 210
-23. PASS | SW cache 210
-24. PASS | Refresh 2.1.0 / fresh 210
-25. PASS | Index assets 210
-26. PASS | FRAME_CONTEXT_PASSPORT.md exists
-27. PASS | CHANGELOG.txt exists
-28. PASS | ROADMAP.md exists
-29. PASS | README.txt exists
-30. PASS | TEST_REPORT.txt exists
+04. PASS | V220 one-time patch key
+05. PASS | Arch workflow v2 key
+06. PASS | Arch test reset uses fresh defaultOrder
+07. PASS | Work modules catalog
+08. PASS | Module picker exists
+09. PASS | Order uses single work module hub
+10. PASS | Empty modules can add work
+11. PASS | Work row stores moduleId
+12. PASS | Direct order reimbursement banner
+13. PASS | Object reimbursement drilldown
+14. PASS | Order list reimbursement direct action
+15. PASS | Object screen uses order counts
+16. PASS | Order cards show per-order remaining
+17. PASS | Leonova kitchen patched to 43000
+18. PASS | Leonova old payment patched to 33363
+19. PASS | Opening renamed
+20. PASS | Opening comment updated
+21. PASS | Hydro expanded to floor
+22. PASS | Hydro qty 5 x 500
+23. PASS | Vent line revised 1m x 1000
+24. PASS | Progress tap logic still present
+25. PASS | Long press threshold present
+26. PASS | Partial slider step 5
+27. PASS | Dynamic partial money
+28. PASS | Ready amount uses done minus closed
+29. PASS | Closure preserves physical qty
+30. PASS | Closure snapshot preserves original unit/rate
+31. PASS | Closure progress note saved
+32. PASS | Undo latest closure exists
+33. PASS | Undo blocked by payment or document
+34. PASS | Closure document linked by closureId
+35. PASS | Paper money suppresses ,00 on integers
+36. PASS | Paper qty supports real decimals
+37. PASS | PDF fixed table layout
+38. PASS | PDF money cells nowrap
+39. PASS | PDF price/sum columns widened
+40. PASS | Index asset cache bust 220
+41. PASS | Manifest start URL 220
+42. PASS | SW cache 220
+43. PASS | Refresh 2.2.0 / fresh 220
+44. PASS | FRAME_CONTEXT_PASSPORT.md updated
+45. PASS | CHANGELOG.txt updated
+46. PASS | ROADMAP.md updated
+47. PASS | README.txt updated
+TOTAL 47 PASS 47 CHECKS 0 FAIL
 
-TOTAL 30 PASS 30 FAIL 0
+ЛОГИЧЕСКИЙ ПРОГОН КЛЮЧЕВОГО СЦЕНАРИЯ
+PASS | Version 2.2.0
+PASS | Archangel rows 44
+PASS | Opening renamed
+PASS | Hydro renamed
+PASS | Vent revised to 1000
+PASS | Initial progress zero
+PASS | Control ready 129040
+PASS | Closure draft 129040
+PASS | Closure preserves cable qty/unit/rate
+PASS | Partial tray becomes 0.6 comp at full rate
+PASS | Ready zero after closure
+PASS | Tray 60 to 100 adds 10000
+PASS | Modules include electrical
+PASS | Modules include floors
+PASS | Old order overpayment does not create remaining
+PASS | New kitchen remains 43000 independent
+PASS | Paper money compact integer
+TOTAL 17 PASS 17 FAIL 0
+
+ИТОГО
+- Static/source checks: 47 PASS / 47.
+- Workflow logic checks: 17 PASS / 17.
+- Всего автоматизированных проверок: 64 PASS / 64.
 
 STATIC CHECKS
 - node --check app.js: PASS
 - node --check sw.js: PASS
 - manifest.webmanifest JSON: PASS
+- ZIP integrity: PASS
