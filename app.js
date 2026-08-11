@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.0.2';
+const VERSION='2.1.0';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -18,6 +18,7 @@ const FINANCE_PERIOD_KEY='frameFinancePeriodV180';
 const AUG2026_SEED_KEY='frameAug2026CurrentObjectsV201';
 const MONTHLY_GOAL_KEY='frameMonthlyNetGoalV202';
 const UX202_DATA_KEY='frameUx202DataPatch';
+const WORKFLOW210_DATA_KEY='frameWorkflow210DataPatch';
 
 let db=null;
 let objects=[];
@@ -145,9 +146,12 @@ function defaultFloor(){return {
 }}
 function defaultDoors(){return {completed:false,items:[]}}
 function normalizePricing(p={}){return {contractTotal:String(p.contractTotal??'')}}
-function defaultOrder(index=1){return {id:uid(),title:`Заказ ${index}`,date:today(),startedAt:'',completedAt:'',status:'draft',taxRate:'0',comment:'',pricing:normalizePricing(),works:[],floor:defaultFloor(),doors:defaultDoors(),purchases:[],expenses:[],payments:[],stages:[],photos:[],documentHistory:[]}}
+function defaultOrder(index=1){return {id:uid(),title:`Заказ ${index}`,date:today(),startedAt:'',completedAt:'',status:'draft',taxRate:'0',comment:'',pricing:normalizePricing(),works:[],workClosures:[],floor:defaultFloor(),doors:defaultDoors(),purchases:[],expenses:[],payments:[],stages:[],photos:[],documentHistory:[]}}
 function defaultObject(){return {id:uid(),version:VERSION,createdAt:now(),updatedAt:now(),status:'auto',showDiscountInDocuments:true,contact:{name:'',phone:'',address:'',comment:''},orders:[defaultOrder(1)],legacyMeta:{}}}
-function normalizeGenericRow(row={},group='Дополнительные работы',kind='work'){return {id:row.id||uid(),name:String(row.name||''),qty:String(row.qty??1),unit:row.unit||'шт.',price:String(row.price??''),comment:String(row.comment||''),group:row.group||group,kind:row.kind||kind,rateKey:row.rateKey||''}}
+function normalizeGenericRow(row={},group='Дополнительные работы',kind='work'){
+  const progress=Math.max(0,Math.min(100,Math.round(parseNum(row.progressPct??0))));
+  return {id:row.id||uid(),name:String(row.name||''),qty:String(row.qty??1),unit:row.unit||'шт.',price:String(row.price??''),comment:String(row.comment||''),group:row.group||group,kind:row.kind||kind,rateKey:row.rateKey||'',progressPct:progress,closedAmount:Math.max(0,parseNum(row.closedAmount??0))}
+}
 function floorDemoPreset(type,area='',mode='discard'){
   const map={
     lino:['Демонтаж линолеума','floor.demo.lino'],
@@ -257,12 +261,13 @@ function normalizeDoors(raw={}){
   return {completed:!!raw.completed||items.length>0,items};
 }
 function normalizePurchase(p={}){return {id:p.id||uid(),name:p.name||'',amount:String(p.amount??''),date:p.date||today(),status:p.status||'due',comment:p.comment||'',receiptData:p.receiptData||'',receiptName:p.receiptName||'',receiptMissing:!!p.receiptMissing}}
-function normalizePayment(p={}){return {id:p.id||uid(),amount:String(p.amount??''),date:p.date||today(),note:p.note||''}}
+function normalizePayment(p={}){return {id:p.id||uid(),amount:String(p.amount??''),date:p.date||today(),note:p.note||'',closureId:p.closureId||''}}
 function normalizeStage(s={}){return {id:s.id||uid(),name:s.name||'',amount:String(s.amount??''),date:s.date||today(),paid:!!s.paid}}
+function normalizeWorkClosure(c={}){return {id:c.id||uid(),number:Math.max(1,parseInt(c.number||1,10)||1),date:c.date||today(),amount:Math.max(0,parseNum(c.amount)),items:Array.isArray(c.items)?c.items.map(x=>({...x,rowId:x.rowId||'',name:x.name||'',group:x.group||'Работы',fromPct:parseNum(x.fromPct),toPct:parseNum(x.toPct),amount:Math.max(0,parseNum(x.amount))})):[],snapshot:Array.isArray(c.snapshot)?c.snapshot.map(r=>normalizeGenericRow(r,r.group||'Работы')):[]}}
 function normalizeOrder(raw={},index=1){return {
-  id:raw.id||uid(),title:raw.title||`Заказ ${index}`,date:raw.date||today(),startedAt:raw.startedAt||raw.date||'',completedAt:raw.completedAt||'',status:raw.status||'draft',taxRate:String(raw.taxRate??'0'),comment:raw.comment||'',pricing:normalizePricing(raw.pricing||{contractTotal:raw.contractTotal??''}),works:(raw.works||[]).map(r=>normalizeGenericRow(r,'Работы')),
+  id:raw.id||uid(),title:raw.title||`Заказ ${index}`,date:raw.date||today(),startedAt:raw.startedAt||raw.date||'',completedAt:raw.completedAt||'',status:raw.status||'draft',taxRate:String(raw.taxRate??'0'),comment:raw.comment||'',workflowKey:raw.workflowKey||'',pricing:normalizePricing(raw.pricing||{contractTotal:raw.contractTotal??''}),works:(raw.works||[]).map(r=>normalizeGenericRow(r,'Работы')),
   floor:normalizeFloor(raw.floor||{}),doors:normalizeDoors(raw.doors||{}),purchases:(raw.purchases||[]).map(normalizePurchase),expenses:(raw.expenses||[]).map(e=>normalizeExpense(e,'order')),
-  payments:(raw.payments||[]).map(normalizePayment),stages:(raw.stages||[]).map(normalizeStage),photos:(raw.photos||[]).map(p=>({...p,id:p.id||uid(),caption:p.caption||''})),documentHistory:raw.documentHistory||[]
+  payments:(raw.payments||[]).map(normalizePayment),stages:(raw.stages||[]).map(normalizeStage),workClosures:(raw.workClosures||[]).map(normalizeWorkClosure),photos:(raw.photos||[]).map(p=>({...p,id:p.id||uid(),caption:p.caption||''})),documentHistory:raw.documentHistory||[]
 }}
 function legacyToObject(raw={}){
   if(Array.isArray(raw.orders))return raw;
@@ -338,6 +343,17 @@ function doorItemRow(item){
 }
 function calculateDoors(doors){const items=normalizeDoors(doors||{}).items.map(doorItemRow).filter(r=>r.name.trim()&&parseNum(r.qty)>0);return {rows:items,total:items.reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0)}}
 function calculateWorks(order){const rows=(order?.works||[]).map(r=>normalizeGenericRow(r,r.group||'Работы')).filter(r=>r.name.trim()&&parseNum(r.qty)>0);return {rows,total:rows.reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0)}}
+function workRowTotal(row){return Math.max(0,parseNum(row?.qty)*parseNum(row?.price))}
+function workProgressPct(row){return Math.max(0,Math.min(100,Math.round(parseNum(row?.progressPct))))}
+function workDoneAmount(row){return workRowTotal(row)*workProgressPct(row)/100}
+function workClosedAmount(row){return Math.max(0,parseNum(row?.closedAmount))}
+function workReadyAmount(row){return Math.max(0,workDoneAmount(row)-workClosedAmount(row))}
+function orderWorkProgress(order){
+  const rows=(order?.works||[]).filter(r=>r?.name?.trim()&&parseNum(r.qty)>0);
+  return rows.reduce((acc,row)=>{const total=workRowTotal(row),done=workDoneAmount(row),closed=workClosedAmount(row),ready=Math.max(0,done-closed);acc.total+=total;acc.done+=done;acc.closed+=closed;acc.ready+=ready;if(workProgressPct(row)>=100)acc.complete++;else if(workProgressPct(row)>0)acc.partial++;return acc},{total:0,done:0,closed:0,ready:0,complete:0,partial:0});
+}
+function closurePaidAmount(order,closure){return (order?.payments||[]).filter(p=>p.closureId===closure?.id).reduce((sum,p)=>sum+parseNum(p.amount),0)}
+function closureRemainingAmount(order,closure){return Math.max(0,parseNum(closure?.amount)-closurePaidAmount(order,closure))}
 function orderCalculatedWorkTotal(order){const w=calculateWorks(order),f=calculateFloor(order.floor),d=calculateDoors(order.doors);return w.total+f.workTotal+d.total}
 function orderContractTotal(order){const calc=orderCalculatedWorkTotal(order),raw=order?.pricing?.contractTotal;return raw===undefined||raw===null||String(raw).trim()===''?calc:Math.max(0,parseNum(raw))}
 function orderAdjustment(order){return orderContractTotal(order)-orderCalculatedWorkTotal(order)}
@@ -441,7 +457,7 @@ function orderToolCard(id,icon,title,status,done=false){return `<button class="o
 function renderOrderView(){
   const order=currentOrder();
   if(!order)return renderObjectView();
-  const calculated=orderCalculatedWorkTotal(order),work=orderWorkTotal(order),adjustment=orderAdjustment(order),paid=orderPaid(order),remaining=orderRemaining(order),due=orderDuePurchases(order),expenses=orderExpenses(order),taxPaid=orderTaxOnPaid(order),expectedProfit=orderExpectedProfit(order);
+  const calculated=orderCalculatedWorkTotal(order),work=orderWorkTotal(order),adjustment=orderAdjustment(order),paid=orderPaid(order),remaining=orderRemaining(order),due=orderDuePurchases(order),expenses=orderExpenses(order),taxPaid=orderTaxOnPaid(order),expectedProfit=orderExpectedProfit(order),progress=orderWorkProgress(order);
   const adjustmentText=adjustment<0?`Индивидуальная скидка: ${money(Math.abs(adjustment))}`:adjustment>0?`Корректировка стоимости: +${money(adjustment)}`:'Итог совпадает с расчётом';
   return `<section class="view">
     <div class="actions pageBack"><button class="btn ghost" data-go="object">← Объект</button><button id="deleteOrderBtn" class="btn danger">Удалить заказ</button></div>
@@ -455,7 +471,7 @@ function renderOrderView(){
     <div class="card" id="orderActionsCard">
       <h2>Что делаем?</h2><p class="help">Добавьте в заказ нужные направления работ.</p>
       <div class="workModules">
-        ${moduleCard('works','＋','Работы','Любые отдельные работы и услуги.',order.works?.length?`${order.works.length} поз.`:'Не заполнено',!!order.works?.length)}
+        ${moduleCard('works','＋','Работы','Чек-лист выполнения, закрытия и документы.',progress.ready>0?`К закрытию ${money(progress.ready)}`:progress.done>0?`Выполнено ${money(progress.done)}`:order.works?.length?`${order.works.length} поз.`:'Не заполнено',progress.complete>0&&progress.complete===order.works.length)}
         ${moduleCard('floor','▱','Полы','Покрытие, плинтус, демонтаж и основание.',order.floor.completed?'Заполнено':'Не заполнено',order.floor.completed)}
         ${moduleCard('doors','▯','Двери','Установка, обслуживание и работы с проёмами.',order.doors.completed?`${order.doors.items.length} поз.`:'Не заполнено',order.doors.completed)}
       </div>
@@ -469,18 +485,87 @@ function renderOrderView(){
     </div>${editorSaveBar()}
   </section>`;
 }
-function genericRowHtml(row,index,collection,{comment=false}={}){return `<div class="rowCard"><div class="rowGrid"><label>Название<input data-row-collection="${collection}" data-row-index="${index}" data-row-key="name" value="${esc(row.name)}" placeholder="Название работы"></label><label>Кол-во<input class="decimal" inputmode="decimal" data-row-collection="${collection}" data-row-index="${index}" data-row-key="qty" value="${esc(row.qty)}" placeholder="1"></label><label>Ед.<select data-row-collection="${collection}" data-row-index="${index}" data-row-key="unit">${['шт.','м²','м.п.','компл.','участок','час','услуга','л','кг'].map(u=>`<option ${u===row.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input class="decimal" inputmode="decimal" data-row-collection="${collection}" data-row-index="${index}" data-row-key="price" value="${esc(row.price)}" placeholder="0"></label><button class="btn danger small" data-remove-row="${collection}" data-row-index="${index}">×</button></div>${comment?`<label class="rowComment">Комментарий<input data-row-collection="${collection}" data-row-index="${index}" data-row-key="comment" value="${esc(row.comment||'')}" placeholder="Необязательно"></label>`:''}<div class="rowSum">Сумма: <strong data-row-sum="${collection}-${index}">${money(parseNum(row.qty)*parseNum(row.price))}</strong></div></div>`}
+function genericRowHtml(row,index,collection,{comment=false}={}){const locked=collection==='works'&&workClosedAmount(row)>.01,lock=locked?' disabled':'';return `<div class="rowCard${locked?' lockedWorkRow':''}"><div class="rowGrid"><label>Название<input data-row-collection="${collection}" data-row-index="${index}" data-row-key="name" value="${esc(row.name)}" placeholder="Название работы"${lock}></label><label>Кол-во<input class="decimal" inputmode="decimal" data-row-collection="${collection}" data-row-index="${index}" data-row-key="qty" value="${esc(row.qty)}" placeholder="1"${lock}></label><label>Ед.<select data-row-collection="${collection}" data-row-index="${index}" data-row-key="unit"${lock}>${['шт.','м²','м.п.','компл.','участок','час','услуга','л','кг'].map(u=>`<option ${u===row.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Цена<input class="decimal" inputmode="decimal" data-row-collection="${collection}" data-row-index="${index}" data-row-key="price" value="${esc(row.price)}" placeholder="0"${lock}></label><button class="btn danger small" data-remove-row="${collection}" data-row-index="${index}"${locked?' disabled title="Позиция уже была в закрытии"':''}>×</button></div>${locked?`<div class="lockedWorkNote">🔒 Цена и объём зафиксированы прошлым закрытием. Комментарий можно менять.</div>`:''}${comment?`<label class="rowComment">Комментарий<input data-row-collection="${collection}" data-row-index="${index}" data-row-key="comment" value="${esc(row.comment||'')}" placeholder="Необязательно"></label>`:''}<div class="rowSum">Сумма: <strong data-row-sum="${collection}-${index}">${money(parseNum(row.qty)*parseNum(row.price))}</strong></div></div>`}
 
-function renderWorksView(){const order=currentOrder();if(!order)return renderOrderView();const calc=calculateWorks(order);return `<section class="view"><div class="actions pageBack"><button class="btn ghost" data-go="order">← Заказ</button></div><div class="card"><h1>Работы</h1><p class="help">Универсальный список для нестандартных работ, услуг и небольших заказов.</p><div class="rowList">${order.works.length?order.works.map((r,i)=>genericRowHtml(r,i,'works',{comment:true})).join(''):'<div class="empty">Работы пока не добавлены.</div>'}</div><button id="addWorkBtn" class="btn primary wide" style="margin-top:10px">＋ Добавить работу</button><div class="reviewSummary" style="margin-top:12px"><span>Итого по позициям</span><strong id="worksTotal">${money(calc.total)}</strong></div></div>${editorSaveBar()}</section>`}
-function bindWorksView(){const order=currentOrder();if(!order)return;$$('[data-row-collection="works"]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{const row=order.works[+el.dataset.rowIndex];if(!row)return;const key=el.dataset.rowKey;row[key]=['qty','price'].includes(key)?rawNum(el.value):el.value;const sum=document.querySelector(`[data-row-sum="works-${el.dataset.rowIndex}"]`);if(sum)sum.textContent=money(parseNum(row.qty)*parseNum(row.price));if($('worksTotal'))$('worksTotal').textContent=money(calculateWorks(order).total);queueSave()}));$$('[data-remove-row="works"]').forEach(b=>b.onclick=()=>{order.works.splice(+b.dataset.rowIndex,1);queueSave();render()});$('addWorkBtn').onclick=()=>{order.works.push(normalizeGenericRow({name:'',qty:'1',unit:'шт.',price:'',group:'Работы'},'Работы'));queueSave();render();requestAnimationFrame(()=>window.scrollTo({left:0,top:document.body.scrollHeight,behavior:'smooth'}))}}
-function floorStepSummary(f,step){
-  if(step===0)return `${floorCoverName(f)} · ${floorPatternName(f.pattern)}${f.installRate?` · ${money(f.installRate)}/м²`:''}`;
-  if(step===1)return f.area?`${qty(f.area)} м²`:'Площадь не указана';
-  if(step===2)return f.baseboard.enabled?`${qty(f.baseboard.qty)} м.п. · ${money(f.baseboard.rate)}/м.п.`:'Не нужен';
-  if(step===3)return f.demolition.length?`${f.demolition.length} поз.`:'Не требуется';
-  if(step===4)return f.preparation.length?`${f.preparation.length} поз.`:'Не требуется';
-  if(step===5)return `${f.extras.length} доп. работ · ${f.materials.length} материалов`;
-  return `Работы ${money(calculateFloor(f).workTotal)}`;
+function workProgressCardHtml(row,index){
+  const pct=workProgressPct(row),total=workRowTotal(row),done=workDoneAmount(row),closed=workClosedAmount(row),ready=workReadyAmount(row);
+  const state=pct>=100?'done':pct>0?'partial':'todo';
+  const badge=pct>=100?'✓':pct>0?`${pct}%`:'';
+  return `<button class="workProgressCard ${state}" type="button" data-work-progress="${index}" aria-label="${esc(row.name)}: ${pct}%"><span class="workCheck">${badge}</span><span class="workProgressMain"><strong>${esc(row.name)}</strong><small>${money(total)}${pct>0?` · выполнено ${money(done)}`:''}${closed>0?` · закрыто ${money(closed)}`:''}</small><i class="workProgressTrack"><b style="width:${pct}%"></b></i></span><span class="workProgressSide">${ready>0?`+${money(ready)}`:pct>=100?'Готово':pct>0?`${pct}%`:'›'}</span></button>`;
+}
+function renderWorkProgressGroups(order){
+  const groups=[];for(const row of order.works||[]){const g=row.group||'Работы';if(!groups.includes(g))groups.push(g)}
+  return groups.map(group=>`<div class="workGroup"><h3>${esc(group)}</h3><div class="workProgressList">${order.works.map((r,i)=>({r,i})).filter(x=>(x.r.group||'Работы')===group).map(x=>workProgressCardHtml(x.r,x.i)).join('')}</div></div>`).join('');
+}
+function workClosureCardHtml(order,closure){
+  const paid=closurePaidAmount(order,closure),remaining=closureRemainingAmount(order,closure),status=remaining<.01?'Оплачено':paid>0?`Оплачено ${money(paid)} · осталось ${money(remaining)}`:'Ждёт оплаты';
+  return `<article class="workClosureCard"><div class="workClosureHead"><span><strong>Закрытие №${closure.number}</strong><small>${ruDate(closure.date)} · ${status}</small></span><strong>${money(closure.amount)}</strong></div><div class="workClosureActions"><button class="btn ghost small" data-closure-doc="worklist|${closure.id}">Перечень</button><button class="btn ghost small" data-closure-doc="act|${closure.id}">Акт</button>${remaining>.01?`<button class="btn primary small" data-closure-pay="${closure.id}">＋ Оплата</button>`:'<span class="closurePaidMark">✓ Оплачено</span>'}</div></article>`;
+}
+function renderWorksView(){
+  const order=currentOrder();if(!order)return renderOrderView();
+  const calc=calculateWorks(order),progress=orderWorkProgress(order);
+  if(routeState.editWorks)return `<section class="view"><div class="actions pageBack"><button id="backToWorkChecklist" class="btn ghost">← Чек-лист</button></div><div class="card"><div class="sectionTitle"><div><h1>Редактирование работ</h1><p class="help compact">Здесь меняются названия, объёмы и цены. Прогресс отмечается в чек-листе.</p></div></div><div class="rowList">${order.works.length?order.works.map((r,i)=>genericRowHtml(r,i,'works',{comment:true})).join(''):'<div class="empty">Работы пока не добавлены.</div>'}</div><button id="addWorkBtn" class="btn primary wide" style="margin-top:10px">＋ Добавить работу</button><div class="reviewSummary" style="margin-top:12px"><span>Итого по позициям</span><strong id="worksTotal">${money(calc.total)}</strong></div></div>${editorSaveBar()}</section>`;
+  const closures=(order.workClosures||[]).slice().reverse();
+  return `<section class="view workChecklistView"><div class="actions pageBack"><button class="btn ghost" data-go="order">← Заказ</button></div>
+    <div class="card workProgressHero"><div class="sectionTitle"><div><h1>Работы</h1><p class="help compact">Тап = выполнено 100%. Зажать = частичное выполнение.</p></div><button id="editWorksBtn" class="btn ghost small">Изменить список</button></div>
+      <div class="workMoneyHero"><span>К закрытию сейчас</span><strong id="readyToCloseTotal">${money(progress.ready)}</strong><small>Сумма растёт только за новый выполненный объём после предыдущих закрытий.</small></div>
+      <div class="workProgressStats"><div><span>Выполнено всего</span><strong>${money(progress.done)}</strong></div><div><span>Уже закрыто</span><strong>${money((order.workClosures||[]).reduce((sum,c)=>sum+parseNum(c.amount),0))}</strong></div><div><span>По списку</span><strong>${money(progress.total)}</strong></div></div>
+    </div>
+    <div class="card workChecklistCard">${order.works.length?renderWorkProgressGroups(order):'<div class="empty">Работы пока не добавлены.</div>'}</div>
+    ${closures.length?`<div class="card"><h2>Закрытия</h2><p class="help compact">Старые закрытия не меняются, даже когда прогресс работ идёт дальше.</p><div class="workClosureList">${closures.map(c=>workClosureCardHtml(order,c)).join('')}</div></div>`:''}
+    <div class="workCloseDock"><span><small>К закрытию</small><strong>${money(progress.ready)}</strong></span><button id="closeWorkVolumeBtn" class="btn primary" ${progress.ready>.009?'':'disabled'}>Закрыть объём</button></div>
+  </section>`;
+}
+async function setWorkProgress(index,pct){
+  const order=currentOrder(),object=currentObject(),row=order?.works?.[index];if(!order||!object||!row)return;
+  const total=workRowTotal(row),closed=workClosedAmount(row),minPct=total>0?Math.min(100,Math.ceil((closed/total*100)/5)*5):0;
+  row.progressPct=Math.max(minPct,Math.max(0,Math.min(100,Math.round(parseNum(pct)/5)*5)));
+  await saveObject(object);editorState={key:editorKey(),snapshot:clone(object),dirty:false};render();
+}
+function showWorkProgressMenu(index){
+  const order=currentOrder(),row=order?.works?.[index];if(!row)return;const pct=workProgressPct(row),closed=workClosedAmount(row),total=workRowTotal(row),lockedPct=total>0?Math.min(100,Math.ceil((closed/total*100)/5)*5):0;
+  openSheet(`<div class="sectionTitle"><div><h1>${esc(row.name)}</h1><p class="help compact">Сейчас: ${pct}% · ${money(workDoneAmount(row))}</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="workProgressMenu"><button id="workDoneFull" class="optionCard"><strong>✓ Выполнено полностью</strong><small>Поставить 100%</small></button>${lockedPct<100?`<button id="workDonePartial" class="optionCard"><strong>◐ Выполнено частично</strong><small>Выбрать процент с шагом 5%</small></button>`:''}${closed<.01?`<button id="workDoneReset" class="optionCard"><strong>Сбросить отметку</strong><small>Вернуть 0%</small></button>`:`<div class="backupNote">Уже закрыто ${money(closed)}. Прогресс нельзя опустить ниже ${lockedPct}%.</div>`}</div>`);
+  $('workDoneFull').onclick=()=>{closeSheet();setWorkProgress(index,100)};
+  if($('workDonePartial'))$('workDonePartial').onclick=()=>{closeSheet();requestAnimationFrame(()=>showPartialWorkProgress(index))};
+  if($('workDoneReset'))$('workDoneReset').onclick=()=>{closeSheet();setWorkProgress(index,0)};
+}
+function showPartialWorkProgress(index){
+  const order=currentOrder(),row=order?.works?.[index];if(!row)return;const total=workRowTotal(row),closed=workClosedAmount(row),minPct=total>0?Math.min(95,Math.max(5,Math.ceil((closed/total*100)/5)*5)):5;let value=workProgressPct(row);if(value<=0||value>=100)value=Math.max(minPct,50);value=Math.max(minPct,Math.min(95,Math.round(value/5)*5));
+  const html=`<div class="sectionTitle"><div><h1>Частичное выполнение</h1><p class="help compact">${esc(row.name)}</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="progressPicker"><div class="progressPickerValue"><strong id="partialPct">${value}%</strong><span id="partialDoneMoney">${money(total*value/100)}</span></div><input id="partialRange" type="range" min="${minPct}" max="95" step="5" value="${value}"><div class="progressStepButtons"><button id="partialMinus" class="btn ghost">−5%</button><button id="partialPlus" class="btn ghost">+5%</button></div><div class="progressPickerSummary"><div><span>Всего по позиции</span><strong>${money(total)}</strong></div><div><span>Уже закрыто</span><strong>${money(closed)}</strong></div><div class="accent"><span>Новое к закрытию</span><strong id="partialReadyMoney">${money(Math.max(0,total*value/100-closed))}</strong></div></div><button id="applyPartialProgress" class="btn primary wide">Применить ${value}%</button></div>`;openSheet(html);
+  const range=$('partialRange'),refresh=()=>{const p=+range.value;$('partialPct').textContent=`${p}%`;$('partialDoneMoney').textContent=money(total*p/100);$('partialReadyMoney').textContent=money(Math.max(0,total*p/100-closed));$('applyPartialProgress').textContent=`Применить ${p}%`};
+  range.oninput=refresh;$('partialMinus').onclick=()=>{range.value=Math.max(+range.min,+range.value-5);refresh()};$('partialPlus').onclick=()=>{range.value=Math.min(+range.max,+range.value+5);refresh()};$('applyPartialProgress').onclick=()=>{const p=+range.value;closeSheet();setWorkProgress(index,p)};
+}
+function readyClosureDraft(order){
+  const items=[];for(const row of order?.works||[]){const amount=workReadyAmount(row);if(amount<.01)continue;const total=workRowTotal(row),fromPct=total>0?Math.max(0,Math.min(100,workClosedAmount(row)/total*100)):0,toPct=workProgressPct(row),label=fromPct>0?`доп. объём ${Math.max(0,toPct-fromPct).toFixed(0)}%`:`выполнено ${toPct}%`;items.push({rowId:row.id,name:row.name,group:row.group||'Работы',fromPct,toPct,amount,snapshot:normalizeGenericRow({name:toPct>=100&&fromPct<.01?row.name:`${row.name} · ${label}`,qty:'1',unit:'этап',price:String(Math.round(amount*100)/100),comment:`Прогресс позиции: ${Math.round(fromPct)}% → ${toPct}%`,group:row.group||'Работы',kind:'work'},row.group||'Работы')})}return items;
+}
+function showCloseWorkVolumeSheet(){
+  const order=currentOrder();if(!order)return;const items=readyClosureDraft(order),amount=items.reduce((sum,x)=>sum+x.amount,0);if(amount<.01){toast('Нового выполненного объёма пока нет');return}
+  openSheet(`<div class="sectionTitle"><div><h1>Закрыть объём</h1><p class="help compact">После закрытия эта сумма уйдёт из счётчика и сохранится отдельным снимком.</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="closurePreviewList">${items.map(x=>`<div class="closurePreviewRow"><span><strong>${esc(x.name)}</strong><small>${Math.round(x.fromPct)}% → ${Math.round(x.toPct)}%</small></span><strong>${money(x.amount)}</strong></div>`).join('')}</div><div class="workMoneyHero compactHero"><span>Итого к закрытию</span><strong>${money(amount)}</strong></div><button id="confirmCloseWorkVolume" class="btn primary wide">Закрыть ${money(amount)}</button>`);
+  $('confirmCloseWorkVolume').onclick=async()=>{const object=currentObject(),order=currentOrder();if(!object||!order)return;const fresh=readyClosureDraft(order),sum=fresh.reduce((a,x)=>a+x.amount,0);if(sum<.01){closeSheet();render();return}const closure=normalizeWorkClosure({id:uid(),number:(order.workClosures||[]).length+1,date:today(),amount:sum,items:fresh.map(({snapshot,...x})=>x),snapshot:fresh.map(x=>x.snapshot)});for(const item of fresh){const row=order.works.find(r=>r.id===item.rowId);if(row)row.closedAmount=Math.round((workClosedAmount(row)+item.amount)*100)/100}order.workClosures.push(closure);await saveObject(object);editorState={key:editorKey(),snapshot:clone(object),dirty:false};closeSheet();render();toast(`Закрытие №${closure.number}: ${money(closure.amount)}`)};
+}
+async function buildClosureDocument(closureId,type){
+  const object=currentObject(),order=currentOrder(),closure=order?.workClosures?.find(c=>c.id===closureId);if(!object||!order||!closure)return;const options={contractTotal:'',showDiscount:true,closureId:closure.id,closureNumber:closure.number,documentDate:closure.date};buildOrderDocument(type,(closure.snapshot||[]).map(clone),options);const entry={id:uid(),type,date:now(),total:closure.amount,snapshot:(closure.snapshot||[]).map(clone),options:clone(options),closureId:closure.id};const existing=order.documentHistory.findIndex(h=>h.type===type&&h.closureId===closure.id);if(existing>=0)order.documentHistory[existing]=entry;else order.documentHistory.push(entry);await saveObject(object);editorState={key:editorKey(),snapshot:clone(object),dirty:false};
+}
+function showClosurePaymentSheet(closureId){
+  const order=currentOrder(),closure=order?.workClosures?.find(c=>c.id===closureId);if(!order||!closure)return;const remaining=closureRemainingAmount(order,closure);if(remaining<.01){toast('Это закрытие уже оплачено');return}
+  openSheet(`<div class="sectionTitle"><div><h1>Оплата закрытия №${closure.number}</h1><p class="help compact">${ruDate(closure.date)} · закрыто ${money(closure.amount)}</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="grid two"><label>Сумма<input id="closurePaymentAmount" class="decimal" inputmode="decimal" value="${esc(String(Math.round(remaining*100)/100))}"></label><label>Дата<input id="closurePaymentDate" type="date" value="${today()}"></label></div><button id="saveClosurePayment" class="btn primary wide" style="margin-top:12px">Записать оплату</button>`);
+  $('saveClosurePayment').onclick=async()=>{const object=currentObject(),order=currentOrder(),amount=parseNum($('closurePaymentAmount').value);if(!object||!order||amount<=0){toast('Введите сумму оплаты');return}order.payments.push(normalizePayment({amount:String(amount),date:$('closurePaymentDate').value||today(),note:`Оплата закрытия №${closure.number}`,closureId:closure.id}));await saveObject(object);editorState={key:editorKey(),snapshot:clone(object),dirty:false};closeSheet();render();toast(`Оплата записана: ${money(amount)}`)};
+}
+function bindWorkProgressCards(){
+  $$('[data-work-progress]').forEach(card=>{const index=+card.dataset.workProgress;let timer=null,startX=0,startY=0,longTriggered=false;
+    const cancel=()=>{if(timer)clearTimeout(timer);timer=null};
+    card.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startX=e.clientX;startY=e.clientY;longTriggered=false;cancel();timer=setTimeout(()=>{longTriggered=true;timer=null;if(navigator.vibrate)navigator.vibrate(12);showWorkProgressMenu(index)},560)});
+    card.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-startX,e.clientY-startY)>10)cancel()});
+    card.addEventListener('pointercancel',cancel);
+    card.addEventListener('pointerup',e=>{const wasLong=longTriggered;cancel();if(wasLong){e.preventDefault();return}setWorkProgress(index,workProgressPct(currentOrder()?.works?.[index])>=100?0:100)});
+    card.addEventListener('contextmenu',e=>{e.preventDefault();cancel();showWorkProgressMenu(index)});
+    card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setWorkProgress(index,workProgressPct(currentOrder()?.works?.[index])>=100?0:100)}};
+  });
+}
+function bindWorksView(){
+  const order=currentOrder();if(!order)return;
+  if(routeState.editWorks){$('backToWorkChecklist').onclick=async()=>{if(editorState.dirty&&!await saveEditor({silent:true}))return;routeState.editWorks=false;render()};$$('[data-row-collection="works"]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{const row=order.works[+el.dataset.rowIndex];if(!row)return;const key=el.dataset.rowKey;row[key]=['qty','price'].includes(key)?rawNum(el.value):el.value;const sum=document.querySelector(`[data-row-sum="works-${el.dataset.rowIndex}"]`);if(sum)sum.textContent=money(parseNum(row.qty)*parseNum(row.price));if($('worksTotal'))$('worksTotal').textContent=money(calculateWorks(order).total);queueSave()}));$$('[data-remove-row="works"]').forEach(b=>b.onclick=()=>{const row=order.works[+b.dataset.rowIndex];if(row&&workClosedAmount(row)>.01){toast('Эта работа уже была в закрытии и не может быть удалена');return}order.works.splice(+b.dataset.rowIndex,1);queueSave();render()});$('addWorkBtn').onclick=()=>{order.works.push(normalizeGenericRow({name:'',qty:'1',unit:'шт.',price:'',group:'Работы'},'Работы'));queueSave();render();requestAnimationFrame(()=>window.scrollTo({left:0,top:document.body.scrollHeight,behavior:'smooth'}))};return}
+  $('editWorksBtn').onclick=()=>{routeState.editWorks=true;beginEditor(true);render()};bindWorkProgressCards();if($('closeWorkVolumeBtn'))$('closeWorkVolumeBtn').onclick=showCloseWorkVolumeSheet;$$('[data-closure-doc]').forEach(b=>b.onclick=()=>{const [type,id]=b.dataset.closureDoc.split('|');buildClosureDocument(id,type)});$$('[data-closure-pay]').forEach(b=>b.onclick=()=>showClosurePaymentSheet(b.dataset.closurePay));
 }
 function floorStepCard(f,index,title,body){const active=(routeState.floorStep??0)===index,done=index<(routeState.floorStep??0);return `<section class="stepCard ${active?'active':''} ${done?'done':''}" data-floor-step-card="${index}"><button class="stepButton" data-floor-step="${index}"><span class="stepNumber">${done?'✓':index+1}</span><span><span class="stepTitle">${esc(title)}</span><span class="stepSummary">${esc(floorStepSummary(f,index))}</span></span><span class="stepChevron">›</span></button><div class="stepBody">${body}</div></section>`}
 function floorNav(index){return `<div class="stepNav">${index>0?`<button class="btn ghost" data-floor-prev="${index-1}">Назад</button>`:'<span></span>'}${index<6?`<button class="btn primary" data-floor-next="${index+1}">Далее</button>`:`<button id="finishFloorBtn" class="btn primary">Готово</button>`}</div>`}
@@ -697,6 +782,7 @@ function bindDocumentsView(){
 
 function orderDocumentRows(order,{includeMaterials=false,procurement='none',procurementPrice=''}={}){const w=calculateWorks(order),f=calculateFloor(order.floor),d=calculateDoors(order.doors);const rows=[...w.rows,...f.rows,...d.rows];if(includeMaterials)rows.push(...f.materials);if(procurement==='include'&&parseNum(procurementPrice)>0)rows.push(normalizeGenericRow({name:'Организация закупки материалов',qty:'1',unit:'услуга',price:procurementPrice,group:'Дополнительные услуги',kind:'work'},'Дополнительные услуги'));return rows.map(r=>({...clone(r),id:r.id||uid()}))}
 function openDocumentOptions(type){const order=currentOrder();if(!order)return;if(type==='contract'){showContractOptions(order);return}
+  if((type==='worklist'||type==='act')&&(order.workClosures||[]).length){const closures=(order.workClosures||[]).slice().reverse();openSheet(`<div class="sectionTitle"><div><h1>${type==='act'?'Акт выполненных работ':'Перечень выполненных работ'}</h1><p class="help compact">Можно сформировать документ строго из зафиксированного закрытия.</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><label>Источник<select id="closureDocSource">${closures.map(c=>`<option value="${c.id}">Закрытие №${c.number} · ${ruDate(c.date).replace(' г.','')} · ${money(c.amount)}</option>`).join('')}<option value="all">Весь текущий заказ</option></select></label>${type==='act'?`<label style="margin-top:10px">Экземпляры<select id="closureActCopies"><option value="1">1 экземпляр</option><option value="2">2 экземпляра</option></select></label>`:''}<button id="buildClosureDocFromDocuments" class="btn primary wide" style="margin-top:12px">Продолжить</button>`);$('buildClosureDocFromDocuments').onclick=async()=>{const source=$('closureDocSource').value;if(source!=='all'){const closure=order.workClosures.find(c=>c.id===source);const copies=type==='act'?+$('closureActCopies').value:1;closeSheet();if(closure){const options={contractTotal:'',showDiscount:true,closureId:closure.id,closureNumber:closure.number,documentDate:closure.date,copies};buildOrderDocument(type,(closure.snapshot||[]).map(clone),options);const entry={id:uid(),type,date:now(),total:closure.amount,snapshot:(closure.snapshot||[]).map(clone),options:clone(options),closureId:closure.id};const existing=order.documentHistory.findIndex(h=>h.type===type&&h.closureId===closure.id);if(existing>=0)order.documentHistory[existing]=entry;else order.documentHistory.push(entry);await saveObject(currentObject());editorState={key:editorKey(),snapshot:clone(currentObject()),dirty:false};}return}const copies=type==='act'?+($('closureActCopies')?.value||1):1;closeSheet();if(type==='act'){const rows=orderDocumentRows(order,{}),options={copies};openReviewSheet(type,rows,options)}else openReviewSheet(type,orderDocumentRows(order,{}),{})};return}
   if(type==='proposal'){
     openSheet(`<div class="sectionTitle"><div><h1>Коммерческое предложение</h1><p class="help compact">Выберите состав документа.</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="grid two"><label>Что включить<select id="proposalMaterials"><option value="work">Только работы</option><option value="materials">Работы + материалы из расчёта</option></select></label><label>Организация закупки<select id="proposalProcurement"><option value="none">Не показывать</option><option value="recommend">Предложить отдельно</option><option value="include">Включить в расчёт</option></select></label><label>Цена организации закупки<input id="proposalProcurementPrice" class="decimal" inputmode="decimal" placeholder="Цена"></label></div><div class="actions end"><button id="startProposalReview" class="btn primary">Проверить расчёт</button></div>`);
     $('startProposalReview').onclick=()=>{const options={includeMaterials:$('proposalMaterials').value==='materials',procurement:$('proposalProcurement').value,procurementPrice:$('proposalProcurementPrice').value};const rows=orderDocumentRows(order,options);closeSheet();openReviewSheet('proposal',rows,options)};return;
@@ -714,12 +800,12 @@ function renderReviewSheet(){const title={proposal:'Проверка комме�
   $$('[data-review-index]',$('sheetPanel')).forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{const row=reviewRows[+el.dataset.reviewIndex],key=el.dataset.reviewKey;row[key]=['qty','price'].includes(key)?rawNum(el.value):el.value;const sum=$('sheetPanel').querySelector(`[data-review-sum="${el.dataset.reviewIndex}"]`);if(sum)sum.textContent=money(parseNum(row.qty)*parseNum(row.price));refreshTotals()}));
   $$('[data-remove-review]',$('sheetPanel')).forEach(b=>b.onclick=()=>{reviewRows.splice(+b.dataset.removeReview,1);renderReviewSheet()});
   $('addReviewRow').onclick=()=>{reviewRows.push(normalizeGenericRow({name:'',qty:'1',unit:'шт.',price:'',group:'Дополнительные работы'},'Дополнительные работы'));renderReviewSheet()};
-  $('generateReviewedDoc').onclick=async()=>{const {type}=documentContext,order=currentOrder(),object=currentObject(),options={...(documentContext.options||{}),contractTotal:order?.pricing?.contractTotal??'',showDiscount:object?.showDiscountInDocuments!==false};closeSheet();buildOrderDocument(type,reviewRows,options);if(order){const calcWork=reviewRows.filter(r=>r.kind!=='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),contractWork=String(options.contractTotal).trim()===''?calcWork:parseNum(options.contractTotal),materialTotal=reviewRows.filter(r=>r.kind==='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0);order.documentHistory.push({id:uid(),type,date:now(),total:contractWork+materialTotal,snapshot:reviewRows.map(clone),options:clone(options)});await saveObject(currentObject());editorState.snapshot=clone(currentObject())}}
+  $('generateReviewedDoc').onclick=async()=>{const {type}=documentContext,order=currentOrder(),object=currentObject(),options={...(documentContext.options||{}),contractTotal:order?.pricing?.contractTotal??'',showDiscount:object?.showDiscountInDocuments!==false};closeSheet();buildOrderDocument(type,reviewRows,options);if(order){const calcWork=reviewRows.filter(r=>r.kind!=='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),contractWork=String(options.contractTotal).trim()===''?calcWork:parseNum(options.contractTotal),materialTotal=reviewRows.filter(r=>r.kind==='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0);order.documentHistory.push({id:uid(),type,date:now(),total:contractWork+materialTotal,snapshot:reviewRows.map(clone),options:clone(options),closureId:options.closureId||''});await saveObject(currentObject());editorState.snapshot=clone(currentObject())}}
 }
 function groupedRowsTable(rows,{hideWorkPrices=false}={}){const groups=[];for(const row of rows)if(!groups.includes(row.group||'Работы'))groups.push(row.group||'Работы');return groups.map(group=>`<tr class="group"><td colspan="5">${esc(group)}</td></tr>`+rows.filter(r=>(r.group||'Работы')===group).map(r=>{const hide=hideWorkPrices&&r.kind!=='material';return `<tr><td>${esc(r.name)}${r.comment?`<br><small>${esc(r.comment)}</small>`:''}</td><td>${qty(r.qty)}</td><td>${esc(r.unit)}</td><td>${hide?'—':money(r.price)}</td><td>${hide?'—':money(parseNum(r.qty)*parseNum(r.price))}</td></tr>`}).join('')).join('')}
 function paperHeader(title,{slogan=false}={}){return `<div class="paperBrand">FRAME</div><div class="paperTag">Design. Build. Finish.</div>${slogan?`<div class="paperSlogan"><strong>Работаем сами. Отвечаем лично.</strong><span>Без посредников и передачи заказа на сторону.</span></div>`:''}<div class="paperHero"><h1>${esc(title)}</h1></div>`}
 function infoGrid(items){return `<div class="paperInfo">${items.filter(x=>x[1]).map(([l,v])=>`<div><span>${esc(l)}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`}
-function buildOrderDocument(type,rows,options={}){const object=currentObject(),order=currentOrder();if(!object||!order)return;const calculatedWork=rows.filter(r=>r.kind!=='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),materialTotal=rows.filter(r=>r.kind==='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),rawContract=options.contractTotal!==undefined?options.contractTotal:order.pricing?.contractTotal,contractWork=rawContract===undefined||rawContract===null||String(rawContract).trim()===''?calculatedWork:Math.max(0,parseNum(rawContract)),adjustment=contractWork-calculatedWork,showDiscount=options.showDiscount!==undefined?options.showDiscount:object.showDiscountInDocuments!==false,total=contractWork+materialTotal,hideWorkPrices=!showDiscount&&Math.abs(adjustment)>.009;const titles={proposal:'Коммерческое предложение',worklist:'Перечень выполненных работ',act:'Акт выполненных работ'};let html=paperHeader(titles[type]||'Документ',{slogan:type==='proposal'});html+=infoGrid([['Заказчик',object.contact.name],['Телефон',formatPhone(object.contact.phone)],['Адрес объекта',object.contact.address],['Заказ',order.title],['Дата',ruDate(order.date||today())]]);html+=`<h2>Работы и услуги</h2>${hideWorkPrices?'<p class="paperNote compactNote">Цены по отдельным работам не выводятся. Ниже указана согласованная итоговая стоимость.</p>':''}<div class="paperTableWrap"><table><colgroup><col class="col-name"><col class="col-qty"><col class="col-unit"><col class="col-price"><col class="col-sum"></colgroup><thead><tr><th>Наименование</th><th>Кол.</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${groupedRowsTable(rows,{hideWorkPrices})}</tbody></table></div>`;
+function buildOrderDocument(type,rows,options={}){const object=currentObject(),order=currentOrder();if(!object||!order)return;const calculatedWork=rows.filter(r=>r.kind!=='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),materialTotal=rows.filter(r=>r.kind==='material').reduce((s,r)=>s+parseNum(r.qty)*parseNum(r.price),0),rawContract=options.contractTotal!==undefined?options.contractTotal:order.pricing?.contractTotal,contractWork=rawContract===undefined||rawContract===null||String(rawContract).trim()===''?calculatedWork:Math.max(0,parseNum(rawContract)),adjustment=contractWork-calculatedWork,showDiscount=options.showDiscount!==undefined?options.showDiscount:object.showDiscountInDocuments!==false,total=contractWork+materialTotal,hideWorkPrices=!showDiscount&&Math.abs(adjustment)>.009;const titles={proposal:'Коммерческое предложение',worklist:'Перечень выполненных работ',act:'Акт выполненных работ'};let html=paperHeader(titles[type]||'Документ',{slogan:type==='proposal'});html+=infoGrid([['Заказчик',object.contact.name],['Телефон',formatPhone(object.contact.phone)],['Адрес объекта',object.contact.address],['Заказ',order.title],['Закрытие',options.closureNumber?`№${options.closureNumber}`:''],['Дата',ruDate(options.documentDate||order.date||today())]]);html+=`<h2>Работы и услуги</h2>${hideWorkPrices?'<p class="paperNote compactNote">Цены по отдельным работам не выводятся. Ниже указана согласованная итоговая стоимость.</p>':''}<div class="paperTableWrap"><table><colgroup><col class="col-name"><col class="col-qty"><col class="col-unit"><col class="col-price"><col class="col-sum"></colgroup><thead><tr><th>Наименование</th><th>Кол.</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${groupedRowsTable(rows,{hideWorkPrices})}</tbody></table></div>`;
   const adjustmentHtml=showDiscount&&adjustment<-.009?`<div><span>Расчётная стоимость работ</span><strong>${money(calculatedWork)}</strong></div><div><span>Индивидуальная скидка</span><strong>− ${money(Math.abs(adjustment))}</strong></div>`:showDiscount&&adjustment>.009?`<div><span>Расчётная стоимость работ</span><strong>${money(calculatedWork)}</strong></div><div><span>Корректировка стоимости</span><strong>+ ${money(adjustment)}</strong></div>`:'';
   if(type==='proposal')html+=`<div class="paperTotal">${adjustmentHtml}<div><span>Стоимость работ</span><strong>${money(contractWork)}</strong></div>${materialTotal?`<div><span>Материалы для заказчика</span><strong>${money(materialTotal)}</strong></div>`:''}<div class="grand"><span>Итого</span><strong>${money(total)}</strong></div></div>${options.procurement==='recommend'?`<div class="paperAlso"><strong>Организация закупки материалов</strong><p>Подбор, согласование и организация приобретения материалов. Ориентировочная стоимость услуги ${money(options.procurementPrice)}. Материалы и доставка оплачиваются отдельно.</p></div>`:''}<p class="paperNote">Расчёт составлен по указанному объёму и условиям. Дополнительные или скрытые работы выполняются только после согласования с заказчиком.</p>`;
   if(type==='worklist')html+=`<div class="paperTotal">${adjustmentHtml}<div class="grand"><span>Итого выполненных работ</span><strong>${money(contractWork)}</strong></div></div><p class="paperNote">Перечень отражает фактически выполненный объём и согласованную стоимость работ по объекту.</p>`;
@@ -759,6 +845,53 @@ async function applyImport(mode){if(!importCandidate)return;try{for(const incomi
 
 
 function rowWork(name,price,rateKey='',qty='1',unit='шт.'){return normalizeGenericRow({name,qty,unit,price:String(price),rateKey,group:'Работы'},'Работы')}
+function arch21Work(name,price,group,qty='1',unit='компл.',comment=''){return normalizeGenericRow({name,qty,unit,price:String(price),group,comment,progressPct:0,closedAmount:0},group)}
+function arch21ProgressWorks(){return [
+  arch21Work('Расширение проёма в ПГП на 300 мм с установкой стального уголка',6000,'Демонтаж и проёмы'),
+  arch21Work('Штукатурка и финишное шпаклевание откосов широкого проёма',13000,'Демонтаж и проёмы'),
+  arch21Work('Флизелин и покраска откосов широкого проёма',4000,'Демонтаж и проёмы'),
+  arch21Work('Локальная подготовка стен',200,'Подготовительные работы','54.52','м²'),
+  arch21Work('Грунтование стен прихожей и комнаты',75,'Подготовительные работы','54.52','м²'),
+  arch21Work('Локальная подготовка пола',300,'Подготовительные работы','20.8666666667','м²'),
+  arch21Work('Грунтование пола перед клеевым кварцвинилом',75,'Подготовительные работы','20.8666666667','м²'),
+  arch21Work('Грунтование стен санузла перед облицовкой',75,'Подготовительные работы','17.52','м²'),
+  arch21Work('Локальный наливной пол в санузле, сложный малый участок',3000,'Подготовительные работы'),
+  arch21Work('Поклейка малярного флизелина',400,'Отделка стен и пола','46.1175','м²'),
+  arch21Work('Покраска стен в 2 слоя',450,'Отделка стен и пола','46.1177777778','м²'),
+  arch21Work('Укладка клеевого кварцвинила',800,'Отделка стен и пола','20.865','м²'),
+  arch21Work('Беспороговый стык керамогранита и кварцвинила',1500,'Отделка стен и пола','1','м.п.'),
+  arch21Work('Монтаж ПВХ-плинтуса',300,'Отделка стен и пола','19.3166666667','м.п.'),
+  arch21Work('Монтаж инсталляции',10000,'Санузел'),
+  arch21Work('Изготовление короба под инсталляцию и зашивка канализационной трубы',15000,'Санузел'),
+  arch21Work('Монтаж подвесного унитаза и кнопки инсталляции',3000,'Санузел'),
+  arch21Work('Устройство монолитного душевого поддона с бортиком и облицовкой',25000,'Санузел','1','компл.','Для теста оставлено одной позицией: черновое формирование сейчас можно отметить процентом.'),
+  arch21Work('Гидроизоляция душевой зоны и поддона',500,'Санузел','5','м²'),
+  arch21Work('Облицовка стен керамогранитом',4000,'Санузел','17.519','м²'),
+  arch21Work('Облицовка пола керамогранитом',4500,'Санузел','3.1646666667','м²'),
+  arch21Work('Запил керамогранита под 45°',1500,'Санузел','4','м.п.'),
+  arch21Work('Цементная затирка',300,'Санузел','22.1833333333','м²'),
+  arch21Work('Прокладка кабеля в штробе',600,'Электрика','15.2','м.п.'),
+  arch21Work('Прокладка кабеля открытым способом',200,'Электрика','18.1','м.п.'),
+  arch21Work('Подрозетники в газобетоне',500,'Электрика','12','шт.'),
+  arch21Work('Подрозетник в ГКЛ',300,'Электрика','1','шт.'),
+  arch21Work('Пересборка распаечных коробок',600,'Электрика','3','шт.'),
+  arch21Work('Добавление автомата в электрощит',1200,'Электрика','1','шт.'),
+  arch21Work('Монтаж механизмов: розетки, выключатели, интернет',300,'Электрика','25','шт.'),
+  arch21Work('Штробление стен под инженерные коммуникации',10000,'Сантехника'),
+  arch21Work('Монтаж системы водоснабжения',15000,'Сантехника'),
+  arch21Work('Монтаж системы канализации',10000,'Сантехника'),
+  arch21Work('Подготовка выводов под сантехническое оборудование',10000,'Сантехника'),
+  arch21Work('Монтаж и подключение бойлера',6000,'Сантехника'),
+  arch21Work('Сборка и установка тумбы с раковиной',6000,'Сантехника'),
+  arch21Work('Монтаж смесителя и душевой системы',7000,'Сантехника'),
+  arch21Work('Замена круглого воздуховода на плоский пластиковый',5000,'Вентиляция'),
+  arch21Work('Монтаж и подключение принудительного вентилятора',3500,'Вентиляция'),
+  arch21Work('Монтаж кондиционера',22000,'Инженерные работы'),
+  arch21Work('Натяжной потолок',1200,'Потолки','24.03','м²'),
+  arch21Work('Сборка и установка прямой кухни',25000,'Кухня, мебель и двери'),
+  arch21Work('Сборка отдельно стоящего шкафа',6000,'Кухня, мебель и двери','1','шт.'),
+  arch21Work('Установка двери в санузел',7000,'Кухня, мебель и двери','1','шт.')
+]}
 async function seedAug2026CurrentObjects(){if(storageGet(AUG2026_SEED_KEY,'0')==='1')return;let changed=false;
   const hasAddr=(needle)=>objects.find(o=>String(o.contact.address||'').toLowerCase().includes(needle));
   if(!hasAddr('5-я матросская')&&!hasAddr('пятая матросская')){const o=defaultObject();o.status='work';o.contact={name:'Детейлинг «ПроЗащиту»',phone:'',address:'г. Владивосток, ул. 5-я Матросская, 26',comment:'Выполненные работы, ожидается оплата'};const q=o.orders[0];q.title='Детейлинг · выполненные работы';q.date='2026-08-09';q.status='awaiting';q.completedAt='2026-08-09';q.works=[rowWork('Монтаж резинового порога / лежачего полицейского',7000,'misc.speedbump','2','шт.'),rowWork('Монтаж стекла и ролика под плёнку',5000,'misc.glassRoller','1','компл.'),rowWork('Замена крана',1000,'misc.valve'),rowWork('Замена блока питания LED',1000,'misc.ledPower'),rowWork('Закупка и доставка материалов',2000,'misc.procurement','1','услуга')];q.pricing.contractTotal='23000';q.purchases=[normalizePurchase({name:'Возмещаемые материалы по двум чекам',amount:'7651',date:'2026-08-09',status:'due',comment:'В чеках есть личные покупки; к возмещению подтверждено 7 651 ₽'})];await dbPut(normalizeObject(o));changed=true;}
@@ -769,6 +902,14 @@ async function seedAug2026CurrentObjects(){if(storageGet(AUG2026_SEED_KEY,'0')==
 }
 
 async function patchV202CurrentData(){if(storageGet(UX202_DATA_KEY,'0')==='1')return;let changed=false;for(const object of objects){const a=String(object.contact.address||'').toLowerCase();for(const order of object.orders||[]){if(a.includes('5-я матросская')&&String(order.title).toLowerCase().includes('детейлинг')){if(['done','work'].includes(order.status))order.status='awaiting';order.completedAt=order.completedAt||'2026-08-09';changed=true}if(a.includes('веселковая')&&String(order.title).toLowerCase().includes('водоснабжение')){if(['done','work'].includes(order.status))order.status='awaiting';order.completedAt=order.completedAt||'2026-08-09';order.taxRate='6';changed=true}}if(changed)await dbPut(normalizeObject(object))}storageSet(UX202_DATA_KEY,'1');if(changed)await reloadObjects()}
+async function patchV210WorkflowData(){
+  if(storageGet(WORKFLOW210_DATA_KEY,'0')==='1')return;let changed=false;
+  let object=objects.find(o=>{const a=String(o.contact.address||'').toLowerCase();return a.includes('архангельск')&&a.includes('21')});
+  if(!object){object=defaultObject();object.status='work';object.contact={name:'',phone:'',address:'г. Владивосток, ул. Архангельская, 21',comment:'Тест новой карточки прогресса работ'};object.orders=[];objects.push(object)}
+  let order=(object.orders||[]).find(q=>q.workflowKey==='arch21-progress-v1'||String(q.title||'').toLowerCase().includes('прогресс работ'));
+  if(!order){order=defaultOrder((object.orders||[]).length+1);order.title='Ремонт квартиры · прогресс работ';order.date='2026-08-11';order.startedAt='2026-08-11';order.status='work';order.comment='Рабочий чек-лист: финальное КП + фактические уточнения по электрике, откосам и локальному наливному полу.';order.pricing.contractTotal='';order.works=arch21ProgressWorks();order.workflowKey='arch21-progress-v1';object.orders.push(order);changed=true}
+  if(changed)await dbPut(normalizeObject(object));storageSet(WORKFLOW210_DATA_KEY,'1');if(changed)await reloadObjects()
+}
 window.addEventListener('beforeunload',e=>{if(editorState.dirty){e.preventDefault();e.returnValue=''}});
 window.addEventListener('resize',()=>{if(!$('documentView').classList.contains('hidden'))fitPaperPreview()});
 $('brandHome').onclick=()=>navigate('dashboard');
@@ -787,6 +928,7 @@ async function init(){
     await reloadObjects();
     await seedAug2026CurrentObjects();
     await patchV202CurrentData();
+    await patchV210WorkflowData();
   }catch(e){
     console.error('IndexedDB',e);
     try{

@@ -1,39 +1,61 @@
-FRAME 2.0.2 Clean UX — проверка сборки
-Дата: 10.08.2026
+FRAME 2.1.0 Progress Closures — проверка сборки
+Дата: 11.08.2026
 
-Статическая проверка: 32/32.
+Проверки выполняются перед упаковкой релиза.
 
-1. OK — Version 2.0.2
-2. OK — IndexedDB FRAME_DB
-3. OK — DB version unchanged 2
-4. OK — Dashboard Orders
-5. OK — Orders list route
-6. OK — Active excludes drafts
-7. OK — Monthly goal default 300k
-8. OK — Dashboard uses month
-9. OK — Finance tabs
-10. OK — Clickable order links
-11. OK — Tax rate order field
-12. OK — Synthetic tax expense
-13. OK — Awaiting payment status
-14. OK — Order dates
-15. OK — Floating back CSS
-16. OK — Document filter hidden CSS
-17. OK — Filtered docs empty state
-18. OK — Document delete
-19. OK — Amount mobile stacking
-20. OK — Camera ready polling
-21. OK — Camera overlay forced hide
-22. OK — Splash screen
-23. OK — Clean other rates
-24. OK — Current detailing seed
-25. OK — Current Veselkovaya seed
-26. OK — Veselkovaya NPD 6
-27. OK — Leonova kitchen 40k
-28. OK — Manifest 202
-29. OK — SW cache 202
-30. OK — Refresh 2.0.2
-31. OK — Passport exists
-32. OK — Roadmap exists
+Критические сценарии:
+- Version 2.1.0.
+- IndexedDB FRAME_DB, DB_VERSION 2 без destructive migration.
+- Тестовый заказ Архангельская, 21 создаётся один раз и начинает с 0% прогресса.
+- Тап = 100%, долгое нажатие = меню, partial slider step 5%.
+- «К закрытию» = doneAmount - closedAmount по каждой строке.
+- Контрольная сумма текущего фактического объёма Архангельской = 129 040 ₽.
+- После закрытия готовая к закрытию сумма = 0 ₽.
+- Поддон: после закрытых 60% дальнейшие 100% дают новую дельту 10 000 ₽.
+- Закрытие хранит immutable snapshot и может породить перечень/акт.
+- Оплата может быть связана с closureId.
+- Строки с закрытым объёмом защищены от изменения цены/количества и удаления.
+- manifest, service worker и refresh имеют cache-bust 210.
+- app.js и sw.js проходят node --check.
+- ZIP проходит integrity test.
 
-Дополнительно: app.js проверен node --check. Нативную камеру Mobile Safari окончательно проверяем на iPhone после публикации.
+Результаты финального прогона добавлены в секцию ниже автоматически при упаковке.
+
+ФИНАЛЬНЫЙ ПРОГОН
+01. PASS | Version 2.1.0
+02. PASS | DB name FRAME_DB
+03. PASS | DB version unchanged 2
+04. PASS | Progress fields normalized
+05. PASS | Closure array in order
+06. PASS | Tap sets full progress
+07. PASS | Long press threshold
+08. PASS | Partial slider 5 percent
+09. PASS | Dynamic slider money
+10. PASS | Ready amount is delta
+11. PASS | Close volume action
+12. PASS | Closure has frozen snapshot
+13. PASS | Closure documents
+14. PASS | Closure-linked payments
+15. PASS | Closed rows lock core pricing
+16. PASS | Arch21 one-time workflow key
+17. PASS | Arch21 starts zero progress
+18. PASS | Tray stays one 25k row
+19. PASS | Arch21 current stage = 129040 | 129040.00
+20. PASS | After close ready = 0 | 0.00
+21. PASS | Tray 60 to 100 delta = 10000 | 10000.00
+22. PASS | Manifest cache bust 210
+23. PASS | SW cache 210
+24. PASS | Refresh 2.1.0 / fresh 210
+25. PASS | Index assets 210
+26. PASS | FRAME_CONTEXT_PASSPORT.md exists
+27. PASS | CHANGELOG.txt exists
+28. PASS | ROADMAP.md exists
+29. PASS | README.txt exists
+30. PASS | TEST_REPORT.txt exists
+
+TOTAL 30 PASS 30 FAIL 0
+
+STATIC CHECKS
+- node --check app.js: PASS
+- node --check sw.js: PASS
+- manifest.webmanifest JSON: PASS
