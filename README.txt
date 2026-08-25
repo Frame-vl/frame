@@ -1,3 +1,5 @@
+FRAME 2.4.1 Safari Voice Diagnostics
+
 FRAME 2.4.0 AI Inbox Beta
 
 Первый рабочий слой разговорного управления FRAME поверх стабильной архитектуры 2.3.0.

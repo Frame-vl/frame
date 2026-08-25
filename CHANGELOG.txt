@@ -1,3 +1,9 @@
+FRAME 2.4.1 — Safari Voice Diagnostics
+- Added explicit microphone permission preflight.
+- Added Safari speech error diagnostics.
+- Added ru-RU recognition lifecycle states and clearer UI feedback.
+- Preserved FRAME_DB / DB_VERSION compatibility.
+
 FRAME 2.4.0 AI Inbox Beta · 25.08.2026
 
 Главное:

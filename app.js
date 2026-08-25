@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.4.0';
+const VERSION='2.4.1';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -474,7 +474,57 @@ function aiDraftHtml(draft){if(!draft)return '<div class="aiEmpty"><strong>FRAME
 function aiHistoryHtml(){const items=aiLogs().slice().reverse().slice(0,6);return items.length?items.map(x=>`<article class="aiHistoryItem ${x.undone?'undone':''}"><span><strong>${esc(aiActionLabel(x.type))}${x.undone?' · отменено':''}</strong><small>${esc(x.summary||x.text||'')} · ${esc(new Date(x.at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))}</small></span></article>`).join(''):'<div class="empty">AI-изменений пока нет.</div>'}
 function renderAiView(){const targets=aiAllTargets(),selected=routeState.aiTarget||aiDefaultTargetKey();routeState.aiTarget=targets.some(x=>x.key===selected)?selected:(targets[0]?.key||'');const mic=!!(window.SpeechRecognition||window.webkitSpeechRecognition);return `<section class="view aiView"><div class="actions pageBack"><button class="btn ghost" data-go="dashboard">← Главная</button></div><div class="card aiHero"><div class="aiBadge">BETA · 2.4</div><h1>FRAME AI</h1><p class="help">Не заполняйте карточки вручную. Расскажите, что произошло, FRAME разложит фразу по данным и перед записью покажет результат.</p><label>Куда записываем<select id="aiTargetSelect">${targets.map(x=>`<option value="${esc(x.key)}" ${x.key===routeState.aiTarget?'selected':''}>${esc(x.label)}</option>`).join('')}</select></label><div class="aiComposer"><textarea id="aiCommandInput" rows="4" placeholder="Например: По Леонова получил от заказчика 20 тысяч"></textarea><div class="aiComposerActions"><button id="aiMicBtn" class="btn ghost" ${mic?'':'disabled'}>${mic?'🎙️ Диктовать':'🎙️ Микрофон недоступен'}</button><button id="aiAnalyzeBtn" class="btn primary">✨ Разобрать</button></div></div><div class="aiChips"><button data-ai-example="Получил от заказчика 20 тысяч">＋ Оплата</button><button data-ai-example="Добавь монтаж подсветки 3500">＋ Работа</button><button data-ai-example="Купил клей за 4000">＋ Покупка</button><button data-ai-example="Закончил плинтус">✓ Выполнение</button></div><p class="aiPrivacy">Сейчас это локальный AI-разбор команд: фраза обрабатывается на устройстве, без внешнего API. Следующий слой сможет подключить настоящую языковую модель через безопасный backend.</p></div><div class="card"><h2>Что FRAME понял</h2><div id="aiResult">${aiDraftHtml(aiDraft)}</div></div><div class="card"><div class="sectionTitle"><div><h2>Журнал AI</h2><p class="help compact">Каждое применённое изменение остаётся видимым.</p></div><button id="undoAiBtn" class="btn ghost small" ${aiLogs().some(x=>!x.undone)?'':'disabled'}>↶ Отменить последнее</button></div><div id="aiHistory" class="aiHistory">${aiHistoryHtml()}</div></div></section>`}
 function bindAiResult(){if($('applyAiDraftBtn'))$('applyAiDraftBtn').onclick=applyAiDraft;if($('clearAiDraftBtn'))$('clearAiDraftBtn').onclick=()=>{$('aiCommandInput')?.focus();aiDraft=null;$('aiResult').innerHTML=aiDraftHtml(null)}}
-function startAiVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Используйте диктовку клавиатуры iPhone');return}try{if(aiRecognition){aiRecognition.stop();aiRecognition=null;return}const rec=new SR();aiRecognition=rec;rec.lang='ru-RU';rec.interimResults=false;rec.maxAlternatives=1;const btn=$('aiMicBtn');if(btn)btn.textContent='⏹ Остановить';rec.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if($('aiCommandInput'))$('aiCommandInput').value=text};rec.onerror=()=>toast('Не удалось распознать речь');rec.onend=()=>{aiRecognition=null;if($('aiMicBtn'))$('aiMicBtn').textContent='🎙️ Диктовать'};rec.start()}catch(e){console.warn(e);toast('Диктовка сейчас недоступна')}}
+async function startAiVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Браузерное распознавание недоступно. Используйте диктовку клавиатуры iPhone.');return}
+  try{
+    if(aiRecognition){aiRecognition.stop();aiRecognition=null;return}
+    const btn=$('aiMicBtn');
+    if(btn){btn.disabled=true;btn.textContent='🎙️ Проверяем микрофон…'}
+    if(navigator.mediaDevices?.getUserMedia){
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        stream.getTracks().forEach(t=>t.stop());
+      }catch(err){
+        console.warn('FRAME AI microphone permission',err);
+        if(btn){btn.disabled=false;btn.textContent='🎙️ Диктовать'}
+        const name=String(err?.name||'');
+        if(name==='NotAllowedError'||name==='SecurityError')toast('Safari не дал доступ к микрофону. Разрешите микрофон для frame-vl.github.io и попробуйте ещё раз.');
+        else if(name==='NotFoundError')toast('iPhone не видит доступный микрофон.');
+        else toast('Не удалось открыть микрофон: '+(name||'неизвестная ошибка'));
+        return;
+      }
+    }
+    const rec=new SR();aiRecognition=rec;rec.lang='ru-RU';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+    if(btn){btn.disabled=false;btn.textContent='⏹ Слушаю…'}
+    let heard='';
+    rec.onstart=()=>{const b=$('aiMicBtn');if(b)b.textContent='⏹ Слушаю…'};
+    rec.onaudiostart=()=>{const b=$('aiMicBtn');if(b)b.textContent='🎙️ Говорите…'};
+    rec.onresult=e=>{
+      let text='';
+      for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0]?.transcript||'';
+      text=text.trim();
+      if(text){heard=text;const input=$('aiCommandInput');if(input)input.value=text}
+    };
+    rec.onnomatch=()=>toast('Речь услышала, но не смогла разобрать слова. Попробуйте ещё раз.');
+    rec.onerror=e=>{
+      console.warn('FRAME AI speech recognition',e?.error,e?.message||'');
+      const code=String(e?.error||'unknown');
+      const messages={
+        'no-speech':'Микрофон работает, но речь не обнаружена. Нажмите и начните говорить сразу.',
+        'audio-capture':'Safari не смог получить звук с микрофона.',
+        'not-allowed':'Safari запретил распознавание речи или доступ к микрофону. Проверьте разрешение сайта.',
+        'service-not-allowed':'Служба распознавания речи недоступна в этом режиме Safari. Используйте диктовку клавиатуры iPhone.',
+        'network':'Служба распознавания Safari не ответила по сети. Попробуйте ещё раз.',
+        'language-not-supported':'Safari не поддержал русский язык распознавания на этом устройстве.',
+        'aborted':'Диктовка остановлена.'
+      };
+      toast(messages[code]||('Ошибка распознавания: '+code));
+    };
+    rec.onend=()=>{aiRecognition=null;const b=$('aiMicBtn');if(b){b.disabled=false;b.textContent='🎙️ Диктовать'};if(heard)toast('Речь распознана ✓')};
+    rec.start();
+  }catch(e){console.warn(e);aiRecognition=null;const btn=$('aiMicBtn');if(btn){btn.disabled=false;btn.textContent='🎙️ Диктовать'};toast('Диктовка сейчас недоступна: '+String(e?.name||'ошибка'))}
+}
 async function applyAiDraft(){const d=aiDraft;if(!d?.ok)return;const target=aiTargetByKey(d.targetKey);if(!target){toast('Заказ не найден');return}const {object,order}=target;let undo={};
   if(d.type==='payment'){const item=normalizePayment({amount:String(d.amount),date:today(),note:`FRAME AI: ${d.text}`});order.payments.push(item);undo={kind:'remove_payment',id:item.id}}
   if(d.type==='expense'){const item=normalizeExpense({category:'worker',amount:String(d.amount),date:today(),worker:d.worker||'Исполнитель',work:'',comment:`FRAME AI: ${d.text}`},'order');order.expenses.push(item);undo={kind:'remove_expense',id:item.id}}
