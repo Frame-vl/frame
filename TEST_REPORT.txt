@@ -1,25 +1,56 @@
-FRAME 2.3.0 Current Data Refresh - verification
+FRAME 2.4.0 AI Inbox Beta - verification
 Date: 25.08.2026
 
-PASS | Version 2.3.0
-PASS | Patch key present
-PASS | Patch called from init
-PASS | Goal 300000
-PASS | Leonova 34 address
-PASS | Current package 168380
-PASS | Payment total target 100000
-PASS | Baseboard 33.6 x 800
-PASS | LED 3500
-PASS | Intermediary 7000+3000+3000
-PASS | Arch AC zero income
-PASS | Purchase close cutoff
-PASS | Arithmetic client total
-PASS | Arithmetic user share
-PASS | Arithmetic remaining
+Release/static checks:
+PASS | Version 2.4.0
+PASS | AI route renderer
+PASS | Dashboard AI launch
+PASS | Order AI launch
+PASS | AI target select
+PASS | AI text composer
+PASS | SpeechRecognition support
+PASS | Preview before apply
+PASS | Payment action
+PASS | Expense action
+PASS | Purchase action
+PASS | Work add action
+PASS | Work complete action
+PASS | Order note action
+PASS | AI audit key
+PASS | AI undo
+PASS | AI logs included in backup
+PASS | No API key embedded
+PASS | DB unchanged: FRAME_DB / DB_VERSION 2
+PASS | 2.3 current-data patch retained
+PASS | Monthly goal 300000 retained
+PASS | Leonova current package 168380 retained
+PASS | Payment target 100000 retained
+PASS | Intermediary expenses retained
+PASS | Refresh points to 2.4.0
+PASS | Service worker cache 2.4
+PASS | Index asset versions 240
 PASS | Manifest JSON
+PASS | AI CSS
+PASS | Passport AI architecture
+PASS | Roadmap LLM backend
 PASS | README.txt exists
 PASS | CHANGELOG.txt exists
 PASS | ROADMAP.md exists
 PASS | FRAME_CONTEXT_PASSPORT.md exists
+PASS | Syntax app.js
+PASS | Syntax sw.js
 
-TOTAL 20 PASS 0 FAIL
+Parser checks:
+PASS | «Получил от заказчика 20 тысяч» -> payment 20000
+PASS | «По Леонова получил 15 500 рублей» -> payment 15500
+PASS | «Добавь монтаж подсветки 3500» -> work_add 3500
+PASS | «Добавь монтаж плинтуса 33,6 метра по 800» -> qty 33.6 / rate 800
+PASS | «Купил клей за 4000» -> purchase 4000
+PASS | «Закончил плинтус» -> existing work_complete
+PASS | «Отдал посреднику 7000» -> expense 7000
+PASS | Phrase «по Леонова» overrides a wrongly preselected Веселковая target
+
+TOTAL: 45 PASS / 0 FAIL
+
+Environment note:
+Full localhost browser smoke automation could not be completed in the sandbox because navigation to 127.0.0.1 is blocked by the runtime administrator. JavaScript syntax, release wiring, parser logic, persistence wiring and rollback wiring were verified statically/unit-wise. Final field smoke test should be performed after GitHub Pages deployment.
