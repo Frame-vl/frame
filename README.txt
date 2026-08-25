@@ -1,4 +1,4 @@
-FRAME 2.5.1 · AI Brain Network Hotfix
+FRAME 2.5.2 · AI Brain Network Hotfix
 =============================
 
 Что изменилось
@@ -64,4 +64,4 @@ FRAME AI Server поставляется отдельным архивом FRAME
 Ни Архангельская, ни другой текущий объект не должны быть изменены.
 
 
-2.5.1 hotfix: service worker no longer intercepts external AI Brain requests.
+2.5.2 hotfix: service worker no longer intercepts external AI Brain requests.

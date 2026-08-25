@@ -1,6 +1,6 @@
 # FRAME ROADMAP
 
-## Сейчас: FRAME 2.5.1 · AI Brain Network Hotfix
+## Сейчас: FRAME 2.5.2 · AI Brain Network Hotfix
 - Поднять на ноутбуке Ollama + FRAME AI Server.
 - Стартовая модель: `qwen3:4b-instruct` как лёгкий вариант для первого запуска.
 - Дать iPhone HTTPS-доступ к локальному серверу через tunnel.
@@ -39,4 +39,4 @@
 - После устойчивого полевого ядра выделить общий FRAME Core.
 - Marine / Auto / Service делать только после доказанной схемы объект → работы → деньги → фото → AI.
 
-- 2.5.1: cross-origin AI Brain traffic bypasses service worker cache.
+- 2.5.2: cross-origin AI Brain traffic bypasses service worker cache.

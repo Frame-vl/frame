@@ -1,4 +1,4 @@
-FRAME 2.5.1 AI Brain Network Hotfix · 25.08.2026
+FRAME 2.5.2 AI Brain Network Hotfix · 25.08.2026
 - Service Worker больше не перехватывает cross-origin запросы к AI Brain / tunnel URL.
 - Исправлена Safari ошибка: FetchEvent.respondWith received an error: Returned response is null.
 - Внешние HTTPS-запросы идут напрямую в сеть; локальный PWA-кэш обслуживает только frame-vl.github.io.
