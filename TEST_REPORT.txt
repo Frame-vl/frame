@@ -1,56 +1,60 @@
-FRAME 2.4.0 AI Inbox Beta - verification
+FRAME 2.5.0 AI Brain Bridge - verification
 Date: 25.08.2026
 
 Release/static checks:
-PASS | Version 2.4.0
-PASS | AI route renderer
-PASS | Dashboard AI launch
-PASS | Order AI launch
-PASS | AI target select
-PASS | AI text composer
-PASS | SpeechRecognition support
-PASS | Preview before apply
-PASS | Payment action
-PASS | Expense action
-PASS | Purchase action
-PASS | Work add action
-PASS | Work complete action
-PASS | Order note action
-PASS | AI audit key
-PASS | AI undo
-PASS | AI logs included in backup
-PASS | No API key embedded
+PASS | Version 2.5.0 in app.js
+PASS | Index title/build 2.5.0
+PASS | Cache assets v250
+PASS | Refresh points to 2.5.0
 PASS | DB unchanged: FRAME_DB / DB_VERSION 2
-PASS | 2.3 current-data patch retained
-PASS | Monthly goal 300000 retained
-PASS | Leonova current package 168380 retained
-PASS | Payment target 100000 retained
-PASS | Intermediary expenses retained
-PASS | Refresh points to 2.4.0
-PASS | Service worker cache 2.4
-PASS | Index asset versions 240
-PASS | Manifest JSON
-PASS | AI CSS
-PASS | Passport AI architecture
-PASS | Roadmap LLM backend
-PASS | README.txt exists
-PASS | CHANGELOG.txt exists
-PASS | ROADMAP.md exists
-PASS | FRAME_CONTEXT_PASSPORT.md exists
-PASS | Syntax app.js
-PASS | Syntax sw.js
+PASS | Existing 2.3 current-data patch retained
+PASS | Existing AI audit key retained
+PASS | No OpenAI/API secret embedded in PWA
+PASS | AI server URL/token are runtime localStorage settings
+PASS | AI Brain health endpoint wiring
+PASS | AI Brain analyze endpoint wiring
+PASS | CORS/auth headers in PWA fetch
+PASS | Local parser remains fallback when server URL is empty
+PASS | Complex "new object" phrase is blocked from unsafe local-parser guessing
+PASS | Multi-action AI Brain preview
+PASS | Destructive delete preview uses danger confirmation
+PASS | create_object executor
+PASS | create_order executor
+PASS | update_object executor
+PASS | update_order executor
+PASS | add_work executor
+PASS | delete_work executor
+PASS | update_work executor
+PASS | set_work_progress executor
+PASS | add_payment executor
+PASS | add_expense executor
+PASS | add_purchase executor
+PASS | add_note executor
+PASS | Batch undo metadata
+PASS | Batch undo can delete a newly created object
+PASS | Batch undo restores deleted/edited work without whole-object photo snapshots
+PASS | app.js JavaScript syntax (node --check)
+PASS | sw.js JavaScript syntax
+PASS | Passport updated for 2.5.0
+PASS | Roadmap updated for Ollama -> OpenAI provider switch
 
-Parser checks:
-PASS | «Получил от заказчика 20 тысяч» -> payment 20000
-PASS | «По Леонова получил 15 500 рублей» -> payment 15500
-PASS | «Добавь монтаж подсветки 3500» -> work_add 3500
-PASS | «Добавь монтаж плинтуса 33,6 метра по 800» -> qty 33.6 / rate 800
-PASS | «Купил клей за 4000» -> purchase 4000
-PASS | «Закончил плинтус» -> existing work_complete
-PASS | «Отдал посреднику 7000» -> expense 7000
-PASS | Phrase «по Леонова» overrides a wrongly preselected Веселковая target
+FRAME AI Server 0.1.0 checks:
+PASS | Python standard-library server imports
+PASS | /analyze provider abstraction
+PASS | Ollama /api/chat structured-output request
+PASS | JSON Schema passed in Ollama format field
+PASS | Temperature 0 for deterministic action extraction
+PASS | Mock Ollama structured response parsed successfully
+PASS | Provider metadata returned to client
+PASS | Bearer token support
+PASS | CORS allowlist support
+PASS | Server binds to 127.0.0.1 by default
+PASS | Config auto-generation
+PASS | OpenAI provider adapter exists but is inactive without key
+PASS | OpenAI Responses payload uses structured json_schema and store=false
+PASS | Model/provider configurable without PWA changes
 
-TOTAL: 45 PASS / 0 FAIL
+TOTAL: 48 PASS / 0 FAIL
 
 Environment note:
-Full localhost browser smoke automation could not be completed in the sandbox because navigation to 127.0.0.1 is blocked by the runtime administrator. JavaScript syntax, release wiring, parser logic, persistence wiring and rollback wiring were verified statically/unit-wise. Final field smoke test should be performed after GitHub Pages deployment.
+Real model-quality testing requires the user's Windows laptop with Ollama and the selected local model. The sandbox validated syntax, wiring, schema generation, mock structured output, safety gates, action executor coverage and backward-compatible storage. Field test remains required before treating 2.5.0 as stable.
