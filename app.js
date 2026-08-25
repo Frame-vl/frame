@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.2.0';
+const VERSION='2.3.0';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -20,6 +20,7 @@ const MONTHLY_GOAL_KEY='frameMonthlyNetGoalV202';
 const UX202_DATA_KEY='frameUx202DataPatch';
 const WORKFLOW210_DATA_KEY='frameWorkflow210DataPatch';
 const WORKFLOW220_DATA_KEY='frameWorkflow220DataPatch';
+const CURRENT230_DATA_KEY='frameCurrent230DataPatch';
 
 let db=null;
 let objects=[];
@@ -975,6 +976,106 @@ async function patchV220WorkflowData(){
   }
   storageSet(WORKFLOW220_DATA_KEY,'1');if(changed)await reloadObjects()
 }
+
+async function patchV230CurrentData(){
+  if(storageGet(CURRENT230_DATA_KEY,'0')==='1')return;
+  let changed=false;
+
+  // Актуальная месячная цель пользователя.
+  storageSet(MONTHLY_GOAL_KEY,'300000');
+
+  // На 25.08.2026 все возмещаемые покупки по чекам закрыты.
+  for(const object of objects){
+    let objectChanged=false;
+    for(const order of object.orders||[]){
+      for(const purchase of order.purchases||[]){
+        if(purchase.status!=='reimbursed'&&String(purchase.date||'')<='2026-08-25'){
+          purchase.status='reimbursed';
+          purchase.comment=[purchase.comment,'Возмещение закрыто по факту на 25.08.2026.'].filter(Boolean).join(' · ');
+          objectChanged=true;
+        }
+      }
+    }
+    if(objectChanged){await dbPut(normalizeObject(object));changed=true}
+  }
+  if(changed)await reloadObjects();
+
+  // Леонова: актуализируем адрес и текущий пакет работ. Старый SPC-заказ сохраняется отдельной историей.
+  let leonova=objects.find(o=>{
+    const a=String(o.contact.address||'').toLowerCase(),n=String(o.contact.name||'').toLowerCase();
+    return a.includes('леонова')&&(a.includes('204')||n.includes('юлия'));
+  });
+  if(leonova){
+    let objectChanged=false;
+    if(leonova.contact.address!=='г. Владивосток, ул. Леонова, 34, секция 6, кв. 204'){
+      leonova.contact.address='г. Владивосток, ул. Леонова, 34, секция 6, кв. 204';
+      objectChanged=true;
+    }
+    leonova.contact.comment='Актуализировано 25.08.2026. Материалы/чеки закрыты. Текущий пакет допработ ведётся отдельным заказом.';
+
+    let order=(leonova.orders||[]).find(q=>q.workflowKey==='leonova34-current-v230');
+    if(!order){
+      order=(leonova.orders||[]).find(q=>/кухн/i.test(String(q.title||''))&&orderPaid(q)<.01&&!(q.workClosures||[]).length)||null;
+      if(!order){order=defaultOrder((leonova.orders||[]).length+1);leonova.orders.push(order)}
+    }
+
+    order.workflowKey='leonova34-current-v230';
+    order.title='Допработы · кухня, балкон и мебель';
+    order.date='2026-08-18';
+    order.startedAt=order.startedAt||'2026-08-18';
+    order.status='work';
+    order.comment='Актуально на 25.08.2026. Плинтус ~33,6 м.п. — окончательный объём уточнить после завершения. По кухне возможны отдельные дополнительные переделки. LED-подсветка добавлена отдельной позицией 3 500 ₽.';
+    order.pricing.contractTotal='168380';
+    order.works=[
+      normalizeGenericRow({name:'Сборка и монтаж кухни под ключ',qty:'1',unit:'компл.',price:'50000',moduleId:'kitchen',group:'Кухня и мебель',comment:'Цена клиенту 50 000 ₽. Доля пользователя 43 000 ₽; посреднику 7 000 ₽. Возможные дальнейшие переделки считаются отдельно.'},'Кухня и мебель'),
+      normalizeGenericRow({name:'Монтаж напольного плинтуса под ключ',qty:'33.6',unit:'м.п.',price:'800',moduleId:'floors',group:'Полы',comment:'Предварительный объём. Финальный замер и сумма корректируются по окончанию.'},'Полы'),
+      normalizeGenericRow({name:'Тёплый пол + укладка керамогранита на балконе',qty:'1',unit:'компл.',price:'33000',moduleId:'floors',group:'Полы',comment:'Цена клиенту 33 000 ₽. Доля пользователя 30 000 ₽; посреднику 3 000 ₽.'},'Полы'),
+      normalizeGenericRow({name:'Кухонный фартук под ключ',qty:'1',unit:'компл.',price:'18000',moduleId:'kitchen',group:'Кухня и мебель',comment:'Цена клиенту 18 000 ₽. Доля пользователя 15 000 ₽; посреднику 3 000 ₽.'},'Кухня и мебель'),
+      normalizeGenericRow({name:'Сборка и монтаж прихожей / гардеробной',qty:'1',unit:'компл.',price:'25000',moduleId:'kitchen',group:'Кухня и мебель'},'Кухня и мебель'),
+      normalizeGenericRow({name:'Монтаж межкомнатной двери',qty:'1',unit:'шт.',price:'7000',moduleId:'doors',group:'Двери и проёмы'},'Двери и проёмы'),
+      normalizeGenericRow({name:'Благоустройство входной двери / откосы',qty:'1',unit:'компл.',price:'5000',moduleId:'doors',group:'Двери и проёмы'},'Двери и проёмы'),
+      normalizeGenericRow({name:'Монтаж LED-подсветки кухонного гарнитура',qty:'1',unit:'компл.',price:'3500',moduleId:'electrical',group:'Электрика',comment:'Канал, диодная лента, блок питания и монтаж. Добавлено 25.08.2026.'},'Электрика')
+    ];
+
+    // Комиссия посреднику учитывается как расход по заказу, чтобы «чистыми при полной оплате» = 155 380 ₽.
+    order.expenses=(order.expenses||[]).filter(e=>!String(e.comment||'').includes('[FRAME 2.3 посредник]'));
+    order.expenses.push(
+      normalizeExpense({category:'worker',amount:'7000',date:'2026-08-25',worker:'Посредник',work:'Сборка кухни',comment:'[FRAME 2.3 посредник] Доля посредника по кухне.'},'order'),
+      normalizeExpense({category:'worker',amount:'3000',date:'2026-08-25',worker:'Посредник',work:'Балкон: тёплый пол + керамогранит',comment:'[FRAME 2.3 посредник] Доля посредника по балкону.'},'order'),
+      normalizeExpense({category:'worker',amount:'3000',date:'2026-08-25',worker:'Посредник',work:'Кухонный фартук',comment:'[FRAME 2.3 посредник] Доля посредника по фартуку.'},'order')
+    );
+
+    // По состоянию на 25.08.2026 клиент уже передал всего 100 000 ₽ по этому пакету.
+    const paidNow=orderPaid(order);
+    if(paidNow<100000-.01){
+      order.payments.push(normalizePayment({amount:String(Math.round((100000-paidNow)*100)/100),date:'2026-08-25',note:'Фактически получено по текущему пакету работ; общий итог оплат доведён до 100 000 ₽.'}));
+    }
+    objectChanged=true;
+    if(objectChanged){await dbPut(normalizeObject(leonova));changed=true}
+  }
+
+  // Архангельская, 21: кондиционер установлен сторонним исполнителем 22–23.08.2026; доход пользователя = 0 ₽.
+  let arch=objects.find(o=>{const a=String(o.contact.address||'').toLowerCase();return a.includes('архангельск')&&a.includes('21')});
+  if(arch){
+    let objectChanged=false;
+    const order=(arch.orders||[]).find(q=>q.workflowKey==='arch21-progress-v2'||String(q.title||'').toLowerCase().includes('прогресс работ'));
+    if(order){
+      const ac=(order.works||[]).find(r=>/кондиционер/i.test(String(r.name||'')));
+      if(ac){
+        ac.name='Монтаж кондиционера сторонним исполнителем';
+        ac.qty='1';ac.unit='компл.';ac.price='0';ac.moduleId='ventilation';ac.group='Вентиляция и климат';
+        ac.comment='Установлен 22–23.08.2026 сторонним исполнителем. Доход пользователя по этой работе: 0 ₽.';
+        ac.progressPct=100;ac.closedAmount=0;ac.progressNote='Сторонняя работа · 22–23.08.2026';
+        objectChanged=true;
+      }
+      order.comment='Рабочий чек-лист по разделам. На 25.08.2026 новых собственных объёмов после последнего обновления не добавлено; кондиционер отмечен как сторонняя работа без дохода.';
+    }
+    if(objectChanged){await dbPut(normalizeObject(arch));changed=true}
+  }
+
+  storageSet(CURRENT230_DATA_KEY,'1');
+  if(changed)await reloadObjects();
+}
 window.addEventListener('beforeunload',e=>{if(editorState.dirty){e.preventDefault();e.returnValue=''}});
 window.addEventListener('resize',()=>{if(!$('documentView').classList.contains('hidden'))fitPaperPreview()});
 $('brandHome').onclick=()=>navigate('dashboard');
@@ -995,6 +1096,7 @@ async function init(){
     await patchV202CurrentData();
     await patchV210WorkflowData();
     await patchV220WorkflowData();
+    await patchV230CurrentData();
   }catch(e){
     console.error('IndexedDB',e);
     try{
