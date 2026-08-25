@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.5.0';
+const VERSION='2.5.1';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';

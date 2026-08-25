@@ -1,5 +1,5 @@
 # FRAME - паспорт продукта и архитектуры
-Версия паспорта: 2.5.0
+Версия паспорта: 2.5.1
 Дата: 25.08.2026
 
 ## 1. Назначение
@@ -269,3 +269,7 @@ LLM может предложить только структурированн�
 - разрушающей миграции нет;
 - данные 2.3/2.4 сохраняются;
 - AI log key сохраняется `frameAiLogV240` для обратной совместимости.
+
+
+## 15. FRAME 2.5.1 · AI Brain Network Hotfix
+Исправлен Service Worker: он обслуживает только same-origin запросы FRAME. Cross-origin HTTPS-запросы к AI Brain/tunnel больше не попадают в PWA cache handler. Это устраняет Safari FetchEvent.respondWith null при проверке AI Brain. DB_VERSION остаётся 2.

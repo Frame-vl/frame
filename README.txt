@@ -1,4 +1,4 @@
-FRAME 2.5.0 · AI Brain Bridge
+FRAME 2.5.1 · AI Brain Network Hotfix
 =============================
 
 Что изменилось
@@ -62,3 +62,6 @@ FRAME AI Server поставляется отдельным архивом FRAME
 2. Добавить в его первый заказ «Монтаж кухни» 50 000 ₽.
 
 Ни Архангельская, ни другой текущий объект не должны быть изменены.
+
+
+2.5.1 hotfix: service worker no longer intercepts external AI Brain requests.
