@@ -1,0 +1,1 @@
+deploy FRAME 2.6.0 Solo Field Test
