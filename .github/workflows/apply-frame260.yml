@@ -1,0 +1,34 @@
+name: Apply FRAME 2.6.0
+
+on:
+  push:
+    paths:
+      - '.frame-deploy/frame260.trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply FRAME 2.6.0 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d .frame-deploy/frame260.patch.gz.b64 > /tmp/frame260.patch.gz
+          gzip -dc /tmp/frame260.patch.gz > /tmp/frame260.patch
+          git apply --check /tmp/frame260.patch
+          git apply /tmp/frame260.patch
+          node --check app.js
+          node --check sw.js
+          rm -rf .frame-deploy
+          rm -f .github/workflows/apply-frame260.yml
+          git config user.name "FRAME Deploy"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "FRAME 2.6.0 Solo Field Test"
+          git push
