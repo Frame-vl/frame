@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.6.0';
+const VERSION='2.6.1';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -809,7 +809,7 @@ function bindRoute(){
   if(route==='dashboard'){
     if($('frameAiBtn'))$('frameAiBtn').onclick=()=>{aiDraft=null;navigate('ai',{aiTarget:aiDefaultTargetKey()})};if($('allOrdersBtn'))$('allOrdersBtn').onclick=()=>navigate('ordersList',{kind:'active'});$$('[data-attention-index]').forEach(b=>b.onclick=()=>{const item=soloAttentionItems()[+b.dataset.attentionIndex];if(!item)return;const [oid,rid]=item.target.split('|');currentObjectId=oid;currentOrderId=rid;navigate(item.kind==='purchase'?'purchases':'payments')});
     $('newObjectBtn').onclick=async()=>{const object=defaultObject();object.contact.address='';object.contact.name='';const saved=await saveObject(object);currentObjectId=saved.id;currentOrderId=saved.orders[0].id;navigate('object');toast('Новый заказ создан')};
-    $('quickPriceBtn').onclick=()=>showPriceListSheet();
+    if($('quickPriceBtn'))$('quickPriceBtn').onclick=()=>showPriceListSheet();
     if($('documentsBtn'))$('documentsBtn').onclick=()=>navigate('globalDocs');
     $$('[data-dashboard-list]').forEach(b=>b.onclick=()=>navigate('ordersList',{kind:b.dataset.dashboardList}));
     if($('monthFinanceCard'))$('monthFinanceCard').onclick=()=>navigate('finances',{kind:'month',tab:'overview'});

@@ -1,3 +1,8 @@
+FRAME 2.6.1 Dashboard Hotfix · 27.08.2026
+- Исправлен обрыв bindRoute на Solo-главной после удаления quickPriceBtn.
+- Карточка «Чистыми» снова открывает Финансы → Обзор за месяц.
+- Защитная проверка для отсутствующей кнопки прайс-листа.
+
 FRAME 2.6.0 Solo Field Test · 27.08.2026
 - Solo-first dashboard and AI-first entry point.
 - Read-only AI answers from FRAME database context.
