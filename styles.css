@@ -372,3 +372,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{
 /* FRAME 2.6.0 Solo Field Test */
 .soloHome{display:grid;gap:14px}.soloPrimary{margin:0;min-height:92px}.soloActions{grid-template-columns:1.2fr 1fr 1fr}.attentionBlock{border:1px solid color-mix(in srgb,var(--accent) 34%,var(--border));border-radius:18px;padding:13px;background:color-mix(in srgb,var(--accent) 6%,var(--card))}.attentionBlock h2{margin:0;font-size:16px}.attentionList{display:grid;gap:7px;margin-top:10px}.attentionItem{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--border);border-radius:14px;padding:11px 12px;background:var(--soft);color:var(--text);text-align:left}.attentionItem strong,.attentionItem small{display:block}.attentionItem small{margin-top:3px;color:var(--muted);font-size:11px}.attentionItem b{font-size:22px;color:var(--muted)}.aiInlineState,.settingsAiState{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:var(--soft)}.aiInlineState strong,.aiInlineState small,.settingsAiState strong,.settingsAiState small{display:block}.aiInlineState small,.settingsAiState small{color:var(--muted);margin-top:2px}.readAnswerCard{border:1px solid var(--border);border-radius:17px;padding:14px;background:var(--soft);line-height:1.5}.readAnswerCard strong{display:block;margin-bottom:6px}.settingsTechDetails{margin-top:12px;border-top:1px solid var(--border);padding-top:12px}.settingsTechDetails summary{cursor:pointer;color:var(--muted);font-weight:800}.settingsTechDetails[open] summary{margin-bottom:10px}
 @media(max-width:560px){.soloActions{grid-template-columns:1fr 1fr}.soloActions #newObjectBtn{grid-column:1/-1}.aiInlineState,.settingsAiState{align-items:flex-start}.attentionItem{padding:12px}}
+
+
+/* FRAME 2.6.2 · Field hotfix */
+.statusPillButton{appearance:none;font:inherit;cursor:pointer}.statusPillButton:active{transform:scale(.97)}
+button.reviewSummary.summaryAction{width:100%;font:inherit;text-align:left;cursor:pointer}.summaryAction:active{transform:scale(.985)}
+@media(max-width:560px){
+  .simpleTabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .simpleTabs button{min-width:0;padding:10px 4px;font-size:12px;line-height:1.12;letter-spacing:-.015em;white-space:normal;overflow-wrap:anywhere}
+}
