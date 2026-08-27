@@ -1,3 +1,13 @@
+FRAME 2.6.0 Solo Field Test · 27.08.2026
+- Solo-first dashboard and AI-first entry point.
+- Read-only AI answers from FRAME database context.
+- Proactive attention for unpaid work and overdue material reimbursements.
+- AI system settings moved out of main workflow.
+- Added reimburse_purchase action.
+- Archangelskaya field workflow reset for fresh progress test while preserving estimate rows.
+- Service worker cache bumped to v260.
+- Added deterministic local fallback when the LLM asks for clarification on an obvious supported command (including note forms like «заметку»).
+
 FRAME 2.5.2 AI Brain Network Hotfix · 25.08.2026
 - Service Worker больше не перехватывает cross-origin запросы к AI Brain / tunnel URL.
 - Исправлена Safari ошибка: FetchEvent.respondWith received an error: Returned response is null.

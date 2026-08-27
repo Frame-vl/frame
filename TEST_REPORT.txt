@@ -1,3 +1,14 @@
+FRAME 2.6.0 SOLO FIELD TEST
+PASS | app.js syntax
+PASS | sw.js syntax
+PASS | service worker cache v260
+PASS | Solo dashboard markers
+PASS | AI read-only answer path
+PASS | reimburse_purchase action path
+PASS | Settings -> System / AI
+PASS | Archangelskaya one-time field reset migration
+PASS | source quantities/prices preserved by migration logic
+
 FRAME 2.5.0 AI Brain Bridge - verification
 Date: 25.08.2026
 
