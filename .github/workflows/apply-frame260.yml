@@ -15,14 +15,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply FRAME 2.6.0 patch
+      - name: Apply FRAME 2.6.0
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d .frame-deploy/frame260.patch.gz.b64 > /tmp/frame260.patch.gz
-          gzip -dc /tmp/frame260.patch.gz > /tmp/frame260.patch
-          git apply --check /tmp/frame260.patch
-          git apply /tmp/frame260.patch
+          base64 -d .frame-deploy/apply260.py.gz.b64 > /tmp/apply260.py.gz
+          gzip -dc /tmp/apply260.py.gz > /tmp/apply260.py
+          python /tmp/apply260.py
           node --check app.js
           node --check sw.js
           rm -rf .frame-deploy
