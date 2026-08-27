@@ -1,0 +1,70 @@
+name: FRAME 2.6.1 hotfix
+on:
+  push:
+    paths:
+      - '.frame-hotfix/261.trigger'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('app.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("const VERSION='2.6.0';","const VERSION='2.6.1';",1)
+          old="$('quickPriceBtn').onclick=()=>showPriceListSheet();"
+          new="if($('quickPriceBtn'))$('quickPriceBtn').onclick=()=>showPriceListSheet();"
+          if old not in s:
+              raise SystemExit('quickPriceBtn binding pattern not found')
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<title>FRAME 2.6 Solo</title>','<title>FRAME 2.6.1 Solo</title>',1)
+          s=s.replace('<div class="build">2.6.0</div>','<div class="build">2.6.1</div>',1)
+          s=s.replace('app.js?v=260','app.js?v=261',1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('sw.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("const CACHE='frame-v260-solo-field';","const CACHE='frame-v261-dashboard-hotfix';",1)
+          s=s.replace("'./app.js?v=260'","'./app.js?v=261'",1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('refresh.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('FRAME 2.6.0','FRAME 2.6.1')
+          s=s.replace('fresh=260','fresh=261')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('CHANGELOG.txt')
+          old=p.read_text(encoding='utf-8')
+          note="FRAME 2.6.1 Dashboard Hotfix · 27.08.2026\n- Исправлен обрыв bindRoute на Solo-главной после удаления quickPriceBtn.\n- Карточка «Чистыми» снова открывает Финансы → Обзор за месяц.\n- Защитная проверка для отсутствующей кнопки прайс-листа.\n\n"
+          p.write_text(note+old,encoding='utf-8')
+
+          p=Path('FRAME_CONTEXT_PASSPORT.md')
+          if p.exists():
+              s=p.read_text(encoding='utf-8')
+              s=s.replace('Версия паспорта: 2.6.0','Версия паспорта: 2.6.1',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          node --check app.js
+          node --check sw.js
+          rm -rf .frame-hotfix
+          rm -f .github/workflows/hotfix-261.yml
+          git config user.name "FRAME Deploy"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "FRAME 2.6.1 dashboard hotfix"
+          git push
