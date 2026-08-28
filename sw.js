@@ -1,5 +1,5 @@
-const CACHE='frame-v262-field-hotfix';
-const ASSETS=['./','./index.html','./styles.css?v=262','./app.js?v=262','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE='frame-v262-ai-chat-1';
+const ASSETS=['./','./index.html','./styles.css?v=262','./ai-chat.css?v=262chat1','./app.js?v=262','./ai-chat.js?v=262chat1','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();if(event.data?.type==='CLEAR_CACHES')event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))))});
