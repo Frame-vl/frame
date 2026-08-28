@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FRAME">
 <meta name="format-detection" content="telephone=no">
-<title>FRAME 2.6.2 Solo · AI Chat</title>
+<title>FRAME 2.7 Solo · AI Chat</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="styles.css?v=262">
-<link rel="stylesheet" href="ai-chat.css?v=262chat1">
+<link rel="stylesheet" href="ai-chat.css?v=270">
 </head>
 <body>
 <div id="appSplash" aria-hidden="true"><div class="splashInner"><div class="splashLogo">FRAME</div><div class="splashLine"></div></div></div>
@@ -27,20 +27,16 @@
       <button id="lightBtn" type="button" aria-label="Дневная тема">☀️</button>
       <button id="darkBtn" type="button" aria-label="Ночная тема">🌙</button>
     </div>
-    <div class="build">2.6.2 · CHAT</div>
+    <div class="build">2.7</div>
   </div>
 </header>
 <main id="viewHost" aria-live="polite"></main>
 </div>
-
 <div id="sheet" class="sheet" aria-hidden="true"><div id="sheetPanel" class="sheetPanel"></div></div>
-<div id="documentView" class="documentView hidden">
-  <div class="docActions"><button id="closeDocumentBtn" class="btn ghost">Назад</button><button id="printDocumentBtn" class="btn primary">Печать / PDF</button></div>
-  <div id="paperStage" class="paperStage"><div id="paper" class="paper"></div></div>
-</div>
+<div id="documentView" class="documentView hidden"><div class="docActions"><button id="closeDocumentBtn" class="btn ghost">Назад</button><button id="printDocumentBtn" class="btn primary">Печать / PDF</button></div><div id="paperStage" class="paperStage"><div id="paper" class="paper"></div></div></div>
 <div id="toast" class="toast" role="status"></div>
 <script src="app.js?v=262"></script>
-<script src="ai-chat.js?v=262chat1"></script>
+<script src="ai-chat.js?v=270"></script>
 <script>window.addEventListener('load',()=>{const s=document.getElementById('appSplash');setTimeout(()=>{s?.classList.add('hide');setTimeout(()=>s?.remove(),260)},180)});</script>
 </body>
 </html>
