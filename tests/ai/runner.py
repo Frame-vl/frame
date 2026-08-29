@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import copy
 import json
 import os
 import sys
@@ -7,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SCENARIOS = ROOT / "scenarios.json"
+FIXTURE = ROOT / "fixture_context.json"
 BASE_URL = os.getenv("FRAME_AI_URL", "http://127.0.0.1:8787").rstrip("/")
 TOKEN = os.getenv("FRAME_AI_TOKEN", "").strip()
 
@@ -66,24 +68,20 @@ def check_expect(data, expect):
     return errors
 
 
-def run_scenario(sc):
+def run_scenario(sc, fixture):
     conversation = []
     last = None
     for msg in sc["messages"]:
-        payload = {
-            "text": msg,
-            "context": {
-                "current_target": sc.get("conversation_target", ""),
-                "conversation_target": sc.get("conversation_target", ""),
-                "conversation": conversation,
-                "conversation_rules": [
-                    "Stay on conversation_target until the user explicitly names another object.",
-                    "Recent user facts in conversation are newer than stored progress until actions are applied.",
-                    "Never switch to another object/order merely because it exists in context."
-                ]
-            }
-        }
-        last = post_json("/analyze", payload)
+        context = copy.deepcopy(fixture)
+        context["current_target"] = sc.get("conversation_target", fixture.get("current_target", ""))
+        context["conversation_target"] = sc.get("conversation_target", fixture.get("conversation_target", ""))
+        context["conversation"] = conversation
+        context["conversation_rules"] = [
+            "Stay on conversation_target until the user explicitly names another object.",
+            "Recent user facts in conversation are newer than stored progress until actions are applied.",
+            "Never switch to another object/order merely because it exists in context."
+        ]
+        last = post_json("/analyze", {"text": msg, "context": context})
         conversation.append({"role": "user", "content": msg})
         conversation.append({"role": "assistant", "content": collect_text(last)})
     return last or {}
@@ -91,12 +89,14 @@ def run_scenario(sc):
 
 def main():
     suite = json.loads(SCENARIOS.read_text(encoding="utf-8"))
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     scenarios = suite.get("scenarios", [])
     passed = 0
-    print(f"FRAME AI Test Suite: {len(scenarios)} сценариев\n")
+    print(f"FRAME AI Test Suite: {len(scenarios)} сценариев")
+    print(f"AI Server: {BASE_URL}\n")
     for sc in scenarios:
         try:
-            data = run_scenario(sc)
+            data = run_scenario(sc, fixture)
             errors = check_expect(data, sc.get("expect", {}))
             if errors:
                 print(f"❌ {sc['id']} - {sc['title']}")
