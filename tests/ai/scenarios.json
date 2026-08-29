@@ -1,0 +1,90 @@
+{
+  "suite": "FRAME AI regression v1",
+  "description": "Базовые сценарии из реальных полевых багов FRAME. Проверяют удержание объекта, работу с контекстом и структурные действия.",
+  "scenarios": [
+    {
+      "id": "sticky_archangelsk_summary",
+      "title": "Не перескакивать с Архангельской на другой объект",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "Смотри, по Архангельской: инсталляция готова, короб готов, электрика готова кроме механизмов и автомата.",
+        "Учитывая всё вышесказанное, на какую сумму я могу закрыться по этому объекту?"
+      ],
+      "expect": {
+        "must_reference": ["Архангель"],
+        "must_not_reference": ["Детейлинг", "Матросская", "Веселкова"],
+        "action_required": false
+      }
+    },
+    {
+      "id": "add_work_6x800",
+      "title": "Добавление работы должно вернуть action",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "Добавь ещё работу: замазка штробы кондиционера, 6 метров по 800 рублей."
+      ],
+      "expect": {
+        "must_reference": ["штроб", "4 800"],
+        "must_not_reference": ["Детейлинг", "Матросская"],
+        "action_required": true,
+        "action_type": "add_work",
+        "quantity": 6,
+        "unit_price": 800,
+        "total": 4800
+      }
+    },
+    {
+      "id": "pronoun_current_object",
+      "title": "Фраза «по этому объекту» относится к закреплённому объекту",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "По Архангельской сегодня закончили короб.",
+        "Что ещё осталось по этому объекту?"
+      ],
+      "expect": {
+        "must_reference": ["Архангель"],
+        "must_not_reference": ["Детейлинг", "Матросская", "Веселкова"],
+        "action_required": false
+      }
+    },
+    {
+      "id": "explicit_object_switch",
+      "title": "Объект меняется только при явном переключении",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "По Архангельской короб уже готов.",
+        "Теперь давай по Веселкова. Что там по заказу?"
+      ],
+      "expect": {
+        "must_reference": ["Веселков"],
+        "must_not_reference": ["Детейлинг", "Матросская"],
+        "action_required": false
+      }
+    },
+    {
+      "id": "recent_conversation_beats_stale_progress",
+      "title": "Свежие факты разговора важнее старого прогресса",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "Инсталляция и короб по Архангельской уже выполнены полностью.",
+        "Назови, что из только что сказанного уже выполнено."
+      ],
+      "expect": {
+        "must_reference": ["инсталляц", "короб"],
+        "must_not_reference": ["0%", "не выполн"],
+        "action_required": false
+      }
+    },
+    {
+      "id": "no_action_for_read_question",
+      "title": "Обычный вопрос не должен создавать изменение",
+      "conversation_target": "Архангельская, 21",
+      "messages": [
+        "Что сейчас по этому объекту и какие работы ещё не закрыты?"
+      ],
+      "expect": {
+        "action_required": false
+      }
+    }
+  ]
+}
