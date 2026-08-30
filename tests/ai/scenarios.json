@@ -1,6 +1,6 @@
 {
-  "suite": "FRAME AI regression v1",
-  "description": "Базовые сценарии из реальных полевых багов FRAME. Проверяют удержание объекта, работу с контекстом и структурные действия.",
+  "suite": "FRAME AI regression v2",
+  "description": "Диалоговые сценарии, которые должны проходить через живой AI Server. Детерминированные команды вроде add_work проверяются отдельно на клиентском guard-слое.",
   "scenarios": [
     {
       "id": "sticky_archangelsk_summary",
@@ -14,23 +14,6 @@
         "must_reference": ["Архангель"],
         "must_not_reference": ["Детейлинг", "Матросская", "Веселкова"],
         "action_required": false
-      }
-    },
-    {
-      "id": "add_work_6x800",
-      "title": "Добавление работы должно вернуть action",
-      "conversation_target": "Архангельская, 21",
-      "messages": [
-        "Добавь ещё работу: замазка штробы кондиционера, 6 метров по 800 рублей."
-      ],
-      "expect": {
-        "must_reference": ["штроб", "4 800"],
-        "must_not_reference": ["Детейлинг", "Матросская"],
-        "action_required": true,
-        "action_type": "add_work",
-        "quantity": 6,
-        "unit_price": 800,
-        "total": 4800
       }
     },
     {
