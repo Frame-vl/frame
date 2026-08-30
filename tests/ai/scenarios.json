@@ -42,7 +42,7 @@
         "Что ещё осталось по этому объекту?"
       ],
       "expect": {
-        "must_reference": ["Архангель"],
+        "must_reference": ["короб"],
         "must_not_reference": ["Детейлинг", "Матросская", "Веселкова"],
         "action_required": false
       }
