@@ -16,12 +16,20 @@ function Normalize([object]$Value) {
     return ([string]$Value).ToLowerInvariant()
 }
 
+function Get-Payload([object]$Data) {
+    if ($null -eq $Data) { return $null }
+    $resultProp = $Data.PSObject.Properties['result']
+    if ($resultProp -and $null -ne $resultProp.Value) { return $resultProp.Value }
+    return $Data
+}
+
 function Collect-Text([object]$Data) {
+    $Data = Get-Payload $Data
     $parts = New-Object System.Collections.Generic.List[string]
     if ($null -eq $Data) { return '' }
-    foreach ($name in @('summary','text','message','answer','error')) {
+    foreach ($name in @('summary','text','message','answer','error','clarification')) {
         $p = $Data.PSObject.Properties[$name]
-        if ($p -and $p.Value -is [string]) { $parts.Add([string]$p.Value) }
+        if ($p -and $p.Value -is [string] -and -not [string]::IsNullOrWhiteSpace($p.Value)) { $parts.Add([string]$p.Value) }
     }
     $actionsProp = $Data.PSObject.Properties['actions']
     if ($actionsProp -and $actionsProp.Value) {
@@ -58,6 +66,7 @@ function Invoke-FrameAnalyze([string]$Text, [object]$Context) {
 }
 
 function Check-Expect([object]$Data, [object]$Expect) {
+    $Data = Get-Payload $Data
     $errors = New-Object System.Collections.Generic.List[string]
     $text = Normalize (Collect-Text $Data)
 
