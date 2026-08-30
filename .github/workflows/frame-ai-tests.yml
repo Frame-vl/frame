@@ -6,6 +6,7 @@ on:
     paths:
       - 'app.js'
       - 'ai-chat.js'
+      - 'ai-guard.js'
       - 'tests/ai/**'
       - '.github/workflows/frame-ai-tests.yml'
   workflow_dispatch:
@@ -30,6 +31,16 @@ jobs:
           $headers = @{ Authorization = "Bearer $token" }
           $res = Invoke-RestMethod -Uri 'http://127.0.0.1:8787/health' -Headers $headers -TimeoutSec 15
           Write-Host ($res | ConvertTo-Json -Depth 10 -Compress)
+
+      - name: Check deterministic guard contract
+        shell: powershell
+        run: |
+          $src = [System.IO.File]::ReadAllText((Join-Path $PWD 'ai-guard.js'), [System.Text.Encoding]::UTF8)
+          $required = @("split('|')", "deterministicAddWork", "type:'add_work'", 'qty:quantity', 'price:unitPrice', 'total')
+          foreach ($needle in $required) {
+            if (-not $src.Contains($needle)) { throw "AI guard contract missing: $needle" }
+          }
+          Write-Host 'AI guard contract OK'
 
       - name: Run FRAME AI regression suite
         shell: powershell
