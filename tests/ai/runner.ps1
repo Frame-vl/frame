@@ -98,6 +98,18 @@ function Check-Expect([object]$Data, [object]$Expect) {
         if (-not $x) { continue }
         if (-not $text.Contains((Normalize $x))) { $errors.Add("missing expected fragment: $x") }
     }
+
+    $anyProp = $Expect.PSObject.Properties['must_reference_any']
+    if ($anyProp -and $anyProp.Value) {
+        $foundAny = $false
+        foreach ($x in @($anyProp.Value)) {
+            if ($x -and $text.Contains((Normalize $x))) { $foundAny = $true; break }
+        }
+        if (-not $foundAny) {
+            $errors.Add("missing all equivalent expected fragments: $(@($anyProp.Value) -join ' OR ')")
+        }
+    }
+
     foreach ($x in @($Expect.must_not_reference)) {
         if (-not $x) { continue }
         if ($text.Contains((Normalize $x))) { $errors.Add("forbidden fragment found: $x") }
