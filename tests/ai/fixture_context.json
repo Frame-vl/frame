@@ -1,39 +1,69 @@
 {
-  "fixture_name": "FRAME AI regression field fixture v1",
-  "current_target": "archangelsk-order",
+  "fixture_name": "FRAME AI regression field fixture v2",
+  "current_target": "obj-archangelsk::archangelsk-order",
   "conversation_target": "Архангельская, 21",
   "objects": [
     {
       "id": "obj-archangelsk",
       "address": "Архангельская, 21",
-      "name": "Архангельская",
+      "customer": "",
+      "status": "active",
       "orders": [
         {
           "id": "archangelsk-order",
           "title": "Ремонт квартиры",
+          "status": "active",
+          "contract_total": 49000,
+          "paid": 0,
+          "comment": "",
           "works": [
-            {"id": "w-installation", "title": "Монтаж инсталляции", "quantity": 1, "unit": "шт", "unit_price": 10000, "progress_pct": 0},
-            {"id": "w-box", "title": "Короб инсталляции", "quantity": 1, "unit": "шт", "unit_price": 6000, "progress_pct": 0},
-            {"id": "w-electrical", "title": "Электромонтажные работы", "quantity": 1, "unit": "комплект", "unit_price": 30000, "progress_pct": 0},
-            {"id": "w-toilet", "title": "Установка унитаза и кнопки", "quantity": 1, "unit": "шт", "unit_price": 3000, "progress_pct": 0}
-          ]
+            {"id": "w-installation", "name": "Монтаж инсталляции", "qty": 1, "unit": "шт", "price": 10000, "progress_pct": 0},
+            {"id": "w-box", "name": "Короб инсталляции", "qty": 1, "unit": "шт", "price": 6000, "progress_pct": 0},
+            {"id": "w-electrical", "name": "Электромонтажные работы", "qty": 1, "unit": "комплект", "price": 30000, "progress_pct": 0},
+            {"id": "w-toilet", "name": "Установка унитаза и кнопки", "qty": 1, "unit": "шт", "price": 3000, "progress_pct": 0}
+          ],
+          "purchases": []
         }
       ]
     },
     {
       "id": "obj-detailing",
       "address": "5-я Матросская, 26",
-      "name": "Детейлинг",
+      "customer": "Детейлинг",
+      "status": "active",
       "orders": [
-        {"id": "detailing-order", "title": "Детейлинг", "works": [{"id": "detailing-work", "title": "Работы по объекту", "quantity": 1, "unit": "комплект", "unit_price": 50000, "progress_pct": 50}]}
+        {
+          "id": "detailing-order",
+          "title": "Детейлинг",
+          "status": "active",
+          "contract_total": 50000,
+          "paid": 0,
+          "comment": "",
+          "works": [
+            {"id": "detailing-work", "name": "Работы по объекту", "qty": 1, "unit": "комплект", "price": 50000, "progress_pct": 50}
+          ],
+          "purchases": []
+        }
       ]
     },
     {
       "id": "obj-veselkova",
       "address": "Веселкова, 12Б",
-      "name": "Веселкова",
+      "customer": "",
+      "status": "active",
       "orders": [
-        {"id": "veselkova-order", "title": "Водоснабжение и напорное водоотведение", "works": [{"id": "veselkova-work", "title": "Монтаж водоснабжения и напорной канализации", "quantity": 1, "unit": "комплект", "unit_price": 74000, "progress_pct": 0}]}
+        {
+          "id": "veselkova-order",
+          "title": "Водоснабжение и напорное водоотведение",
+          "status": "active",
+          "contract_total": 74000,
+          "paid": 0,
+          "comment": "",
+          "works": [
+            {"id": "veselkova-work", "name": "Монтаж водоснабжения и напорной канализации", "qty": 1, "unit": "комплект", "price": 74000, "progress_pct": 0}
+          ],
+          "purchases": []
+        }
       ]
     }
   ]
