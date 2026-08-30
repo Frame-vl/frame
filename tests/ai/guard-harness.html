@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>FRAME AI Guard Harness</title></head>
+<body><pre id="result">RUNNING</pre>
+<script>
+window.routeState={aiTarget:'obj-arch|order-arch'};
+window.aiNorm=s=>String(s||'').toLowerCase().replace(/ё/g,'е');
+window.parseNum=v=>Number(String(v??'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;
+window.money=v=>`${Number(v||0).toLocaleString('ru-RU')} ₽`;
+window.aiDefaultTargetKey=()=> 'obj-arch|order-arch';
+const TARGET={object:{id:'obj-arch'},order:{id:'order-arch',works:[
+  {id:'w-install',name:'Монтаж инсталляции'},
+  {id:'w-box',name:'Короб инсталляции'},
+  {id:'w-toilet',name:'Установка унитаза и кнопки'},
+  {id:'w-electric',name:'Электромонтажные работы'}
+]}};
+window.aiTargetByKey=()=>TARGET;
+window.aiParseWorkAdd=text=>{
+  const s=String(text||'');
+  const m=s.match(/(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:м|метр(?:а|ов)?)\s+по\s+(\d+(?:[.,]\d+)?)/i);
+  if(!m)return null;
+  return {name:m[1].replace(/^.*?(?:добавь|добавить)\s+/i,''),qty:Number(m[2].replace(',','.')),unit:'м',price:Number(m[3].replace(',','.'))};
+};
+window.frameTopic=()=> 'obj-arch|order-arch';
+window.frameTopicLabel=()=> 'Архангельская, 21';
+let CHAT=[];
+window.frameChatMessages=()=>CHAT;
+window.aiContextPayload=()=>({current_target:'',objects:[{id:'obj-arch',address:'Архангельская, 21',orders:[{id:'order-arch',works:TARGET.order.works}]}]});
+let CAPTURED='';
+window.requestAiBrain=async text=>{CAPTURED=String(text||'');return {result:{actions:[],summary:'ok'}}};
+</script>
+<script src="../../ai-guard.js"></script>
+<script>
+(async()=>{
+  const failures=[];
+  const assert=(ok,msg)=>{if(!ok)failures.push(msg)};
+
+  CHAT=[
+    {role:'user',text:'По Архангельской унитаз уже установлен.'},
+    {role:'user',text:'Нет, поправка: унитаз не установлен, я ошибся.'},
+    {role:'user',text:'Так унитаз сейчас установлен или нет?'}
+  ];
+  const reconciled=window.frameReconcileRecentUserStatements(CHAT,'Так унитаз сейчас установлен или нет?');
+  assert(reconciled.some(x=>/не установлен/i.test(x)),'latest correction missing');
+  assert(!reconciled.some(x=>/уже установлен/i.test(x)),'superseded positive fact survived');
+
+  await window.requestAiBrain('Так унитаз сейчас установлен или нет?');
+  assert(/не установлен/i.test(CAPTURED),'correction missing from guarded prompt');
+  assert(!/уже установлен/i.test(CAPTURED),'superseded fact leaked into guarded prompt');
+  assert(/newest explicit correction replaces/i.test(CAPTURED),'correction rule missing from guarded prompt');
+
+  const add=window.frameDeterministicAddWork('Добавь ещё работу: штраба под кондиционер 6 метров по 800');
+  const action=add?.result?.actions?.[0];
+  assert(action?.type==='add_work','add_work action missing');
+  assert(action?.object_id==='obj-arch'&&action?.order_id==='order-arch','wrong active target');
+  assert(Number(action?.qty)===6,'wrong quantity');
+  assert(Number(action?.price)===800,'wrong unit price');
+  assert(Number(action?.total)===4800,'wrong total');
+
+  document.getElementById('result').textContent=failures.length
+    ? `FRAME_GUARD_TEST_FAIL\n${failures.join('\n')}`
+    : 'FRAME_GUARD_TEST_PASS';
+})();
+</script>
+</body></html>
