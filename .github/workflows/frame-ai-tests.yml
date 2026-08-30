@@ -36,11 +36,16 @@ jobs:
         shell: powershell
         run: |
           $src = [System.IO.File]::ReadAllText((Join-Path $PWD 'ai-guard.js'), [System.Text.Encoding]::UTF8)
-          $required = @("split('|')", "deterministicAddWork", "type:'add_work'", 'qty:quantity', 'price:unitPrice', 'total')
+          $required = @("split('|')", "deterministicAddWork", "type:'add_work'", 'qty:quantity', 'price:unitPrice', 'total', 'frameReconcileRecentUserStatements')
           foreach ($needle in $required) {
             if (-not $src.Contains($needle)) { throw "AI guard contract missing: $needle" }
           }
           Write-Host 'AI guard contract OK'
+
+      - name: Run AI guard in real browser engine
+        shell: powershell
+        run: |
+          & .\tests\ai\guard-browser.ps1
 
       - name: Run FRAME AI regression suite
         shell: powershell
