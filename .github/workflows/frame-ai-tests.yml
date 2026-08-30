@@ -1,0 +1,33 @@
+name: FRAME AI Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/ai/**'
+      - '.github/workflows/frame-ai-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  ai-regression:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check FRAME AI health
+        shell: powershell
+        run: |
+          $token = [Environment]::GetEnvironmentVariable('FRAME_AI_TOKEN','Machine')
+          if ([string]::IsNullOrWhiteSpace($token)) { throw 'FRAME_AI_TOKEN is missing from Machine environment' }
+          $headers = @{ Authorization = "Bearer $token" }
+          $res = Invoke-RestMethod -Uri 'http://127.0.0.1:8787/health' -Headers $headers -TimeoutSec 15
+          Write-Host ($res | ConvertTo-Json -Depth 10 -Compress)
+
+      - name: Run FRAME AI regression suite
+        shell: powershell
+        env:
+          FRAME_AI_URL: http://127.0.0.1:8787
+        run: |
+          & .\tests\ai\runner.ps1
