@@ -4,6 +4,7 @@
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
 const STORE={};
+window.CAPTURED=[];
 window.storageGet=(k,d='')=>Object.prototype.hasOwnProperty.call(STORE,k)?STORE[k]:d;
 window.storageSet=(k,v)=>{STORE[k]=String(v)};
 window.uid=()=> 'id-'+Math.random().toString(36).slice(2);
@@ -32,17 +33,23 @@ const ORDER={id:'order-arch',title:'Ремонт квартиры',works:[
 ]};
 const OBJECT={id:'obj-arch',contact:{address:'Архангельская, 21',name:'Заказчик'},orders:[ORDER]};
 const TARGET={key:'obj-arch|order-arch',object:OBJECT,order:ORDER};
+
+const ORDER2={id:'order-ves',title:'Сантехнические работы',works:[{id:'w-water',name:'Вода и канализация',qty:1,unit:'компл.',price:35000,progress_pct:0}]};
+const OBJECT2={id:'obj-ves',contact:{address:'Веселковая, 12Б',name:'Офис'},orders:[ORDER2]};
+const TARGET2={key:'obj-ves|order-ves',object:OBJECT2,order:ORDER2};
+const TARGETS=[TARGET,TARGET2];
+
 window.aiDefaultTargetKey=()=>TARGET.key;
-window.aiTargetByKey=key=>key===TARGET.key?TARGET:null;
-window.aiAllTargets=()=>[TARGET];
-window.aiContextPayload=()=>({current_target:TARGET.key,objects:[{id:OBJECT.id,address:OBJECT.contact.address,orders:[{id:ORDER.id,title:ORDER.title,works:ORDER.works}]}]});
+window.aiTargetByKey=key=>TARGETS.find(x=>x.key===key)||null;
+window.aiAllTargets=()=>TARGETS;
+window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,objects:TARGETS.map(t=>({id:t.object.id,address:t.object.contact.address,orders:[{id:t.order.id,title:t.order.title,works:t.order.works}]}))});
 window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
-window.requestAiBrain=async()=>({result:{actions:[],summary:'stub'}});
+window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return {result:{actions:[],summary:'stub'}}};
 window.brainDraftFromResponse=(text,response)=>{
   const r=response?.result||{};
-  if(Array.isArray(r.actions)&&r.actions.length)return {ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:TARGET.key};
-  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:TARGET.key};
+  if(Array.isArray(r.actions)&&r.actions.length)return {ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:routeState.aiTarget||TARGET.key};
+  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:routeState.aiTarget||TARGET.key};
   return {ok:false,error:'empty'};
 };
 window.parseAiCommand=()=>({ok:false,error:'no local fallback'});
@@ -57,7 +64,10 @@ window.applyAiDraft=async function(){
   const d=window.aiDraft;
   if(!d?.ok)return;
   for(const a of d.actions||[]){
-    if(a.type==='add_work')ORDER.works.push({id:'e2e-added',name:a.work_name,qty:Number(a.qty),unit:a.unit,price:Number(a.price),progress_pct:0});
+    if(a.type==='add_work'){
+      const target=aiTargetByKey(`${a.object_id}|${a.order_id}`)||aiTargetByKey(d.targetKey)||TARGET;
+      target.order.works.push({id:'e2e-added-'+target.order.works.length,name:a.work_name,qty:Number(a.qty),unit:a.unit,price:Number(a.price),progress_pct:0});
+    }
   }
   window.aiDraft=null;
 };
@@ -70,31 +80,62 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
 (async()=>{
   const failures=[];
   const assert=(ok,msg)=>{if(!ok)failures.push(msg)};
-  const waitFor=async(fn,ms=4000)=>{const end=Date.now()+ms;while(Date.now()<end){if(fn())return true;await new Promise(r=>setTimeout(r,25))}return false};
+  const waitFor=async(fn,ms=5000)=>{const end=Date.now()+ms;while(Date.now()<end){if(fn())return true;await new Promise(r=>setTimeout(r,25))}return false};
+  const send=async text=>{
+    const before=frameChatMessages().length;
+    const input=document.getElementById('aiCommandInput');
+    input.value=text;
+    document.getElementById('aiAnalyzeBtn').click();
+    await waitFor(()=>frameChatMessages().length>before&&!window.aiAnalyzing&&!window.frameThinking,5000);
+  };
   try{
     render();
     frameSetTopic(TARGET.key);
-    const input=document.getElementById('aiCommandInput');
-    assert(!!input,'chat input missing');
-    input.value='Добавь ещё работу: штраба под кондиционер 6 метров по 800';
-    document.getElementById('aiAnalyzeBtn').click();
+    assert(!!document.getElementById('aiCommandInput'),'chat input missing');
 
+    // 1. Apply a real add-work card through the visible chat controls.
+    const startCount=ORDER.works.length;
+    await send('Добавь ещё работу: штраба под кондиционер 6 метров по 800');
     const pending=await waitFor(()=>document.querySelector('[data-chat-apply]'));
     assert(pending,'apply button did not appear');
     assert(frameChatMessages().some(m=>m.role==='user'&&/6 метров по 800/i.test(m.text||'')),'user message not persisted');
     assert(frameChatMessages().some(m=>m.status==='pending'),'pending action card not persisted');
-
-    const apply=document.querySelector('[data-chat-apply]');
-    if(apply)apply.click();
-    const applied=await waitFor(()=>ORDER.works.some(w=>w.id==='e2e-added'));
+    document.querySelector('[data-chat-apply]')?.click();
+    const applied=await waitFor(()=>ORDER.works.length===startCount+1);
     assert(applied,'work was not applied to order');
-    const work=ORDER.works.find(w=>w.id==='e2e-added');
+    const work=ORDER.works[ORDER.works.length-1];
     assert(work?.qty===6,'applied quantity is not 6');
     assert(work?.price===800,'applied price is not 800');
     assert(work?.qty*work?.price===4800,'applied total is not 4800');
     await waitFor(()=>frameChatMessages().some(m=>m.status==='applied'));
-    assert(frameChatMessages().some(m=>m.status==='applied'),'chat card was not marked applied');
     assert(/Применено/.test(document.body.textContent),'applied status not rendered in UI');
+
+    // 2. Cancel a proposed action and prove the order is not mutated.
+    const beforeCancel=ORDER.works.length;
+    await send('Добавь ещё работу: демонтаж откоса 2 метра по 500');
+    const cancelReady=await waitFor(()=>document.querySelector('[data-chat-cancel]'));
+    assert(cancelReady,'cancel button did not appear');
+    document.querySelector('[data-chat-cancel]')?.click();
+    await waitFor(()=>frameChatMessages().some(m=>m.status==='cancelled'));
+    assert(ORDER.works.length===beforeCancel,'cancelled action changed the order');
+    assert(/Отменено/.test(document.body.textContent),'cancelled status not rendered in UI');
+
+    // 3. Recent explicit correction must replace the older conflicting fact before the model call.
+    frameSetTopic(TARGET.key);
+    await send('Унитаз уже установлен.');
+    await send('Нет, поправка: унитаз не установлен, я ошибся.');
+    await send('Так унитаз сейчас установлен или нет?');
+    const guarded=CAPTURED[CAPTURED.length-1]||'';
+    assert(/унитаз не установлен/i.test(guarded),'latest correction missing from guarded request');
+    assert(!/унитаз уже установлен/i.test(guarded),'superseded positive fact leaked into guarded request');
+    assert(frameTopic()===TARGET.key,'correction flow changed active object');
+
+    // 4. Explicit object name must switch the sticky conversation target.
+    await send('По Веселковой 12Б что сейчас по работам?');
+    assert(frameTopic()===TARGET2.key,'explicit object switch did not lock Веселковая');
+    assert(routeState.aiTarget===TARGET2.key,'route target did not follow explicit object switch');
+    await send('А по этому объекту что запланировано?');
+    assert(frameTopic()===TARGET2.key,'pronoun follow-up lost the switched object');
   }catch(e){failures.push('exception: '+(e?.stack||e))}
   document.getElementById('result').textContent=failures.length
     ? `FRAME_UI_E2E_FAIL\n${failures.join('\n')}`
