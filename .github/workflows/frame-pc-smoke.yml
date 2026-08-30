@@ -16,7 +16,13 @@ jobs:
           Write-Host "Runner: $env:RUNNER_NAME"
           Write-Host "Machine: $env:COMPUTERNAME"
           Write-Host "User: $env:USERNAME"
-          python --version
+          $py = Get-Command python -ErrorAction SilentlyContinue
+          if ($py) {
+            Write-Host "Python: $($py.Source)"
+            python --version
+          } else {
+            Write-Host "Python is not visible to the runner service yet; continuing smoke checks."
+          }
 
       - name: Check FRAME AI port
         shell: powershell
