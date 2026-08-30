@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
+<body><div id="app"></div><pre id="result">RUNNING</pre>
+<script>
+const STORE={};
+window.storageGet=(k,d='')=>Object.prototype.hasOwnProperty.call(STORE,k)?STORE[k]:d;
+window.storageSet=(k,v)=>{STORE[k]=String(v)};
+window.uid=()=> 'id-'+Math.random().toString(36).slice(2);
+window.now=()=> new Date().toISOString();
+window.$=id=>document.getElementById(id);
+window.$$=sel=>Array.from(document.querySelectorAll(sel));
+window.esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+window.toast=()=>{};
+window.openSheet=()=>{};
+window.render=()=>{document.getElementById('app').innerHTML=renderAiView();bindAiView()};
+window.route='ai';
+window.routeState={aiTarget:'obj-arch|order-arch'};
+window.aiDraft=null;
+window.aiAnalyzing=false;
+window.aiRecognition=null;
+window.aiBrainStatus={ok:true};
+window.aiNorm=s=>String(s||'').toLowerCase().replace(/ё/g,'е');
+window.aiTokens=s=>window.aiNorm(s).split(/[^a-zа-я0-9]+/i).filter(Boolean);
+window.aiStem=s=>window.aiNorm(s).slice(0,6);
+window.parseNum=v=>Number(String(v??'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;
+window.money=v=>`${Number(v||0).toLocaleString('ru-RU')} ₽`;
+
+const ORDER={id:'order-arch',title:'Ремонт квартиры',works:[
+  {id:'w-install',name:'Монтаж инсталляции',qty:1,unit:'компл.',price:10000,progress_pct:100},
+  {id:'w-toilet',name:'Установка унитаза и кнопки',qty:1,unit:'компл.',price:3000,progress_pct:0}
+]};
+const OBJECT={id:'obj-arch',contact:{address:'Архангельская, 21',name:'Заказчик'},orders:[ORDER]};
+const TARGET={key:'obj-arch|order-arch',object:OBJECT,order:ORDER};
+window.aiDefaultTargetKey=()=>TARGET.key;
+window.aiTargetByKey=key=>key===TARGET.key?TARGET:null;
+window.aiAllTargets=()=>[TARGET];
+window.aiContextPayload=()=>({current_target:TARGET.key,objects:[{id:OBJECT.id,address:OBJECT.contact.address,orders:[{id:ORDER.id,title:ORDER.title,works:ORDER.works}]}]});
+window.aiServerUrl=()=> 'http://127.0.0.1:8787';
+window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
+window.requestAiBrain=async()=>({result:{actions:[],summary:'stub'}});
+window.brainDraftFromResponse=(text,response)=>{
+  const r=response?.result||{};
+  if(Array.isArray(r.actions)&&r.actions.length)return {ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:TARGET.key};
+  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:TARGET.key};
+  return {ok:false,error:'empty'};
+};
+window.parseAiCommand=()=>({ok:false,error:'no local fallback'});
+window.aiBrainActionSummary=a=>a?.type==='add_work'?`Добавить работу ${a.work_name}`:String(a?.type||'action');
+window.aiParseWorkAdd=text=>{
+  const s=String(text||'');
+  const m=s.match(/(.+?)\s+(\d+(?:[.,]\d+)?)\s*(?:м|метр(?:а|ов)?)\s+по\s+(\d+(?:[.,]\d+)?)/i);
+  if(!m)return null;
+  return {name:m[1].replace(/^.*?(?:добавь|добавить)\s+(?:ещ[её]\s+)?(?:работ[ау]?\s*:?\s*)?/i,''),qty:Number(m[2].replace(',','.')),unit:'м',price:Number(m[3].replace(',','.'))};
+};
+window.applyAiDraft=async function(){
+  const d=window.aiDraft;
+  if(!d?.ok)return;
+  for(const a of d.actions||[]){
+    if(a.type==='add_work')ORDER.works.push({id:'e2e-added',name:a.work_name,qty:Number(a.qty),unit:a.unit,price:Number(a.price),progress_pct:0});
+  }
+  window.aiDraft=null;
+};
+window.undoLastAiAction=()=>{};
+window.requestAnimationFrame=fn=>setTimeout(fn,0);
+</script>
+<script src="../../ai-chat.js"></script>
+<script src="../../ai-guard.js"></script>
+<script>
+(async()=>{
+  const failures=[];
+  const assert=(ok,msg)=>{if(!ok)failures.push(msg)};
+  const waitFor=async(fn,ms=4000)=>{const end=Date.now()+ms;while(Date.now()<end){if(fn())return true;await new Promise(r=>setTimeout(r,25))}return false};
+  try{
+    render();
+    frameSetTopic(TARGET.key);
+    const input=document.getElementById('aiCommandInput');
+    assert(!!input,'chat input missing');
+    input.value='Добавь ещё работу: штраба под кондиционер 6 метров по 800';
+    document.getElementById('aiAnalyzeBtn').click();
+
+    const pending=await waitFor(()=>document.querySelector('[data-chat-apply]'));
+    assert(pending,'apply button did not appear');
+    assert(frameChatMessages().some(m=>m.role==='user'&&/6 метров по 800/i.test(m.text||'')),'user message not persisted');
+    assert(frameChatMessages().some(m=>m.status==='pending'),'pending action card not persisted');
+
+    const apply=document.querySelector('[data-chat-apply]');
+    if(apply)apply.click();
+    const applied=await waitFor(()=>ORDER.works.some(w=>w.id==='e2e-added'));
+    assert(applied,'work was not applied to order');
+    const work=ORDER.works.find(w=>w.id==='e2e-added');
+    assert(work?.qty===6,'applied quantity is not 6');
+    assert(work?.price===800,'applied price is not 800');
+    assert(work?.qty*work?.price===4800,'applied total is not 4800');
+    await waitFor(()=>frameChatMessages().some(m=>m.status==='applied'));
+    assert(frameChatMessages().some(m=>m.status==='applied'),'chat card was not marked applied');
+    assert(/Применено/.test(document.body.textContent),'applied status not rendered in UI');
+  }catch(e){failures.push('exception: '+(e?.stack||e))}
+  document.getElementById('result').textContent=failures.length
+    ? `FRAME_UI_E2E_FAIL\n${failures.join('\n')}`
+    : 'FRAME_UI_E2E_PASS';
+})();
+</script>
+</body></html>
