@@ -34,8 +34,14 @@ jobs:
       - name: Check FRAME AI health
         shell: powershell
         run: |
+          $token = [Environment]::GetEnvironmentVariable("FRAME_AI_TOKEN", "Machine")
+          if ([string]::IsNullOrWhiteSpace($token)) {
+            Write-Host "FRAME_AI_TOKEN is not available in Machine environment."
+            exit 1
+          }
           try {
-            $res = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8787/health" -TimeoutSec 15
+            $headers = @{ Authorization = "Bearer $token" }
+            $res = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8787/health" -Headers $headers -TimeoutSec 15
             Write-Host "HTTP $($res.StatusCode)"
             Write-Host $res.Content
           } catch {
