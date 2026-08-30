@@ -11,16 +11,13 @@ function Read-Utf8Json([string]$Path) {
     $text = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
     return ($text | ConvertFrom-Json)
 }
-
 function Normalize([object]$Value) { return ([string]$Value).ToLowerInvariant() }
-
 function Get-Payload([object]$Data) {
     if ($null -eq $Data) { return $null }
     $resultProp = $Data.PSObject.Properties['result']
     if ($resultProp -and $null -ne $resultProp.Value) { return $resultProp.Value }
     return $Data
 }
-
 function Collect-Text([object]$Data) {
     $Data = Get-Payload $Data
     $parts = New-Object System.Collections.Generic.List[string]
@@ -33,7 +30,6 @@ function Collect-Text([object]$Data) {
     if ($actionsProp -and $actionsProp.Value) { $parts.Add(($actionsProp.Value | ConvertTo-Json -Depth 20 -Compress)) }
     return ($parts -join "`n")
 }
-
 function Build-GuardedText([string]$Text, [string]$Target, [object[]]$Conversation) {
     $lines = New-Object System.Collections.Generic.List[string]
     $lines.Add('[FRAME INTERNAL CONTEXT]')
@@ -56,7 +52,6 @@ function Build-GuardedText([string]$Text, [string]$Target, [object[]]$Conversati
     $lines.Add('The current user request is the newest statement and has highest priority when it corrects earlier conversation facts.')
     return ($lines -join "`n")
 }
-
 function Find-NumberRecursive([object]$Value, [double]$Expected) {
     if ($null -eq $Value) { return $false }
     if ($Value -is [byte] -or $Value -is [int16] -or $Value -is [int32] -or $Value -is [int64] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]) { return ([double]$Value -eq $Expected) }
@@ -66,7 +61,6 @@ function Find-NumberRecursive([object]$Value, [double]$Expected) {
     foreach ($p in $Value.PSObject.Properties) { if (Find-NumberRecursive $p.Value $Expected) { return $true } }
     return $false
 }
-
 function Invoke-FrameAnalyze([string]$Text, [object]$Context) {
     $headers = @{ Authorization = "Bearer $Token" }
     $json = @{ text = $Text; context = $Context } | ConvertTo-Json -Depth 30
@@ -78,14 +72,16 @@ function Invoke-FrameAnalyze([string]$Text, [object]$Context) {
         } catch {
             $status = $null
             if ($_.Exception.Response) { try { $status = [int]$_.Exception.Response.StatusCode } catch {} }
-            $transient = ($status -eq 502 -or $status -eq 503 -or $status -eq 504 -or $status -eq 429)
+            $message = [string]$_.Exception.Message
+            $isTimeout = ($message -match 'timed out|timeout|operation has timed out|request was aborted')
+            $transient = ($status -eq 502 -or $status -eq 503 -or $status -eq 504 -or $status -eq 429 -or $isTimeout)
             if (-not $transient -or $attempt -eq $maxAttempts) { throw }
-            Write-Host "  transient HTTP $status, retry $attempt/$maxAttempts"
+            $reason = if ($isTimeout) { 'timeout' } elseif ($status) { "HTTP $status" } else { 'temporary error' }
+            Write-Host "  transient $reason, retry $attempt/$maxAttempts"
             Start-Sleep -Seconds (2 * $attempt)
         }
     }
 }
-
 function Check-Expect([object]$Data, [object]$Expect) {
     $Data = Get-Payload $Data
     $errors = New-Object System.Collections.Generic.List[string]
@@ -116,7 +112,6 @@ function Check-Expect([object]$Data, [object]$Expect) {
     }
     return $errors
 }
-
 $suite = Read-Utf8Json $ScenariosPath
 $fixture = Read-Utf8Json $FixturePath
 $passed = 0
