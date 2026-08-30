@@ -27,7 +27,7 @@ function Collect-Text([object]$Data) {
     $Data = Get-Payload $Data
     $parts = New-Object System.Collections.Generic.List[string]
     if ($null -eq $Data) { return '' }
-    foreach ($name in @('summary','text','message','answer','error','clarification')) {
+    foreach ($name in @('summary','text','message','answer','error','clarification','claration')) {
         $p = $Data.PSObject.Properties[$name]
         if ($p -and $p.Value -is [string] -and -not [string]::IsNullOrWhiteSpace($p.Value)) { $parts.Add([string]$p.Value) }
     }
@@ -45,16 +45,20 @@ function Build-GuardedText([string]$Text, [string]$Target, [object[]]$Conversati
     $lines.Add('Rules:')
     $lines.Add('- The active object is authoritative until the user explicitly names another object.')
     $lines.Add('- Recent user statements are newer than stored progress until the user applies changes.')
+    $lines.Add('- If the user corrects or contradicts an earlier statement, the newest explicit statement is authoritative. Do not ask for clarification when the correction itself is clear.')
+    $lines.Add('- Words such as no, actually, correction, not installed, not done, cancel that, and I was wrong can explicitly replace an earlier fact.')
     $lines.Add('- For an explicit create/add/update/delete request, return structured actions, not prose only.')
     $lines.Add('- For an add-work request, return an add_work action with quantity, unit price and total when they are stated.')
 
     $recent = @($Conversation | Where-Object { $_.role -eq 'user' -and -not [string]::IsNullOrWhiteSpace([string]$_.content) } | Select-Object -Last 8)
     if ($recent.Count -gt 0) {
-        $lines.Add('Recent authoritative user statements:')
+        $lines.Add('Recent user statements, oldest to newest:')
         foreach ($m in $recent) { $lines.Add("- $([string]$m.content)") }
+        $lines.Add('Resolve contradictions by recency: the newest explicit user statement wins.')
     }
     $lines.Add('[CURRENT USER REQUEST]')
     $lines.Add($Text)
+    $lines.Add('The current user request is the newest statement and has highest priority when it corrects earlier conversation facts.')
     return ($lines -join "`n")
 }
 
@@ -146,6 +150,8 @@ foreach ($sc in $suite.scenarios) {
             $context | Add-Member -NotePropertyName conversation_rules -NotePropertyValue @(
                 'Stay on conversation_target until the user explicitly names another object.',
                 'Recent user facts in conversation are newer than stored progress until actions are applied.',
+                'When recent user statements conflict, the newest explicit statement is authoritative and replaces the older fact.',
+                'A clear correction or negation is not ambiguous and must not trigger a clarification question.',
                 'Never switch to another object/order merely because it exists in context.'
             ) -Force
 
