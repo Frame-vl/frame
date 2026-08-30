@@ -38,6 +38,26 @@ function Collect-Text([object]$Data) {
     return ($parts -join "`n")
 }
 
+function Build-GuardedText([string]$Text, [string]$Target, [object[]]$Conversation) {
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.Add('[FRAME INTERNAL CONTEXT]')
+    if (-not [string]::IsNullOrWhiteSpace($Target)) { $lines.Add("Active object: $Target") }
+    $lines.Add('Rules:')
+    $lines.Add('- The active object is authoritative until the user explicitly names another object.')
+    $lines.Add('- Recent user statements are newer than stored progress until the user applies changes.')
+    $lines.Add('- For an explicit create/add/update/delete request, return structured actions, not prose only.')
+    $lines.Add('- For an add-work request, return an add_work action with quantity, unit price and total when they are stated.')
+
+    $recent = @($Conversation | Where-Object { $_.role -eq 'user' -and -not [string]::IsNullOrWhiteSpace([string]$_.content) } | Select-Object -Last 8)
+    if ($recent.Count -gt 0) {
+        $lines.Add('Recent authoritative user statements:')
+        foreach ($m in $recent) { $lines.Add("- $([string]$m.content)") }
+    }
+    $lines.Add('[CURRENT USER REQUEST]')
+    $lines.Add($Text)
+    return ($lines -join "`n")
+}
+
 function Find-NumberRecursive([object]$Value, [double]$Expected) {
     if ($null -eq $Value) { return $false }
     if ($Value -is [byte] -or $Value -is [int16] -or $Value -is [int32] -or $Value -is [int64] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]) {
@@ -129,7 +149,8 @@ foreach ($sc in $suite.scenarios) {
                 'Never switch to another object/order merely because it exists in context.'
             ) -Force
 
-            $last = Invoke-FrameAnalyze $msg $context
+            $guarded = Build-GuardedText $msg $target $conversation
+            $last = Invoke-FrameAnalyze $guarded $context
             $conversation += [pscustomobject]@{ role='user'; content=$msg }
             $conversation += [pscustomobject]@{ role='assistant'; content=(Collect-Text $last) }
         }
