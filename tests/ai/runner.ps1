@@ -7,8 +7,13 @@ $BaseUrl = if ($env:FRAME_AI_URL) { $env:FRAME_AI_URL.TrimEnd('/') } else { 'htt
 $Token = [Environment]::GetEnvironmentVariable('FRAME_AI_TOKEN','Machine')
 if ([string]::IsNullOrWhiteSpace($Token)) { throw 'FRAME_AI_TOKEN is missing from Machine environment' }
 
+function Read-Utf8Json([string]$Path) {
+    $text = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    return ($text | ConvertFrom-Json)
+}
+
 function Normalize([object]$Value) {
-    return ([string]$Value).ToLowerInvariant().Replace('ё','е')
+    return ([string]$Value).ToLowerInvariant()
 }
 
 function Collect-Text([object]$Data) {
@@ -47,7 +52,8 @@ function Find-NumberRecursive([object]$Value, [double]$Expected) {
 
 function Invoke-FrameAnalyze([string]$Text, [object]$Context) {
     $headers = @{ Authorization = "Bearer $Token" }
-    $body = @{ text = $Text; context = $Context } | ConvertTo-Json -Depth 30
+    $json = @{ text = $Text; context = $Context } | ConvertTo-Json -Depth 30
+    $body = [System.Text.Encoding]::UTF8.GetBytes($json)
     return Invoke-RestMethod -Method Post -Uri "$BaseUrl/analyze" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 180
 }
 
@@ -57,11 +63,11 @@ function Check-Expect([object]$Data, [object]$Expect) {
 
     foreach ($x in @($Expect.must_reference)) {
         if (-not $x) { continue }
-        if (-not $text.Contains((Normalize $x))) { $errors.Add("нет ожидаемого фрагмента: $x") }
+        if (-not $text.Contains((Normalize $x))) { $errors.Add("missing expected fragment: $x") }
     }
     foreach ($x in @($Expect.must_not_reference)) {
         if (-not $x) { continue }
-        if ($text.Contains((Normalize $x))) { $errors.Add("запрещённый фрагмент: $x") }
+        if ($text.Contains((Normalize $x))) { $errors.Add("forbidden fragment found: $x") }
     }
 
     $actions = @()
@@ -69,32 +75,32 @@ function Check-Expect([object]$Data, [object]$Expect) {
     if ($ap -and $ap.Value) { $actions = @($ap.Value) }
 
     if ($Expect.PSObject.Properties['action_required']) {
-        if ($Expect.action_required -eq $true -and $actions.Count -eq 0) { $errors.Add('ожидался action, но actions пуст') }
-        if ($Expect.action_required -eq $false -and $actions.Count -gt 0) { $errors.Add('не ожидался action, но actions присутствуют') }
+        if ($Expect.action_required -eq $true -and $actions.Count -eq 0) { $errors.Add('expected action but actions are empty') }
+        if ($Expect.action_required -eq $false -and $actions.Count -gt 0) { $errors.Add('unexpected action returned') }
     }
 
     if ($actions.Count -gt 0 -and $Expect.action_type) {
         $found = $false
         foreach ($a in $actions) { if ($a.type -eq $Expect.action_type) { $found = $true; break } }
-        if (-not $found) { $errors.Add("нет action типа $($Expect.action_type)") }
+        if (-not $found) { $errors.Add("missing action type $($Expect.action_type)") }
     }
 
     foreach ($field in @('quantity','unit_price','total')) {
         $p = $Expect.PSObject.Properties[$field]
         if ($p -and $actions.Count -gt 0) {
             if (-not (Find-NumberRecursive $actions ([double]$p.Value))) {
-                $errors.Add("не найдено числовое значение $field=$($p.Value) внутри actions")
+                $errors.Add("numeric value not found: $field=$($p.Value)")
             }
         }
     }
     return $errors
 }
 
-$suite = Get-Content $ScenariosPath -Raw | ConvertFrom-Json
-$fixture = Get-Content $FixturePath -Raw | ConvertFrom-Json
+$suite = Read-Utf8Json $ScenariosPath
+$fixture = Read-Utf8Json $FixturePath
 $passed = 0
 $total = @($suite.scenarios).Count
-Write-Host "FRAME AI Test Suite: $total сценариев"
+Write-Host "FRAME AI Test Suite: $total scenarios"
 Write-Host "AI Server: $BaseUrl"
 Write-Host ''
 
@@ -122,14 +128,14 @@ foreach ($sc in $suite.scenarios) {
         $errors = @(Check-Expect $last $sc.expect)
         if ($errors.Count -eq 0) {
             $passed++
-            Write-Host "PASS $($sc.id) - $($sc.title)"
+            Write-Host "PASS $($sc.id)"
         } else {
-            Write-Host "FAIL $($sc.id) - $($sc.title)"
+            Write-Host "FAIL $($sc.id)"
             foreach ($e in $errors) { Write-Host "  - $e" }
             Write-Host "  response: $($last | ConvertTo-Json -Depth 20 -Compress)"
         }
     } catch {
-        Write-Host "ERROR $($sc.id) - $($sc.title)"
+        Write-Host "ERROR $($sc.id)"
         Write-Host "  - $($_.Exception.Message)"
     }
 }
