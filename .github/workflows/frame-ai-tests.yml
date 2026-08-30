@@ -47,6 +47,11 @@ jobs:
         run: |
           & .\tests\ai\guard-browser.ps1
 
+      - name: Run FRAME chat end-to-end in real browser engine
+        shell: powershell
+        run: |
+          & .\tests\ai\ui-browser.ps1
+
       - name: Run FRAME AI regression suite
         shell: powershell
         env:
