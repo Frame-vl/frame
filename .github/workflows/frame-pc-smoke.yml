@@ -1,0 +1,38 @@
+name: FRAME PC Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 5
+    steps:
+      - name: Runner info
+        shell: powershell
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "Machine: $env:COMPUTERNAME"
+          Write-Host "User: $env:USERNAME"
+          python --version
+
+      - name: Check FRAME AI port
+        shell: powershell
+        run: |
+          $r = Test-NetConnection -ComputerName 127.0.0.1 -Port 8787 -WarningAction SilentlyContinue
+          Write-Host "FRAME AI 127.0.0.1:8787 TcpTestSucceeded=$($r.TcpTestSucceeded)"
+          if (-not $r.TcpTestSucceeded) { exit 1 }
+
+      - name: Check FRAME AI health
+        shell: powershell
+        run: |
+          try {
+            $res = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8787/health" -TimeoutSec 15
+            Write-Host "HTTP $($res.StatusCode)"
+            Write-Host $res.Content
+          } catch {
+            Write-Host "Health request failed: $($_.Exception.Message)"
+            exit 1
+          }
