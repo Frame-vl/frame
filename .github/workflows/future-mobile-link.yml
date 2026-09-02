@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   refresh:
-    runs-on: [control]
+    runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,7 @@ jobs:
           $urlPath=Join-Path $root 'public-url.txt'
           $url=if(Test-Path -LiteralPath $urlPath){(Get-Content -LiteralPath $urlPath -Raw -Encoding UTF8).Trim()}else{''}
           $healthy=$false
-          if($url){try{$h=Invoke-RestMethod -Uri ($url+'/api/health') -TimeoutSec 15;$healthy=($h.ok -and $h.protected)}catch{}}
+          if($url){for($i=0;$i -lt 12;$i++){try{$h=Invoke-RestMethod -Uri ($url+'/api/health') -TimeoutSec 5;$healthy=($h.ok -and $h.protected);if($healthy){break}}catch{};Start-Sleep -Seconds 2}}
           if(-not $healthy){
             Stop-ScheduledTask -TaskName 'FUTURE Pilot Tunnel' -ErrorAction SilentlyContinue
             Get-CimInstance Win32_Process -Filter "Name='cloudflared.exe'" -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*127.0.0.1:18787*'} | ForEach-Object {Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
@@ -45,6 +45,8 @@ jobs:
             }
             if(-not $url){throw 'FUTURE tunnel URL was not created'}
             Set-Content -LiteralPath $urlPath -Value $url -Encoding UTF8 -NoNewline
+            for($i=0;$i -lt 30;$i++){try{$h=Invoke-RestMethod -Uri ($url+'/api/health') -TimeoutSec 5;$healthy=($h.ok -and $h.protected);if($healthy){break}}catch{};Start-Sleep -Seconds 2}
+            if(-not $healthy){throw 'FUTURE tunnel DNS did not become ready'}
           }
           $config="window.FUTURE_API_BASE = '$url';`n"
           Set-Content -LiteralPath 'future\mobile-config.js' -Value $config -Encoding UTF8 -NoNewline
