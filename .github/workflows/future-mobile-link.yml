@@ -9,7 +9,7 @@ on:
       - '.github/workflows/future-mobile-link.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: future-mobile-link
@@ -20,8 +20,7 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Refresh protected FUTURE backend address
+      - name: Verify protected FUTURE backend address
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
@@ -31,13 +30,4 @@ jobs:
           if(-not $url){throw 'FUTURE stable Funnel URL is missing'}
           $h=Invoke-RestMethod -Uri ($url+'/api/health') -TimeoutSec 30
           if(-not $h.ok -or -not $h.protected){throw 'FUTURE stable Funnel is unhealthy'}
-          $config="window.FUTURE_API_BASE = '$url';`n"
-          Set-Content -LiteralPath 'future\mobile-config.js' -Value $config -Encoding UTF8 -NoNewline
           Write-Host 'FUTURE_MOBILE_BACKEND_HEALTHY=true'
-      - name: Publish address when changed
-        shell: powershell
-        run: |
-          git config user.name 'future-mobile-bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add future/mobile-config.js
-          if(-not(git diff --cached --quiet)){git commit -m 'chore(future): refresh mobile backend';git push}
