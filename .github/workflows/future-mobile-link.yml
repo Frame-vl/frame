@@ -1,0 +1,58 @@
+name: FUTURE Mobile Link
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'future/**'
+      - '.github/workflows/future-mobile-link.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: future-mobile-link
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: [control]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refresh protected FUTURE backend address
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $root='C:\DEV\Director\future-pilot'
+          $urlPath=Join-Path $root 'public-url.txt'
+          $url=if(Test-Path -LiteralPath $urlPath){(Get-Content -LiteralPath $urlPath -Raw -Encoding UTF8).Trim()}else{''}
+          $healthy=$false
+          if($url){try{$h=Invoke-RestMethod -Uri ($url+'/api/health') -TimeoutSec 15;$healthy=($h.ok -and $h.protected)}catch{}}
+          if(-not $healthy){
+            Stop-ScheduledTask -TaskName 'FUTURE Pilot Tunnel' -ErrorAction SilentlyContinue
+            Get-CimInstance Win32_Process -Filter "Name='cloudflared.exe'" -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '*127.0.0.1:18787*'} | ForEach-Object {Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
+            $log=Join-Path $root 'logs\tunnel.log'
+            if(Test-Path -LiteralPath $log){Clear-Content -LiteralPath $log -ErrorAction SilentlyContinue}
+            Start-ScheduledTask -TaskName 'FUTURE Pilot Tunnel'
+            $url=''
+            for($i=0;$i -lt 60;$i++){
+              Start-Sleep -Seconds 1
+              if(Test-Path -LiteralPath $log){$matches=[regex]::Matches((Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue),'https://[a-z0-9-]+\.trycloudflare\.com');if($matches.Count){$url=$matches[$matches.Count-1].Value;break}}
+            }
+            if(-not $url){throw 'FUTURE tunnel URL was not created'}
+            Set-Content -LiteralPath $urlPath -Value $url -Encoding UTF8 -NoNewline
+          }
+          $config="window.FUTURE_API_BASE = '$url';`n"
+          Set-Content -LiteralPath 'future\mobile-config.js' -Value $config -Encoding UTF8 -NoNewline
+          Write-Host 'FUTURE_MOBILE_BACKEND_HEALTHY=true'
+      - name: Publish address when changed
+        shell: powershell
+        run: |
+          git config user.name 'future-mobile-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add future/mobile-config.js
+          if(-not(git diff --cached --quiet)){git commit -m 'chore(future): refresh mobile backend';git push}

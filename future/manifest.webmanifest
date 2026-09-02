@@ -1,0 +1,14 @@
+{
+  "name": "FUTURE Pilot",
+  "short_name": "FUTURE",
+  "description": "Проверяемые персональные прогнозы с вероятностями и сроками.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090b12",
+  "theme_color": "#090b12",
+  "lang": "ru",
+  "icons": [
+    {"src":"future-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
