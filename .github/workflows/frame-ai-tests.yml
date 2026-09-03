@@ -29,16 +29,13 @@ jobs:
       FRAME_AI_URL: http://127.0.0.1:8787
       PYTHONUTF8: '1'
       PYTHONIOENCODING: utf-8
-      FRAME_EXPECTED_RUNNER: FRAME-BACKEND-PC
+      FRAME_EXPECTED_RUNNER: FRAME-PC
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          check-latest: false
+      - name: Resolve existing FRAME Python
+        run: call tests\\ai\\resolve-python.cmd
 
       - name: Check FRAME AI health
         run: python -X utf8 tests\ai\ci.py health
