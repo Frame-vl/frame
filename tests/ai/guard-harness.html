@@ -57,6 +57,13 @@ window.requestAiBrain=async text=>{CAPTURED=String(text||'');return {result:{act
   assert(Number(action?.price)===800,'wrong unit price');
   assert(Number(action?.total)===4800,'wrong total');
 
+  CAPTURED='';
+  const compound='Создай новый объект на Светланской, 10 и добавь работу: штраба под кондиционер 6 метров по 800';
+  const compoundLocal=window.frameDeterministicAddWork(compound);
+  assert(compoundLocal===null,'new-object compound was hijacked by deterministic add-work');
+  await window.requestAiBrain(compound);
+  assert(CAPTURED.includes(compound),'new-object compound did not reach backend');
+
   document.getElementById('result').textContent=failures.length
     ? `FRAME_GUARD_TEST_FAIL\n${failures.join('\n')}`
     : 'FRAME_GUARD_TEST_PASS';
