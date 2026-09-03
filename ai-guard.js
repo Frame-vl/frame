@@ -31,7 +31,7 @@
   }
 
   function isExplicitCorrection(text){
-    return /(?:^|\b)(?:нет\b|поправк|я\s+ошиб|ошибся|ошиблась|наоборот|вс[её]-?таки|отмен[аи]\s+предыдущ)/i.test(String(text||''));
+    return /(?:^|[^a-zа-яё0-9])(?:нет(?=$|[^a-zа-яё0-9])|поправк|я\s+ошиб|ошибся|ошиблась|наоборот|вс[её]-?таки|отмен[аи]\s+предыдущ)/i.test(String(text||''));
   }
 
   function reconcileRecentUserStatements(messages,original){
