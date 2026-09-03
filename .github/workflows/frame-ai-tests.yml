@@ -19,42 +19,35 @@ jobs:
   ai-regression:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: cmd
+    env:
+      FRAME_AI_URL: http://127.0.0.1:8787
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-BACKEND-PC
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          check-latest: false
+
       - name: Check FRAME AI health
-        shell: powershell
-        run: |
-          $token = [Environment]::GetEnvironmentVariable('FRAME_AI_TOKEN','Machine')
-          if ([string]::IsNullOrWhiteSpace($token)) { throw 'FRAME_AI_TOKEN is missing from Machine environment' }
-          $headers = @{ Authorization = "Bearer $token" }
-          $res = Invoke-RestMethod -Uri 'http://127.0.0.1:8787/health' -Headers $headers -TimeoutSec 15
-          Write-Host ($res | ConvertTo-Json -Depth 10 -Compress)
+        run: python -X utf8 tests\ai\ci.py health
 
       - name: Check deterministic guard contract
-        shell: powershell
-        run: |
-          $src = [System.IO.File]::ReadAllText((Join-Path $PWD 'ai-guard.js'), [System.Text.Encoding]::UTF8)
-          $required = @("split('|')", "deterministicAddWork", "type:'add_work'", 'qty:quantity', 'price:unitPrice', 'total', 'frameReconcileRecentUserStatements')
-          foreach ($needle in $required) {
-            if (-not $src.Contains($needle)) { throw "AI guard contract missing: $needle" }
-          }
-          Write-Host 'AI guard contract OK'
+        run: python -X utf8 tests\ai\ci.py contract
 
       - name: Run AI guard in real browser engine
-        shell: powershell
-        run: |
-          & .\tests\ai\guard-browser.ps1
+        run: python -X utf8 tests\ai\ci.py browser guard
 
       - name: Run FRAME chat end-to-end in real browser engine
-        shell: powershell
-        run: |
-          & .\tests\ai\ui-browser.ps1
+        run: python -X utf8 tests\ai\ci.py browser ui
 
       - name: Run FRAME AI regression suite
-        shell: powershell
-        env:
-          FRAME_AI_URL: http://127.0.0.1:8787
-        run: |
-          & .\tests\ai\runner.ps1
+        run: python -X utf8 tests\ai\runner.py
