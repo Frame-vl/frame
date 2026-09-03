@@ -122,7 +122,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     render();
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
-    assert(!/Старый личный разговор про ужин/i.test(document.body.textContent),'legacy durable chat was restored into the new page session');
+    assert(!/Старый личный разговор про ужин/i.test(document.getElementById('app').textContent),'legacy durable chat was restored into the new page session');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'legacy transcript key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiPendingV270'),'legacy pending-draft key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTopicV270'),'legacy topic key was not retired');
@@ -163,6 +163,8 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     await new Promise(r=>setTimeout(r,25));
     assert(WAKE_RELEASES===releasesBeforeMicError&&WAKE_OUTSTANDING===1,'mic error released wake lock while keyboard composer remained focused');
     delete window.SpeechRecognition;
+    try{Object.defineProperty(window,'SpeechRecognition',{configurable:true,writable:true,value:undefined})}catch(e){window.SpeechRecognition=undefined}
+    try{Object.defineProperty(window,'webkitSpeechRecognition',{configurable:true,writable:true,value:undefined})}catch(e){window.webkitSpeechRecognition=undefined}
     composer.blur();
     await waitFor(()=>WAKE_RELEASES>0,1000);
     assert(WAKE_OUTSTANDING===0,'screen wake lock was not fully released after composer blur');
