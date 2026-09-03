@@ -26,7 +26,6 @@ jobs:
         shell: cmd
     env:
       FRAME_AI_URL: http://127.0.0.1:8787
-      FRAME_AI_REPORT: ${{ runner.temp }}\frame-ai-provider-regression.json
       PYTHONUTF8: '1'
       PYTHONIOENCODING: utf-8
       FRAME_EXPECTED_RUNNER: FRAME-PC
@@ -42,7 +41,9 @@ jobs:
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py health'
 
       - name: Run all 30 conversational scenarios
-        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\runner.py'
+        run: |
+          set "FRAME_AI_REPORT=%RUNNER_TEMP%\frame-ai-provider-regression.json"
+          "%FRAME_PYTHON%" -X utf8 tests\ai\runner.py
 
       - name: Upload classified regression report
         if: always()

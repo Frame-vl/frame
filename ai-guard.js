@@ -63,7 +63,12 @@
     if(!topic||!Array.isArray(base?.objects))return base;
 
     const messages=typeof frameProviderChatMessages==='function'?frameProviderChatMessages():[];
-    const recentUsers=reconcileRecentUserStatements(messages,'');
+    // analyzeAiInput stores the current user bubble before this payload is
+    // built. Exclude that newest utterance here: it already travels in `text`
+    // and a question ending in «или нет?» must not erase the preceding fact
+    // as though it were itself a correction.
+    const newestUser=[...(Array.isArray(messages)?messages:[])].reverse().find(m=>m?.role==='user'&&String(m?.text||'').trim());
+    const recentUsers=reconcileRecentUserStatements(messages,newestUser?.text||'');
 
     return {
       ...base,
