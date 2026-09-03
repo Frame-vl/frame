@@ -94,6 +94,9 @@ window.applyAiDraft=async function(){
 };
 window.undoLastAiAction=()=>{};
 window.requestAnimationFrame=fn=>setTimeout(fn,0);
+window.WAKE_REQUESTS=0;
+window.WAKE_RELEASES=0;
+try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async()=>{WAKE_REQUESTS++;return {addEventListener:()=>{},release:async()=>{WAKE_RELEASES++}}}}})}catch(e){}
 </script>
 <script src="../../ai-chat.js"></script>
 <script src="../../ai-guard.js"></script>
@@ -114,6 +117,14 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
     assert(/Старый личный разговор про ужин/i.test(document.body.textContent),'persisted UI history was not rendered');
+    const composer=document.getElementById('aiCommandInput');
+    composer.focus();
+    composer.dispatchEvent(new Event('input',{bubbles:true}));
+    await waitFor(()=>WAKE_REQUESTS>0,1000);
+    assert(WAKE_REQUESTS>0,'focused iPhone keyboard dictation did not request screen wake lock');
+    composer.blur();
+    await waitFor(()=>WAKE_RELEASES>0,1000);
+    assert(WAKE_RELEASES>0,'screen wake lock was not released after composer blur');
     await send('Проверка контекста текущей сессии');
     const sessionCall=CAPTURED[CAPTURED.length-1]||{};
     const providerConversation=sessionCall.context?.conversation||[];
