@@ -72,7 +72,7 @@ def contract() -> None:
         "total",
         "frameReconcileRecentUserStatements",
         "context_scope:'all_objects_with_active_target'",
-        "нов\\w*\\s+объект",
+        "нов[a-zа-яё0-9_]*\\s+объект",
     )
     missing = [needle for needle in required if needle not in source]
     if missing:
