@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.6.2';
+const VERSION='2.7.5';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -23,6 +23,14 @@ const WORKFLOW220_DATA_KEY='frameWorkflow220DataPatch';
 const CURRENT230_DATA_KEY='frameCurrent230DataPatch';
 const AI_LOG_KEY='frameAiLogV240';
 const SOLO260_DATA_KEY='frameSolo260FieldReset';
+const RETIRED_CONTENT_PATCH_KEYS=[
+  AUG2026_SEED_KEY,
+  UX202_DATA_KEY,
+  WORKFLOW210_DATA_KEY,
+  WORKFLOW220_DATA_KEY,
+  CURRENT230_DATA_KEY,
+  SOLO260_DATA_KEY
+];
 
 let db=null;
 let objects=[];
@@ -130,6 +138,11 @@ let profile=loadProfile();
 
 function storageGet(key,fallback=''){try{return localStorage.getItem(key)??fallback}catch(e){return fallback}}
 function storageSet(key,value){try{localStorage.setItem(key,value)}catch(e){console.warn('storage',e)}}
+function retireLegacyContentPatches(){
+  // These were one-off personal/test data edits, not schema migrations.
+  // Mark them retired without touching current IndexedDB data.
+  for(const key of RETIRED_CONTENT_PATCH_KEYS)storageSet(key,'1');
+}
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function uid(){return crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`}
 function today(){const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
@@ -1233,12 +1246,7 @@ async function init(){
     await openDB();
     await migrateLegacy();
     await reloadObjects();
-    await seedAug2026CurrentObjects();
-    await patchV202CurrentData();
-    await patchV210WorkflowData();
-    await patchV220WorkflowData();
-    await patchV230CurrentData();
-    await patchV260SoloFieldTest();
+    retireLegacyContentPatches();
   }catch(e){
     console.error('IndexedDB',e);
     try{
@@ -1251,6 +1259,6 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.warn);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=275',{updateViaCache:'none'}).catch(console.warn);
 }
 init();
