@@ -1,4 +1,4 @@
-name: FRAME AI Tests
+name: FRAME UI Safety Tests
 
 on:
   push:
@@ -7,7 +7,11 @@ on:
       - 'app.js'
       - 'ai-chat.js'
       - 'ai-guard.js'
-      - 'tests/ai/**'
+      - 'tests/ai/ci.py'
+      - 'tests/ai/guard-harness.html'
+      - 'tests/ai/ui-harness.html'
+      - 'tests/ai/resolve-python.cmd'
+      - 'tests/ai/find-python.vbs'
       - '.github/workflows/frame-ai-tests.yml'
   workflow_dispatch:
 
@@ -15,18 +19,17 @@ permissions:
   contents: write
 
 concurrency:
-  group: frame-ai-regression
+  group: frame-ui-safety
   cancel-in-progress: true
 
 jobs:
-  ai-regression:
+  ui-safety:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 20
     defaults:
       run:
         shell: cmd
     env:
-      FRAME_AI_URL: http://127.0.0.1:8787
       PYTHONUTF8: '1'
       PYTHONIOENCODING: utf-8
       FRAME_EXPECTED_RUNNER: FRAME-PC
@@ -37,9 +40,6 @@ jobs:
       - name: Resolve existing FRAME Python
         run: call tests\ai\resolve-python.cmd
 
-      - name: Check FRAME AI health
-        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py health'
-
       - name: Check deterministic guard contract
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py contract'
 
@@ -48,9 +48,6 @@ jobs:
 
       - name: Run FRAME chat end-to-end in real browser engine
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui'
-
-      - name: Run FRAME AI regression suite
-        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\runner.py'
 
       - name: Publish test status
         if: always()

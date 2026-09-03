@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
-const STORE={};
+const STORE={frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}])};
 window.CAPTURED=[];
 let BRAIN_REPLY=null;
 window.storageGet=(k,d='')=>Object.prototype.hasOwnProperty.call(STORE,k)?STORE[k]:d;
@@ -58,7 +58,8 @@ window.aiFindWork=(order,text)=>{const tokens=aiTokens(text);let best=null,bestS
 window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,objects:TARGETS.map(t=>({id:t.object.id,address:t.object.contact.address,orders:[{id:t.order.id,title:t.order.title,works:t.order.works}]}))});
 window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
-window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return BRAIN_REPLY||{result:{actions:[],summary:'stub'}}};
+let BRAIN_HANDLER=null;
+window.requestAiBrain=async text=>{const context=aiContextPayload();CAPTURED.push({text:String(text||''),context});return BRAIN_HANDLER?BRAIN_HANDLER(String(text||''),context):(BRAIN_REPLY||{result:{actions:[],summary:'stub'}})};
 const AI_FIELD_SAFE_ACTIONS=new Set(['add_work','set_work_progress','add_note']);
 window.aiFieldSafeDraftError=d=>{if(String(d?.mode||'')!=='field_safe')return '';const actions=Array.isArray(d?.actions)?d.actions:[];if(!actions.length)return '';if(actions.some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||''))))return 'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.';const expected=String(d?.targetKey||'').split('|');return actions.some(a=>String(a?.object_id||'')!==expected[0]||String(a?.order_id||'')!==expected[1])?'FRAME заблокировал изменение: цель ответа не совпала с выбранным объектом. Ничего не применено.':''};
 window.brainDraftFromResponse=(text,response)=>{
@@ -112,6 +113,12 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     render();
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
+    assert(/Старый личный разговор про ужин/i.test(document.body.textContent),'persisted UI history was not rendered');
+    await send('Проверка контекста текущей сессии');
+    const sessionCall=CAPTURED[CAPTURED.length-1]||{};
+    const providerConversation=sessionCall.context?.conversation||[];
+    assert(providerConversation.some(m=>/Проверка контекста текущей сессии/i.test(m.content||'')),'current-session message missing from provider context');
+    assert(!providerConversation.some(m=>/Старый личный разговор про ужин/i.test(m.content||'')),'persisted personal chat leaked into provider context');
 
     // 1. Apply a real add-work card through the visible chat controls.
     const startCount=ORDER.works.length;
@@ -155,24 +162,45 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     BRAIN_REPLY=null;
     window.parseAiCommand=coreLocalParser;
 
-    // 4. Recent explicit correction must replace the older conflicting fact before the model call.
+    // 4. Current text stays raw; reconciled corrections travel in structured context only.
     frameSetTopic(TARGET.key);
     await send('Унитаз уже установлен.');
     await send('Нет, поправка: унитаз не установлен, я ошибся.');
     await send('Так унитаз сейчас установлен или нет?');
-    const guarded=CAPTURED[CAPTURED.length-1]||'';
-    assert(/унитаз не установлен/i.test(guarded),'latest correction missing from guarded request');
-    assert(!/унитаз уже установлен/i.test(guarded),'superseded positive fact leaked into guarded request');
+    const correctionCall=CAPTURED[CAPTURED.length-1]||{};
+    const correctionFacts=(correctionCall.context?.recent_user_facts||[]).join('\n');
+    assert(correctionCall.text==='Так унитаз сейчас установлен или нет?','current request was not sent as raw text');
+    assert(!/FRAME INTERNAL CONTEXT/i.test(correctionCall.text||''),'internal context leaked into current text');
+    assert(/унитаз не установлен/i.test(correctionFacts),'latest correction missing from structured context');
+    assert(!/унитаз уже установлен/i.test(correctionFacts),'superseded positive fact leaked into structured context');
     assert(frameTopic()===TARGET.key,'correction flow changed active object');
 
-    // 5. Explicit object name must switch the sticky conversation target.
+    // 5. A previous 50% statement must not turn the next money question into a repeated mutation.
+    BRAIN_HANDLER=text=>{
+      if(/50\s*(?:%|процент)/i.test(text)&&/выполн/i.test(text))return {result:{summary:'Прогресс 50%.',actions:[
+        {type:'set_work_progress',object_id:OBJECT.id,order_id:ORDER.id,work_id:'w-install',progress_pct:50}
+      ]}};
+      return {result:{summary:'Выполнено на 15 000 ₽.',actions:[]}};
+    };
+    await send('По электромонтажным работам выполнено примерно 50 процентов.');
+    assert(!!document.querySelector('[data-chat-apply]'),'current 50% statement did not produce the test mutation');
+    await send('На какую сумму выполнена электрика?');
+    const moneyCall=CAPTURED[CAPTURED.length-1]||{};
+    const moneyRows=frameChatMessages().slice(-2);
+    assert(moneyCall.text==='На какую сумму выполнена электрика?','previous progress statement leaked into current question');
+    assert((moneyCall.context?.recent_user_facts||[]).some(x=>/50\s*процент/i.test(x)),'previous progress fact missing from structured context');
+    assert(!document.querySelector('[data-chat-apply]'),'read-only money question repeated the previous mutation');
+    assert(moneyRows.some(m=>m.role==='assistant'&&m.status==='done'&&/15\s*000/.test(m.text||'')),'read-only money answer was not rendered');
+    BRAIN_HANDLER=null;
+
+    // 6. Explicit object name must switch the sticky conversation target.
     await send('По Веселковой 12Б что сейчас по работам?');
     assert(frameTopic()===TARGET2.key,'explicit object switch did not lock Веселковая');
     assert(routeState.aiTarget===TARGET2.key,'route target did not follow explicit object switch');
     await send('А по этому объекту что запланировано?');
     assert(frameTopic()===TARGET2.key,'pronoun follow-up lost the switched object');
 
-    // 6. A unique work may switch target; a duplicated work name may not.
+    // 7. A unique work may switch target; a duplicated work name may not.
     frameSetTopic(TARGET.key);
     const uniqueWorkText='Монтаж душевого поддона поставь на 65 процентов';
     assert(frameDetectTarget(uniqueWorkText)===TARGET2.key,'unique work name did not resolve Веселковая');
@@ -184,7 +212,7 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     await send(tiedWorkText);
     assert(frameTopic()===TARGET2.key&&routeState.aiTarget===TARGET2.key,'tied work name switched away from current target');
 
-    // 7. An add-work command must stay on the active object unless an object is explicit.
+    // 8. An add-work command must stay on the active object unless an object is explicit.
     frameSetTopic(TARGET.key);
     const addNamedLikeExisting='Добавь работу: монтаж душевого поддона 1 метр по 1000';
     assert(frameDetectTarget(addNamedLikeExisting)==='','add-work command switched by an existing work name');
@@ -192,7 +220,7 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(frameTopic()===TARGET.key&&routeState.aiTarget===TARGET.key,'add-work command left the active object');
     document.querySelector('[data-chat-cancel]')?.click();
     assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'explicit object did not switch add-work target');
-    // 8. field_safe rejects a mixed batch before it can create an Apply card.
+    // 9. field_safe rejects a mixed batch before it can create an Apply card.
     const safetyStart=ORDER.works.length;
     BRAIN_REPLY={meta:{mode:'field_safe'},result:{summary:'mixed',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Безопасная работа',qty:1,unit:'компл.',price:1000},
@@ -204,7 +232,7 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(ORDER.works.length===safetyStart,'field_safe mixed batch mutated work data');
     assert(/Ничего не применено/i.test(document.body.textContent),'field_safe block was not explained');
 
-    // 9. A permitted field_safe action still requires one explicit Apply.
+    // 10. A permitted field_safe action still requires one explicit Apply.
     BRAIN_REPLY={meta:{mode:'field_safe',confirmation_required:true},result:{summary:'safe',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Полевой тест',qty:1,unit:'компл.',price:1000}
     ]}};
@@ -212,13 +240,16 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(!!document.querySelector('[data-chat-apply]'),'allowed field_safe action has no Apply');
     assert(ORDER.works.length===safetyStart,'allowed field_safe action applied without tap');
     assert(frameRestorePending()?.mode==='field_safe','field_safe mode was lost from pending draft');
+    const safeDraft=frameRestorePending();
+    assert(safeDraft?.targetLabel==='Архангельская, 21 · Ремонт квартиры','field_safe draft has no immutable target snapshot');
+    assert(/Объект:\s*Архангельская, 21\s*·\s*Ремонт квартиры/i.test(document.body.textContent),'field_safe target is not visible in preview');
     const safeApply=document.querySelector('[data-chat-apply]');
     safeApply?.click();
     safeApply?.click();
     await waitFor(()=>ORDER.works.length===safetyStart+1);
     assert(ORDER.works.length===safetyStart+1,'allowed field_safe action was not applied exactly once');
 
-    // 10. A valid action aimed at another object is blocked before confirmation.
+    // 11. A valid action aimed at another object is blocked before confirmation.
     frameSetTopic(TARGET.key);
     BRAIN_REPLY={meta:{mode:'field_safe'},result:{summary:'wrong target',actions:[
       {type:'set_work_progress',object_id:OBJECT2.id,order_id:ORDER2.id,work_id:'w-shower',progress_pct:65}
@@ -227,7 +258,7 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(!document.querySelector('[data-chat-apply]'),'cross-target field action exposed Apply');
     assert(/цель ответа не совпала/i.test(document.body.textContent),'cross-target field action was not explained');
 
-    // 11. Candidate mode remains backward compatible, but is not applied in this test.
+    // 12. Candidate mode remains backward compatible, but is not applied in this test.
     BRAIN_REPLY={meta:{mode:'candidate'},result:{summary:'candidate mixed',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Черновик',qty:1,unit:'компл.',price:1000},
       {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}

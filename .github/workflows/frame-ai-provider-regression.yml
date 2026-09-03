@@ -1,0 +1,54 @@
+name: FRAME AI Provider Regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/ai/runner.py'
+      - 'tests/ai/scenarios.json'
+      - 'tests/ai/fixture.json'
+      - '.github/workflows/frame-ai-provider-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frame-ai-provider-regression
+  cancel-in-progress: true
+
+jobs:
+  provider-regression:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: cmd
+    env:
+      FRAME_AI_URL: http://127.0.0.1:8787
+      FRAME_AI_REPORT: ${{ runner.temp }}\frame-ai-provider-regression.json
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-PC
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve existing FRAME Python
+        run: call tests\ai\resolve-python.cmd
+
+      - name: Check provider health
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py health'
+
+      - name: Run all 30 conversational scenarios
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\runner.py'
+
+      - name: Upload classified regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frame-ai-provider-regression-${{ github.run_id }}
+          path: ${{ runner.temp }}\frame-ai-provider-regression.json
+          if-no-files-found: warn
+          retention-days: 7

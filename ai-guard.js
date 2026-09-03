@@ -62,7 +62,7 @@
     const topic=typeof frameTopic==='function'?frameTopic():'';
     if(!topic||!Array.isArray(base?.objects))return base;
 
-    const messages=typeof frameChatMessages==='function'?frameChatMessages():[];
+    const messages=typeof frameProviderChatMessages==='function'?frameProviderChatMessages():[];
     const recentUsers=reconcileRecentUserStatements(messages,'');
 
     return {
@@ -132,26 +132,11 @@
     if(guarded)return guarded;
 
     const original=String(text||'').trim();
-    const target=typeof frameTopicLabel==='function'?frameTopicLabel():'';
-    const messages=typeof frameChatMessages==='function'?frameChatMessages():[];
-    const recentUsers=reconcileRecentUserStatements(messages,original);
-
-    const internal=[
-      '[FRAME INTERNAL CONTEXT]',
-      target?`Active object: ${target}`:'',
-      'Rules:',
-      '- The active object is authoritative until the user explicitly names another object.',
-      '- Recent user statements are newer than stored progress until the user applies changes.',
-      '- The newest explicit correction replaces an older conflicting fact.',
-      '- For an explicit create/add/update/delete request, return structured actions, not prose only.',
-      '- For an add-work request, return an add_work action with quantity, unit price and total when they are stated.',
-      recentUsers.length?'Recent authoritative user statements:':'',
-      ...recentUsers.map(x=>`- ${x}`),
-      '[CURRENT USER REQUEST]',
-      original
-    ].filter(Boolean).join('\n');
-
-    return coreRequest(internal);
+    // Keep the mutation parser's input limited to the current utterance.
+    // History, target and rules already travel in aiContextPayload(). Repeating
+    // an older command in `text` can otherwise turn a later read-only question
+    // into the same mutation again.
+    return coreRequest(original);
   };
 
   window.frameDeterministicAddWork=deterministicAddWork;

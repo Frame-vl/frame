@@ -25,9 +25,10 @@ window.frameTopic=()=> 'obj-arch|order-arch';
 window.frameTopicLabel=()=> 'Архангельская, 21';
 let CHAT=[];
 window.frameChatMessages=()=>CHAT;
+window.frameProviderChatMessages=()=>CHAT;
 window.aiContextPayload=()=>({current_target:'',objects:[{id:'obj-arch',address:'Архангельская, 21',orders:[{id:'order-arch',works:TARGET.order.works}]}]});
-let CAPTURED='';
-window.requestAiBrain=async text=>{CAPTURED=String(text||'');return {result:{actions:[],summary:'ok'}}};
+let CAPTURED={};
+window.requestAiBrain=async text=>{CAPTURED={text:String(text||''),context:aiContextPayload()};return {result:{actions:[],summary:'ok'}}};
 </script>
 <script src="../../ai-guard.js"></script>
 <script>
@@ -45,9 +46,11 @@ window.requestAiBrain=async text=>{CAPTURED=String(text||'');return {result:{act
   assert(!reconciled.some(x=>/уже установлен/i.test(x)),'superseded positive fact survived');
 
   await window.requestAiBrain('Так унитаз сейчас установлен или нет?');
-  assert(/не установлен/i.test(CAPTURED),'correction missing from guarded prompt');
-  assert(!/уже установлен/i.test(CAPTURED),'superseded fact leaked into guarded prompt');
-  assert(/newest explicit correction replaces/i.test(CAPTURED),'correction rule missing from guarded prompt');
+  const facts=(CAPTURED.context?.recent_user_facts||[]).join('\n');
+  assert(CAPTURED.text==='Так унитаз сейчас установлен или нет?','current request was not sent as raw text');
+  assert(!/FRAME INTERNAL CONTEXT/i.test(CAPTURED.text||''),'internal context leaked into current text');
+  assert(/не установлен/i.test(facts),'correction missing from structured context');
+  assert(!/уже установлен/i.test(facts),'superseded fact leaked into structured context');
 
   const add=window.frameDeterministicAddWork('Добавь ещё работу: штраба под кондиционер 6 метров по 800');
   const action=add?.result?.actions?.[0];
@@ -57,12 +60,12 @@ window.requestAiBrain=async text=>{CAPTURED=String(text||'');return {result:{act
   assert(Number(action?.price)===800,'wrong unit price');
   assert(Number(action?.total)===4800,'wrong total');
 
-  CAPTURED='';
+  CAPTURED={};
   const compound='Создай новый объект на Светланской, 10 и добавь работу: штраба под кондиционер 6 метров по 800';
   const compoundLocal=window.frameDeterministicAddWork(compound);
   assert(compoundLocal===null,'new-object compound was hijacked by deterministic add-work');
   await window.requestAiBrain(compound);
-  assert(CAPTURED.includes(compound),'new-object compound did not reach backend');
+  assert(CAPTURED.text===compound,'new-object compound did not reach backend as raw text');
 
   document.getElementById('result').textContent=failures.length
     ? `FRAME_GUARD_TEST_FAIL\n${failures.join('\n')}`

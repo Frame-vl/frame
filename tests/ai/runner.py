@@ -9,6 +9,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,10 @@ def load_machine_env(name: str) -> str:
 TOKEN = load_machine_env("FRAME_AI_TOKEN")
 
 
+class TransportFailure(RuntimeError):
+    """The FRAME endpoint was reachable, but a transient upstream path failed."""
+
+
 def post_json(path: str, payload: Any) -> dict[str, Any]:
     if not TOKEN:
         raise RuntimeError("FRAME_AI_TOKEN is missing from Machine environment")
@@ -53,12 +58,14 @@ def post_json(path: str, payload: Any) -> dict[str, Any]:
                 raise RuntimeError(str(data.get("message") or data.get("error") or "backend ok=false"))
             return data
         except urllib.error.HTTPError as exc:
-            if exc.code not in transient_statuses or attempt == 3:
+            if exc.code not in transient_statuses:
                 raise
+            if attempt == 3:
+                raise TransportFailure(f"HTTP {exc.code} after {attempt} attempts") from exc
             reason = f"HTTP {exc.code}"
         except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
             if attempt == 3:
-                raise
+                raise TransportFailure(f"network timeout after {attempt} attempts") from exc
             reason = "timeout" if isinstance(getattr(exc, "reason", exc), (TimeoutError, socket.timeout)) else "temporary network error"
         print(f"  transient {reason}, retry {attempt}/3")
         time.sleep(2 * attempt)
@@ -83,32 +90,6 @@ def collect_text(data: Any) -> str:
     if isinstance(data.get("actions"), list) and data["actions"]:
         parts.append(json.dumps(data["actions"], ensure_ascii=False, separators=(",", ":")))
     return "\n".join(parts)
-
-
-def build_guarded_text(text: str, target: str, conversation: list[dict[str, str]]) -> str:
-    lines = ["[FRAME INTERNAL CONTEXT]"]
-    if target.strip():
-        lines.append(f"Active object: {target}")
-    lines.extend([
-        "Rules:",
-        "- The active object is authoritative until the user explicitly names another object.",
-        "- Recent user statements are newer than stored progress until actions are applied.",
-        "- If the user corrects or contradicts an earlier statement, the newest explicit statement is authoritative. Do not ask for clarification when the correction itself is clear.",
-        "- Words such as no, actually, correction, not installed, not done, cancel that, and I was wrong can explicitly replace an earlier fact.",
-        "- For an explicit create/add/update/delete request, return structured actions, not prose only.",
-        "- For an add-work request, return an add_work action with quantity, unit price and total when they are stated.",
-    ])
-    recent = [m for m in conversation if m.get("role") == "user" and str(m.get("content", "")).strip()][-8:]
-    if recent:
-        lines.append("Recent user statements, oldest to newest:")
-        lines.extend(f"- {m['content']}" for m in recent)
-        lines.append("Resolve contradictions by recency: the newest explicit user statement wins.")
-    lines.extend([
-        "[CURRENT USER REQUEST]",
-        text,
-        "The current user request is the newest statement and has highest priority when it corrects earlier conversation facts.",
-    ])
-    return "\n".join(lines)
 
 
 def find_number_recursive(value: Any, expected: float) -> bool:
@@ -179,8 +160,15 @@ def run_scenario(sc: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]:
             "A clear correction or negation is not ambiguous and must not trigger a clarification question.",
             "Never switch to another object/order merely because it exists in context.",
         ]
-        guarded = build_guarded_text(str(message), str(target), conversation)
-        last = post_json("/analyze", {"text": guarded, "context": context})
+        recent_user_facts = [
+            str(row.get("content", ""))
+            for row in conversation
+            if row.get("role") == "user" and str(row.get("content", "")).strip()
+        ]
+        context["recent_user_facts"] = (recent_user_facts + [str(message)])[-8:]
+        # Match the browser contract: only the current utterance belongs in
+        # `text`; conversation history and policy stay in structured context.
+        last = post_json("/analyze", {"text": str(message), "context": context})
         conversation.append({"role": "user", "content": str(message)})
         conversation.append({"role": "assistant", "content": collect_text(last)})
     return last
@@ -195,6 +183,10 @@ def main() -> int:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8-sig"))
     scenarios = suite.get("scenarios", [])
     passed = 0
+    semantic_failures = 0
+    transport_errors = 0
+    infrastructure_errors = 0
+    results: list[dict[str, Any]] = []
     print(f"FRAME AI Test Suite: {len(scenarios)} scenarios")
     print(f"AI Server: {BASE_URL}\n")
     for sc in scenarios:
@@ -202,19 +194,67 @@ def main() -> int:
             data = run_scenario(sc, fixture)
             errors = check_expect(data, sc.get("expect", {}))
             if errors:
+                semantic_failures += 1
+                results.append({"id": sc["id"], "status": "semantic_failure", "errors": errors})
                 print(f"FAIL {sc['id']}")
                 for error in errors:
                     print(f"  - {error}")
                 print("  response: " + json.dumps(data, ensure_ascii=False, separators=(",", ":")))
             else:
                 passed += 1
+                results.append({"id": sc["id"], "status": "passed"})
                 print(f"PASS {sc['id']}")
+        except TransportFailure as exc:
+            transport_errors += 1
+            results.append({"id": sc["id"], "status": "transport_error", "error": str(exc)})
+            print(f"ERROR {sc['id']}")
+            print(f"  - provider transport: {exc}")
         except Exception as exc:
+            infrastructure_errors += 1
+            results.append({"id": sc["id"], "status": "infrastructure_error", "error": f"{type(exc).__name__}: {exc}"})
             print(f"ERROR {sc['id']}")
             print(f"  - {type(exc).__name__}: {exc}")
     total = len(scenarios)
-    print(f"\nRESULT: {passed}/{total} passed")
-    return 0 if passed == total else 1
+    if not (semantic_failures or transport_errors or infrastructure_errors):
+        status = "PASS"
+        exit_code = 0
+    elif transport_errors and (semantic_failures or infrastructure_errors):
+        status = "MIXED_FAILURE"
+        exit_code = 3
+    elif transport_errors:
+        status = "PROVIDER_TRANSPORT_FAILURE"
+        exit_code = 2
+    elif semantic_failures:
+        status = "SEMANTIC_FAILURE"
+        exit_code = 1
+    else:
+        status = "INFRASTRUCTURE_FAILURE"
+        exit_code = 3
+    report = {
+        "schema_version": "1.0",
+        "suite": suite.get("suite", "FRAME AI regression"),
+        "status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "ai_server": BASE_URL,
+        "counts": {
+            "total": total,
+            "passed": passed,
+            "semantic_failures": semantic_failures,
+            "transport_errors": transport_errors,
+            "infrastructure_errors": infrastructure_errors,
+        },
+        "results": results,
+    }
+    report_path = os.environ.get("FRAME_AI_REPORT", "").strip()
+    if report_path:
+        target = Path(report_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(
+        f"\nRESULT: {passed}/{total} passed | semantic={semantic_failures} "
+        f"transport={transport_errors} infrastructure={infrastructure_errors} | {status}"
+    )
+    return exit_code
 
 
 if __name__ == "__main__":
