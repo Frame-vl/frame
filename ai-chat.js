@@ -1,11 +1,12 @@
 'use strict';
 
-// FRAME 2.7.7 AI Chat.
+// FRAME 2.7.8 AI Chat.
 const FRAME_CHAT_KEY='frameAiChatV270';
 const FRAME_CHAT_PENDING_KEY='frameAiPendingV270';
 const FRAME_CHAT_TOPIC_KEY='frameAiTopicV270';
 const FRAME_CHAT_LIMIT=100;
-const FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV277';
+const FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV278';
+const FRAME_RETIRED_TEST_TRANSCRIPT_KEYS=['frameAiTestTranscriptV277'];
 const FRAME_TEST_TRANSCRIPT_FORMAT='FRAME_TEST_TRANSCRIPT';
 const FRAME_TEST_TRANSCRIPT_SCHEMA=1;
 const FRAME_TEST_TRANSCRIPT_DAYS=7;
@@ -15,15 +16,26 @@ let frameVoiceWanted=false,frameComposerWakeWanted=false,frameVoiceRestartTimer=
 const frameSessionMessageIds=new Set();
 let frameChatSession=[],framePendingSession=null,frameTopicSession='';
 
-function frameRetireLegacyAiChatStorage(){for(const key of [FRAME_CHAT_KEY,FRAME_CHAT_PENDING_KEY,FRAME_CHAT_TOPIC_KEY]){try{if(typeof storageRemove==='function')storageRemove(key);else localStorage.removeItem(key)}catch(e){}}}
+function frameRetireLegacyAiChatStorage(){for(const key of [FRAME_CHAT_KEY,FRAME_CHAT_PENDING_KEY,FRAME_CHAT_TOPIC_KEY,...FRAME_RETIRED_TEST_TRANSCRIPT_KEYS]){try{if(typeof storageRemove==='function')storageRemove(key);else localStorage.removeItem(key)}catch(e){}}}
 frameRetireLegacyAiChatStorage();
 function frameTestString(value,limit=256){return String(value??'').slice(0,limit)}
 function frameTestNumber(value){const n=Number(value);return Number.isFinite(n)&&n>=0?n:undefined}
 function frameTestActionProjection(action){
   const source=action&&typeof action==='object'?action:{},out={};
-  for(const key of ['type','object_id','order_id','work_id','address','customer','order_title','work_name','unit','note'])if(source[key]!==undefined)out[key]=frameTestString(source[key],key==='note'?2000:500);
+  for(const key of ['type','object_id','order_id','work_id','purchase_id','address','customer','customer_name','phone','object_status','order_title','order_status','work_name','new_name','unit','category','note'])if(source[key]!==undefined)out[key]=frameTestString(source[key],key==='note'?2000:500);
   for(const key of ['qty','price','amount','progress_pct']){const n=frameTestNumber(source[key]);if(n!==undefined)out[key]=n}
   return out;
+}
+function frameTestActionsFromDraft(draft){
+  const d=draft&&typeof draft==='object'?draft:{};if(Array.isArray(d.actions)&&d.actions.length)return d.actions;
+  const [object_id='',order_id='']=String(d.targetKey||'').split('|'),target={object_id,order_id};
+  if(d.type==='payment')return [{type:'add_payment',...target,amount:d.amount}];
+  if(d.type==='expense')return [{type:'add_expense',...target,amount:d.amount,category:d.worker||'Исполнитель'}];
+  if(d.type==='purchase')return [{type:'add_purchase',...target,amount:d.amount,work_name:d.name||'Материалы / расходники'}];
+  if(d.type==='work_add')return [{type:'add_work',...target,work_name:d.work?.name,qty:d.work?.qty,unit:d.work?.unit,price:d.work?.price}];
+  if(d.type==='work_complete')return [{type:'set_work_progress',...target,work_id:d.rowId,work_name:d.rowName,progress_pct:100}];
+  if(d.type==='order_note')return [{type:'add_note',...target,note:d.note}];
+  return [];
 }
 function frameTestDailyLimitsProjection(value){
   const source=value&&typeof value==='object'?value:{},out={};
@@ -32,7 +44,7 @@ function frameTestDailyLimitsProjection(value){
   return out;
 }
 function frameBuildTestTrace(draft,response,roundTripMs,errorCode=''){
-  const d=draft&&typeof draft==='object'?draft:{},meta=response?.meta&&typeof response.meta==='object'?response.meta:{},result=response?.result&&typeof response.result==='object'?response.result:{},actions=Array.isArray(result.actions)?result.actions:(Array.isArray(d.actions)?d.actions:[]),trace={
+  const d=draft&&typeof draft==='object'?draft:{},meta=response?.meta&&typeof response.meta==='object'?response.meta:{},result=response?.result&&typeof response.result==='object'?response.result:{},draftActions=frameTestActionsFromDraft(d),actions=draftActions.length?draftActions:(!d.blocked&&Array.isArray(result.actions)?result.actions:[]),trace={
     provider:frameTestString(meta.provider??d.provider,128),model:frameTestString(meta.model??d.model,128),mode:frameTestString(meta.mode??d.mode,64),
     outcome:d.blocked?'blocked':d.clarification?'clarification':d.ok?(actions.length?'proposed':'answer'):'error',
     target_key:frameTestString(d.targetKey,256),target_label:frameTestString(d.targetLabel,1000),
@@ -88,13 +100,12 @@ function frameStartTestTranscript(){
   let data=frameTestTranscriptRead();const stamp=new Date().toISOString();
   if(!data)data={format:FRAME_TEST_TRANSCRIPT_FORMAT,schema_version:FRAME_TEST_TRANSCRIPT_SCHEMA,app_version:typeof VERSION==='string'?VERSION:'',session_id:typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():uid(),page_id:FRAME_TEST_PAGE_ID,started_at:stamp,updated_at:stamp,expires_at:stamp,active:true,topic_key:'',topic_label:'',messages:[]};
   data.active=true;data.topic_key=frameTestString(frameTopicSession,256);data.topic_label=frameTestString(frameTopicLabel(),1000);
-  for(const message of frameChatMessages()){const clean=frameTestMessageProjection(message);if(!clean)continue;const index=data.messages.findIndex(x=>x.id===clean.id);if(index>=0)data.messages[index]=clean;else data.messages.push(clean)}
   frameTestTranscriptWrite(data);frameUpdateTestButton();toast('Запись тестового диалога включена');
 }
 function frameStopTestTranscript(){const data=frameTestTranscriptRead();if(!data)return;data.active=false;frameTestTranscriptWrite(data);frameUpdateTestButton();toast('Запись остановлена')}
 function frameClearTestTranscript(){storageRemove(FRAME_TEST_TRANSCRIPT_KEY);frameUpdateTestButton();toast('Тестовый диалог удалён')}
 function frameTranscriptPayload(){
-  const stored=frameTestTranscriptRead(),messages=stored?.messages?.length?stored.messages:frameChatMessages().map(frameTestMessageProjection).filter(Boolean);
+  const stored=frameTestTranscriptRead(),messages=stored?stored.messages:frameChatMessages().map(frameTestMessageProjection).filter(Boolean);
   return {format:FRAME_TEST_TRANSCRIPT_FORMAT,schema_version:FRAME_TEST_TRANSCRIPT_SCHEMA,app_version:typeof VERSION==='string'?VERSION:'',exported_at:new Date().toISOString(),session_id:stored?.session_id||'',recording_started_at:stored?.started_at||'',recording_active:stored?.active===true,topic_key:stored?.topic_key||frameTestString(frameTopicSession,256),topic_label:stored?.topic_label||frameTestString(frameTopicLabel(),1000),message_count:messages.length,messages};
 }
 async function frameExportTestTranscript(){
@@ -105,7 +116,7 @@ async function frameExportTestTranscript(){
 }
 function frameUpdateTestButton(){const button=$('frameTestBtn'),active=frameTestTranscriptActive();if(button){button.classList.toggle('active',active);button.innerHTML=`<i></i>${active?'ЗАПИСЬ':'ТЕСТ'}`;button.setAttribute('aria-label',active?'Запись тестового диалога включена':'Открыть тестовый журнал')}}
 function frameShowTestTranscript(){
-  const data=frameTestTranscriptRead(),count=data?.messages?.length||frameChatMessages().length,active=data?.active===true;
+  const data=frameTestTranscriptRead(),count=data?data.messages.length:frameChatMessages().length,active=data?.active===true;
   openSheet(`<div class="sectionTitle"><div><h1>Тестовый диалог</h1><p class="help compact">${active?'Запись включена.':data?'Запись остановлена.':'Запись ещё не включена.'} Сохраняются до 100 сообщений только на этом устройстве и удаляются через 7 дней.</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="frameTestSummary">Записано сообщений: <strong>${count}</strong></div><div class="frameTestActions">${active?'<button id="frameExportTestBtn" class="btn primary">Поделиться файлом</button><button id="frameStopTestBtn" class="btn ghost">Остановить запись</button>':`<button id="frameStartTestBtn" class="btn primary">${data?'Продолжить запись':'Начать запись'}</button>${count?'<button id="frameExportTestBtn" class="btn ghost">Поделиться текущим файлом</button>':''}`} ${data?'<button id="frameClearTestBtn" class="btn ghost dangerText">Удалить тестовый диалог</button>':''}</div><p class="help compact">В файл попадут сообщения, модель, задержка, стоимость и статусы предложенных действий. Токен и адрес сервера не сохраняются.</p>`);
   if($('frameStartTestBtn'))$('frameStartTestBtn').onclick=()=>{frameStartTestTranscript();if(typeof closeSheet==='function')closeSheet()};
   if($('frameExportTestBtn'))$('frameExportTestBtn').onclick=frameExportTestTranscript;
@@ -165,4 +176,4 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState!==
 
 bindAiResult=function(){frameBindChatActions()};bindAiView=function(){frameRestorePending();if($('aiAnalyzeBtn'))$('aiAnalyzeBtn').onclick=analyzeAiInput;if($('aiMicBtn'))$('aiMicBtn').onclick=startAiVoice;if($('frameAttachBtn'))$('frameAttachBtn').onclick=frameShowAttachMenu;if($('frameTestBtn'))$('frameTestBtn').onclick=frameShowTestTranscript;const input=$('aiCommandInput');if(input){input.addEventListener('focus',()=>frameComposerWake(true));input.addEventListener('blur',()=>frameComposerWake(false));input.addEventListener('input',()=>{frameAutoGrowInput();frameComposerWake(document.activeElement===input)});input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();analyzeAiInput()}})}frameHardClearComposer();frameBindChatActions();frameScrollChat();frameRenderConnectionDot();frameUpdateTestButton();if(aiServerUrl()&&!aiBrainStatus)checkAiBrain({toastResult:false})};
 const frameCoreApplyAiDraft=applyAiDraft;applyAiDraft=async function(authorizationToken=''){const d=frameRestorePending()||aiDraft,id=d?.chatId||'',policyError=frameDraftPolicyError(d);if(policyError){if(id)frameUpdateChat(id,{status:'cancelled',text:policyError,draft:null});if(d)aiRevokeDraftAuthorization(d);aiDraft=null;frameClearPending();toast(policyError);if(route==='ai')render();return false}if(d)aiDraft=d;const applied=await frameCoreApplyAiDraft(authorizationToken);if(id&&applied===true){frameUpdateChat(id,{status:'applied',draft:null});frameClearPending();if(route==='ai')render()}else if(id&&authorizationToken){frameUpdateChat(id,{status:'cancelled',draft:null});frameClearPending();aiDraft=null;if(route==='ai')render()}return applied===true};
-console.info('[FRAME] 2.7.7 AI Chat loaded');
+console.info('[FRAME] 2.7.8 AI Chat loaded');

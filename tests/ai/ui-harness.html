@@ -3,11 +3,12 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
-const VERSION='2.7.7';
+const VERSION='2.7.8';
 const STORE={
   frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}]),
   frameAiPendingV270:JSON.stringify({ok:true,type:'payment',amount:99999}),
   frameAiTopicV270:'obj-ves|order-ves',
+  frameAiTestTranscriptV277:JSON.stringify({format:'FRAME_TEST_TRANSCRIPT',schema_version:1,messages:[{role:'user',text:'Старый журнал с нарушенной границей согласия'}]}),
   frameAiLogV240:'business-audit-must-survive'
 };
 window.CAPTURED=[];
@@ -125,15 +126,39 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
     assert(!!document.getElementById('frameTestBtn'),'test transcript button missing');
-    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'test transcript started without explicit consent');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'test transcript started without explicit consent');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'unsafe 2.7.7 test transcript was not retired');
     assert(!/Старый личный разговор про ужин/i.test(document.getElementById('app').textContent),'legacy durable chat was restored into the new page session');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'legacy transcript key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiPendingV270'),'legacy pending-draft key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTopicV270'),'legacy topic key was not retired');
     assert(STORE.frameAiLogV240==='business-audit-must-survive','business AI audit was deleted with chat memory');
+    const beforeConsent=frameAddChat({role:'user',text:'Секрет до включения записи',status:'done',turnId:'before-consent'});
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'pre-consent message started durable recording');
     frameStartTestTranscript();
     assert(frameTestTranscriptActive(),'explicit test transcript did not start');
-    assert(Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'active test transcript was not persisted');
+    assert(Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'active test transcript was not persisted');
+    assert(frameTestTranscriptRead()?.messages?.length===0&&!JSON.stringify(frameTranscriptPayload()).includes(beforeConsent.text),'starting test transcript backfilled pre-consent traffic');
+    frameStopTestTranscript();
+    frameAddChat({role:'user',text:'Секрет во время паузы',status:'done',turnId:'while-stopped'});
+    assert(frameTestTranscriptRead()?.messages?.length===0&&!JSON.stringify(frameTranscriptPayload()).includes('Секрет во время паузы'),'stopped transcript exported unrecorded traffic');
+    frameStartTestTranscript();
+    assert(frameTestTranscriptRead()?.messages?.length===0,'resuming test transcript backfilled paused traffic');
+    frameChatSession=[];
+    frameSessionMessageIds.clear();
+    const localTraces=[
+      frameBuildTestTrace({ok:true,type:'payment',targetKey:TARGET.key,amount:1500},null,12),
+      frameBuildTestTrace({ok:true,type:'expense',targetKey:TARGET.key,amount:700,worker:'Посредник'},null,13),
+      frameBuildTestTrace({ok:true,type:'purchase',targetKey:TARGET.key,amount:2200,name:'Клей'},null,14),
+      frameBuildTestTrace({ok:true,type:'work_add',targetKey:TARGET.key,work:{name:'Грунтование',qty:'12',unit:'м²',price:'75'}},null,15),
+      frameBuildTestTrace({ok:true,type:'work_complete',targetKey:TARGET.key,rowId:'w-install',rowName:'Монтаж инсталляции'},null,16),
+      frameBuildTestTrace({ok:true,type:'order_note',targetKey:TARGET.key,note:'Проверить основание'},null,17)
+    ];
+    assert(localTraces.every(x=>x.outcome==='proposed'&&x.proposed_actions.length===1),'local parser action was exported as a plain answer');
+    assert(localTraces.map(x=>x.proposed_actions[0].type).join(',')==='add_payment,add_expense,add_purchase,add_work,set_work_progress,add_note','local parser action mapping is incomplete');
+    assert(localTraces[3].proposed_actions[0].work_name==='Грунтование'&&localTraces[4].proposed_actions[0].work_id==='w-install','local work action details were lost');
+    const richAction=frameTestActionProjection({type:'update_object',purchase_id:'purchase-1',customer_name:'Николай',phone:'+7 900',object_status:'work',order_status:'agreed',new_name:'Новое имя',category:'Посредник'});
+    assert(richAction.purchase_id==='purchase-1'&&richAction.customer_name==='Николай'&&richAction.phone==='+7 900'&&richAction.object_status==='work'&&richAction.order_status==='agreed'&&richAction.new_name==='Новое имя'&&richAction.category==='Посредник','executor action fields were dropped from transcript');
     const privateWords='личный разговор';
     const cleanAudit=aiSanitizeAuditEntries([{id:'audit-1',type:'brain_batch',actionTypes:['add_work'],targetKey:TARGET.key,summary:privateWords,text:privateWords,provider:privateWords,model:privateWords,draft:{secret:true},unexpected:privateWords,undo:{kind:'batch_v250',ops:[]}}]);
     assert(cleanAudit[0].id==='audit-1'&&/Новая работа/.test(cleanAudit[0].summary)&&cleanAudit[0].undo?.kind==='batch_v250','audit sanitizer deleted structured construction audit');
@@ -377,7 +402,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 
     // Explicit test recording exports a sanitized, non-executable diagnostic file.
     const transcript=frameTranscriptPayload(),serializedTranscript=JSON.stringify(transcript);
-    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.7','test transcript schema or app version is wrong');
+    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.8','test transcript schema or app version is wrong');
     assert(transcript.message_count===transcript.messages.length&&transcript.message_count>0,'test transcript message count is wrong');
     assert(transcript.messages.some(m=>m.status==='applied'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'applied action snapshot missing from test transcript');
     assert(transcript.messages.some(m=>m.status==='cancelled'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'cancelled action snapshot missing from test transcript');
@@ -388,15 +413,15 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(capped?.messages?.length===100&&capped.messages.at(-1)?.text==='cap-104','test transcript did not enforce the 100-message cap');
     frameStopTestTranscript();
     assert(frameTestTranscriptRead()?.active===false,'test transcript did not stop');
-    const staleTranscript=JSON.parse(STORE.frameAiTestTranscriptV277);
+    const staleTranscript=JSON.parse(STORE.frameAiTestTranscriptV278);
     staleTranscript.page_id='prior-page';
     staleTranscript.messages[0].status='pending';
-    STORE.frameAiTestTranscriptV277=JSON.stringify(staleTranscript);
+    STORE.frameAiTestTranscriptV278=JSON.stringify(staleTranscript);
     assert(frameTestTranscriptRead()?.messages?.[0]?.status==='expired','persisted pending test entry remained executable-looking after reload');
     frameClearTestTranscript();
-    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'test transcript was not deleted');
-    STORE.frameAiTestTranscriptV277='{broken json';
-    assert(frameTestTranscriptRead()===null&&!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'malformed test transcript was not rejected and removed');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'test transcript was not deleted');
+    STORE.frameAiTestTranscriptV278='{broken json';
+    assert(frameTestTranscriptRead()===null&&!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'malformed test transcript was not rejected and removed');
 
     // Session traffic must never recreate retired durable AI chat keys.
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'session transcript was written to durable storage');
