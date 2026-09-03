@@ -2,7 +2,7 @@ name: FRAME UI Safety Tests
 
 on:
   push:
-    branches: [main, codex/frame-chat-first-279]
+    branches: [main]
     paths:
       - 'index.html'
       - 'styles.css'
