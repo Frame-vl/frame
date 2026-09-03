@@ -35,26 +35,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Resolve existing FRAME Python
-        run: call tests\\ai\\resolve-python.cmd
+        run: call tests\ai\resolve-python.cmd
 
       - name: Check FRAME AI health
-        run: python -X utf8 tests\ai\ci.py health
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py health'
 
       - name: Check deterministic guard contract
-        run: python -X utf8 tests\ai\ci.py contract
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py contract'
 
       - name: Run AI guard in real browser engine
-        run: python -X utf8 tests\ai\ci.py browser guard
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser guard'
 
       - name: Run FRAME chat end-to-end in real browser engine
-        run: python -X utf8 tests\ai\ci.py browser ui
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui'
 
       - name: Run FRAME AI regression suite
-        run: python -X utf8 tests\ai\runner.py
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\runner.py'
 
       - name: Publish test status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           FRAME_CI_JOB_STATUS: ${{ job.status }}
-        run: python -X utf8 tests\ai\ci.py status
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py status'
