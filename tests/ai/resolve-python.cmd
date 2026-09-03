@@ -9,6 +9,7 @@ for /f "usebackq delims=" %%P in (`cscript.exe //nologo "%~dp0find-python.vbs" 2
 if not defined FRAME_FOUND_PYTHON call :probe "C:\Users\Пользователь\AppData\Local\Programs\Python\Python312\python.exe"
 if not defined FRAME_FOUND_PYTHON call :probe "C:\Program Files\Python312\python.exe"
 if not defined FRAME_FOUND_PYTHON call :probe "C:\Program Files\Python311\python.exe"
+if not defined FRAME_FOUND_PYTHON call :bootstrap_embed
 
 if not defined FRAME_FOUND_PYTHON (
   echo FRAME Python executable was not found. 1>&2
@@ -21,6 +22,20 @@ if errorlevel 1 exit /b 1
 >>"%GITHUB_ENV%" echo FRAME_PYTHON=%FRAME_FOUND_PYTHON%
 echo FRAME Python resolved without setup-python: %FRAME_FOUND_PYTHON%
 endlocal & set "FRAME_PYTHON=%FRAME_FOUND_PYTHON%"
+exit /b 0
+
+:bootstrap_embed
+set "FRAME_EMBED_ROOT=%RUNNER_TEMP%\frame-python-embed-3.12.10"
+set "FRAME_EMBED_ZIP=%RUNNER_TEMP%\frame-python-embed-3.12.10.zip"
+if not exist "%FRAME_EMBED_ROOT%\python.exe" (
+  if not exist "%FRAME_EMBED_ROOT%" mkdir "%FRAME_EMBED_ROOT%"
+  curl.exe --fail --location --retry 3 --connect-timeout 20 --output "%FRAME_EMBED_ZIP%" "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip"
+  if errorlevel 1 exit /b 0
+  tar.exe -xf "%FRAME_EMBED_ZIP%" -C "%FRAME_EMBED_ROOT%"
+  if errorlevel 1 exit /b 0
+  del "%FRAME_EMBED_ZIP%" >nul 2>nul
+)
+call :probe "%FRAME_EMBED_ROOT%\python.exe"
 exit /b 0
 
 :probe
