@@ -1,6 +1,6 @@
 'use strict';
 
-// FRAME 2.7.4 AI guard.
+// FRAME 2.7.5 AI guard.
 // Focuses the model on the locked order, routes obvious add-work commands deterministically,
 // and removes superseded facts after explicit user corrections.
 (function(){
@@ -62,18 +62,6 @@
     const topic=typeof frameTopic==='function'?frameTopic():'';
     if(!topic||!Array.isArray(base?.objects))return base;
 
-    const parts=String(topic).split('|');
-    const objectId=parts[0]||'';
-    const orderId=parts[1]||'';
-    const object=base.objects.find(x=>String(x?.id||'')===objectId);
-    if(!object)return base;
-
-    const focused={...object};
-    if(orderId&&Array.isArray(object.orders)){
-      const order=object.orders.find(x=>String(x?.id||'')===orderId);
-      if(order)focused.orders=[order];
-    }
-
     const messages=typeof frameChatMessages==='function'?frameChatMessages():[];
     const recentUsers=reconcileRecentUserStatements(messages,'');
 
@@ -81,14 +69,14 @@
       ...base,
       current_target:topic,
       conversation_target:typeof frameTopicLabel==='function'?frameTopicLabel():(base.conversation_target||''),
-      objects:[focused],
+      objects:base.objects,
       recent_user_facts:recentUsers,
-      context_scope:'active_order_only',
+      context_scope:'all_objects_with_active_target',
       conversation_rules:[
-        'The active object is authoritative until the user explicitly names another object.',
+        'The active object is a fallback only; an explicit object or unique work in the current phrase wins.',
         'Recent user statements are newer than stored progress until the user applies changes.',
         'When the user explicitly corrects a fact, the newest correction replaces the older conflicting fact.',
-        'Never switch to an object that is absent from the supplied objects list.',
+        'Duplicate work names across objects require clarification and no action.',
         'For an explicit create/add/update/delete request, return structured actions, not prose only.'
       ]
     };
@@ -103,6 +91,7 @@
   function deterministicAddWork(text){
     const original=String(text||'').trim();
     const norm=aiNorm(original);
+    if(/(?:нов\w*\s+объект|созда\w*\s+(?:нов\w*\s+)?объект|нов\w*\s+квартир|нов\w*\s+заказчик)/.test(norm))return null;
     if(!/(?:добавь|добавить|допработ|новая\s+работа)/.test(norm))return null;
     const parsed=aiParseWorkAdd(original);
     if(!parsed||parseNum(parsed.price)<=0)return null;
@@ -133,7 +122,7 @@
         confidence:1,
         clarification:''
       },
-      meta:{provider:'FRAME deterministic guard',model:'2.7.4'}
+      meta:{provider:'FRAME deterministic guard',model:'2.7.5'}
     };
   }
 
@@ -167,5 +156,5 @@
 
   window.frameDeterministicAddWork=deterministicAddWork;
   window.frameReconcileRecentUserStatements=reconcileRecentUserStatements;
-  console.info('[FRAME] 2.7.4 AI guard loaded');
+  console.info('[FRAME] 2.7.5 AI guard loaded');
 })();
