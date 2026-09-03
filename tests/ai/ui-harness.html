@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
-const VERSION='2.7.8';
+const VERSION='2.7.9';
 const STORE={
   frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}]),
   frameAiPendingV270:JSON.stringify({ok:true,type:'payment',amount:99999}),
@@ -32,6 +32,7 @@ window.aiDraft=null;
 window.aiAnalyzing=false;
 window.aiRecognition=null;
 window.aiBrainStatus={ok:true};
+window.frameLastApplyReceipt=null;
 window.checkAiBrain=async()=>({ok:true});
 window.renderAiView=()=> '';
 window.analyzeAiInput=async()=>{};
@@ -44,7 +45,7 @@ window.aiStem=s=>window.aiNorm(s).slice(0,6);
 window.parseNum=v=>Number(String(v??'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;
 window.money=v=>`${Number(v||0).toLocaleString('ru-RU')} ₽`;
 
-const ORDER={id:'order-arch',title:'Ремонт квартиры',works:[
+const ORDER={id:'order-arch',title:'Ремонт квартиры',photos:[],documentHistory:[],works:[
   {id:'w-install',name:'Монтаж инсталляции',qty:1,unit:'компл.',price:10000,progress_pct:100},
   {id:'w-toilet',name:'Установка унитаза и кнопки',qty:1,unit:'компл.',price:3000,progress_pct:0},
   {id:'w-shared-arch',name:'Гидроизоляция стен',qty:1,unit:'компл.',price:5000,progress_pct:0}
@@ -52,7 +53,7 @@ const ORDER={id:'order-arch',title:'Ремонт квартиры',works:[
 const OBJECT={id:'obj-arch',contact:{address:'Архангельская, 21',name:'Заказчик'},orders:[ORDER]};
 const TARGET={key:'obj-arch|order-arch',object:OBJECT,order:ORDER};
 
-const ORDER2={id:'order-ves',title:'Сантехнические работы',works:[
+const ORDER2={id:'order-ves',title:'Сантехнические работы',photos:[],documentHistory:[],works:[
   {id:'w-water',name:'Вода и канализация',qty:1,unit:'компл.',price:35000,progress_pct:0},
   {id:'w-shower',name:'Монтаж душевого поддона',qty:1,unit:'компл.',price:12000,progress_pct:0},
   {id:'w-shared-ves',name:'Гидроизоляция стен',qty:1,unit:'компл.',price:5000,progress_pct:0}
@@ -69,7 +70,8 @@ window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,obj
 let TEST_SERVER_URL='http://127.0.0.1:8787/frame-field',TEST_SERVER_TOKEN='test-auth-token';
 window.aiServerUrl=()=>TEST_SERVER_URL;
 window.aiServerToken=()=>TEST_SERVER_TOKEN;
-window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
+window.OWNER_POSTS=[];window.OWNER_FAILS=0;
+window.aiBrainFetch=async(path,options={})=>{if(path==='/health')return {ok:true,mode:'field_safe',provider:'test',model:'test',owner_test_observability:true};if(path==='/owner-test/v1/events'){const body=JSON.parse(options.body||'{}'),events=Array.isArray(body.events)?body.events:[];OWNER_POSTS.push(events.map(event=>JSON.parse(JSON.stringify(event))));if(OWNER_FAILS>0){OWNER_FAILS--;throw new Error('simulated owner sync failure')}return {ok:true,acked_event_ids:events.map(event=>event.event_id)}}return {ok:true,provider:'test',model:'test'};};
 let BRAIN_HANDLER=null;
 const TEST_RESPONSE_META={mode:'field_safe',provider:'openai',model:'gpt-5.6-luna',duration_ms:4321,input_tokens:1075,output_tokens:37,estimated_usd:.0004966,daily_limits:{spent_usd:.0004966,budget_usd:.25,calls_used:1,call_cap:30}};
 function defaultBrainReply(text){const parsed=aiParseWorkAdd(text);if(parsed&&parseNum(parsed.price)>0){const target=aiTargetByKey(routeState.aiTarget)||TARGET;return {meta:{...TEST_RESPONSE_META},result:{summary:'provider add work',actions:[{type:'add_work',object_id:target.object.id,order_id:target.order.id,work_name:parsed.name,qty:parsed.qty,unit:parsed.unit,price:parsed.price}]}}}return {meta:{...TEST_RESPONSE_META},result:{actions:[],summary:'stub'}}}
@@ -85,6 +87,7 @@ window.aiParseWorkAdd=text=>{
 window.applyAiDraft=async function(authorizationToken=''){
   const d=window.aiDraft;
   window.LAST_AUTHORIZATION=authorizationToken;
+  window.frameLastApplyReceipt={ok:false,postconditionVerified:false,status:'apply_failed',targetKey:d?.targetKey||'',actionTypes:(d?.actions||[]).map(a=>String(a?.type||'')),entityIds:{},links:[],error:'authorization rejected'};
   if(!d?.ok||!aiConsumeAuthorizedDraft(d,authorizationToken).ok)return false;
   for(const a of d.actions||[]){
     if(a.type==='add_work'){
@@ -92,10 +95,15 @@ window.applyAiDraft=async function(authorizationToken=''){
       target.order.works.push({id:'e2e-added-'+target.order.works.length,name:a.work_name,qty:Number(a.qty),unit:a.unit,price:Number(a.price),progress_pct:0});
     }
   }
+  const target=aiTargetByKey(d.targetKey)||TARGET;
+  const log={id:'test-log-'+(window.TEST_AI_LOGS.length+1),undone:false};window.TEST_AI_LOGS.push(log);
+  window.frameLastApplyReceipt={ok:true,postconditionVerified:true,status:'applied',targetKey:d.targetKey,actionTypes:(d.actions||[]).map(a=>String(a.type||'')),entityIds:{objectId:target.object.id,orderId:target.order.id},links:[{kind:'order',objectId:target.object.id,orderId:target.order.id,label:'Открыть заказ'}],logId:log.id};
   window.aiDraft=null;
   return true;
 };
-window.undoLastAiAction=()=>{};
+window.TEST_AI_LOGS=[];
+window.aiLogs=()=>window.TEST_AI_LOGS.slice();
+window.undoLastAiAction=async expected=>{const log=[...window.TEST_AI_LOGS].reverse().find(item=>!item.undone);if(!log||String(log.id)!==String(expected))return {ok:false,error:'wrong log'};log.undone=true;return {ok:true,postconditionVerified:true,status:'undone',targetKey:TARGET.key,actionTypes:['add_work'],entityIds:{objectId:OBJECT.id,orderId:ORDER.id},links:[]}};
 window.requestAnimationFrame=fn=>setTimeout(fn,0);
 window.WAKE_REQUESTS=0;
 window.WAKE_RELEASES=0;
@@ -135,15 +143,22 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(STORE.frameAiLogV240==='business-audit-must-survive','business AI audit was deleted with chat memory');
     const beforeConsent=frameAddChat({role:'user',text:'Секрет до включения записи',status:'done',turnId:'before-consent'});
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'pre-consent message started durable recording');
-    frameStartTestTranscript();
+    await frameStartTestTranscript();
     assert(frameTestTranscriptActive(),'explicit test transcript did not start');
     assert(Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'active test transcript was not persisted');
+    assert(frameTestTranscriptRead()?.remote_sync===false,'local recording silently enabled remote synchronization');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameOwnerTestOutboxV279'),'local-only consent queued a remote event');
     assert(frameTestTranscriptRead()?.messages?.length===0&&!JSON.stringify(frameTranscriptPayload()).includes(beforeConsent.text),'starting test transcript backfilled pre-consent traffic');
     frameStopTestTranscript();
     frameAddChat({role:'user',text:'Секрет во время паузы',status:'done',turnId:'while-stopped'});
     assert(frameTestTranscriptRead()?.messages?.length===0&&!JSON.stringify(frameTranscriptPayload()).includes('Секрет во время паузы'),'stopped transcript exported unrecorded traffic');
-    frameStartTestTranscript();
+    await frameStartTestTranscript();
     assert(frameTestTranscriptRead()?.messages?.length===0,'resuming test transcript backfilled paused traffic');
+    const redactionSecrets=['+7 (999) 111-22-33','secret@example.com','abc.def.ghi','sk-abcdefghijklmnop','ghp_ABCDEFGHIJKLMNOPQRSTUVWX','xoxb-1234567890-ABCDEFGHIJ','AIzaABCDEFGHIJKLMNOPQRSTUVWXYZ123456','eyJabcdef.ghijklmnop.qrstuvwxyz','https://user:password@example.com/path?access_token=topsecret'];
+    frameAddChat({role:'user',text:`Позвони ${redactionSecrets.join(', ')} — но сам смысл сообщения оставь`,status:'done',turnId:'private-redaction'});
+    const scrubbedLocal=JSON.stringify(frameTranscriptPayload());
+    assert(redactionSecrets.every(secret=>!scrubbedLocal.includes(secret)),'local transcript/export retained recognized credentials or contact details');
+    assert(scrubbedLocal.includes('сам смысл сообщения оставь')&&scrubbedLocal.includes('[скрыт'),'redaction dropped the useful message instead of masking its secrets');
     frameChatSession=[];
     frameSessionMessageIds.clear();
     const localTraces=[
@@ -180,6 +195,11 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     window.aiBrainFetch=immediateHealthFetch;
     aiRecordAuthenticatedHealth('field_safe',{url:aiServerUrl(),authenticated:true});
     aiBrainStatus={ok:true,mode:'field_safe'};
+    const chainedOrder=aiSafeDraftFromResponse('Создай заказ и добавь работу',{meta:{mode:'field_safe'},result:{summary:'plan',actions:[
+      {type:'create_order',object_id:OBJECT.id,order_id:'@new_order_1',order_title:'Второй заказ'},
+      {type:'add_work',object_id:OBJECT.id,order_id:'@new_order_1',work_name:'Штукатурка',qty:1,unit:'компл.',price:1000}
+    ]}},TARGET.key,'Архангельская, 21 · Ремонт квартиры');
+    assert(chainedOrder.ok&&!chainedOrder.blocked,'legitimate create_order to add_work dependency was rejected');
     await new Promise(r=>setTimeout(r,25));
     assert(WAKE_REQUESTS===0&&WAKE_OUTSTANDING===0,'render acquired a wake lock without focused composer or voice');
     const composer=document.getElementById('aiCommandInput');
@@ -187,6 +207,9 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     composer.dispatchEvent(new Event('input',{bubbles:true}));
     await waitFor(()=>WAKE_REQUESTS>0,1000);
     assert(WAKE_REQUESTS===1&&WAKE_OUTSTANDING===1,'focused composer did not hold exactly one screen wake lock');
+    composer.value=Array.from({length:60},(_,index)=>`строка ${index}`).join('\n');composer.setSelectionRange(composer.value.length,composer.value.length);composer.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,25));
+    assert(composer.selectionEnd===composer.value.length&&composer.scrollTop===composer.scrollHeight,'long typed input did not keep the visible viewport at the newest text');
+    composer.setSelectionRange(5,5);frameAutoGrowInput();assert(composer.selectionEnd===5,'auto-grow moved the caret while editing the middle of a message');composer.value='';composer.setSelectionRange(0,0);composer.dispatchEvent(new Event('input',{bubbles:true}));
     const releasesBeforeMicError=WAKE_RELEASES;
     window.SpeechRecognition=function(){this.start=()=>{};this.abort=()=>{}};
     frameVoiceWanted=true;
@@ -213,6 +236,16 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     await startAiVoice();
     await waitFor(()=>WAKE_OUTSTANDING===0,1000);
     assert(!frameVoiceWanted&&WAKE_OUTSTANDING===0,'unsupported speech API left voice wake intent active');
+    let voiceStopped=false,lateRecognition=null;
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Услышала.',actions:[]}};
+    window.SpeechRecognition=function(){lateRecognition=this;this.start=()=>{};this.abort=()=>{};this.stop=()=>{voiceStopped=true;setTimeout(()=>{const result=[{transcript:'погоду вечером'}];result.isFinal=true;this.onresult?.({resultIndex:0,results:[result]});this.onend?.()},20)}};
+    frameVoiceBase='';frameVoiceFinal='Покажи';frameVoiceInterim='';frameVoiceWanted=true;frameStartRecognition();
+    await analyzeAiInput();
+    const voiceCall=CAPTURED[CAPTURED.length-1]||{};
+    assert(voiceStopped&&lateRecognition&&voiceCall.text==='Покажи погоду вечером','Send during voice lost a late final transcript emitted after stop');
+    assert((document.getElementById('aiCommandInput')?.value||'')==='','sent voice text remained in the composer');
+    delete window.SpeechRecognition;
+    BRAIN_REPLY=null;
     await send('Проверка контекста текущей сессии');
     const sessionCall=CAPTURED[CAPTURED.length-1]||{};
     const providerConversation=sessionCall.context?.conversation||[];
@@ -246,7 +279,9 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(work?.price===800,'applied price is not 800');
     assert(work?.qty*work?.price===4800,'applied total is not 4800');
     await waitFor(()=>frameChatMessages().some(m=>m.status==='applied'));
-    assert(/Применено/.test(document.body.textContent),'applied status not rendered in UI');
+    assert(/Записано/.test(document.body.textContent),'applied status not rendered in UI');
+    const firstUndo=document.querySelector('[data-chat-undo]');
+    assert(firstUndo?.dataset.chatUndo===window.TEST_AI_LOGS.at(-1)?.id,'applied message was not bound to its own undo log');
 
     // 2. Cancel a proposed action and prove the order is not mutated.
     const beforeCancel=ORDER.works.length;
@@ -271,6 +306,22 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(clarificationRows.some(m=>m.role==='assistant'&&m.status==='done'&&/Уточните, унитаз установлен полностью/i.test(m.text||'')),'backend clarification was not shown');
     BRAIN_REPLY=null;
     window.parseAiCommand=coreLocalParser;
+
+    // A model sentence can never impersonate a completed write.
+    const falseSuccessStart=ORDER.works.length;
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Карточка объекта создана.',actions:[]}};
+    await send('Создай карточку объекта на Набережной, 7');
+    assert(!document.querySelector('[data-chat-apply]'),'false success exposed Apply without an action');
+    assert(ORDER.works.length===falseSuccessStart,'false success changed local data');
+    assert(/ничего не изменено/i.test(document.body.textContent),'false success was not rejected honestly');
+    assert(!frameChatMessages().some(m=>m.status==='applied'&&/карточка объекта создана/i.test(m.text||'')),'false success was recorded as applied');
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Нужно уточнить адрес.',actions:[],needs_clarification:true,clarification:'Создать карточку на Набережной, 7?'}};
+    await send('Создай карточку на Набережной, 7');
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Карточка создана.',actions:[]}};
+    await send('Да, давай');
+    assert(!document.querySelector('[data-chat-apply]')&&/ничего не изменено/i.test(document.body.textContent),'affirmative follow-up bypassed the false-success guard');
+    for(const [request,claim] of [['Оформи акт','Акт оформлен.'],['Составь КП','КП составлено.'],['Создай карточку','Сделано.'],['Создай карточку','Вот ссылка на карточку.']]){const guarded=aiSafeDraftFromResponse(request,{meta:{mode:'field_safe'},result:{summary:claim,actions:[]}},TARGET.key,'Архангельская, 21 · Ремонт квартиры');assert(!guarded.ok&&guarded.blocked,`false-success form escaped the client guard: ${claim}`)}
+    BRAIN_REPLY=null;
 
     // 4. Current text stays raw; reconciled corrections travel in structured context only.
     frameSetTopic(TARGET.key);
@@ -309,6 +360,25 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(routeState.aiTarget===TARGET2.key,'route target did not follow explicit object switch');
     await send('А по этому объекту что запланировано?');
     assert(frameTopic()===TARGET2.key,'pronoun follow-up lost the switched object');
+    const ORDER2B={id:'order-ves-second',title:'Отделочные работы',status:'work',photos:[{id:'photo-second',caption:'Второй заказ',addedAt:'2026-09-03T12:00:00.000Z'}],documentHistory:[{id:'proposal-new',type:'proposal',date:'2026-09-03'},{id:'worklist-mid',type:'worklist',date:'2026-09-02'}],works:[]},TARGET2B={key:'obj-ves|order-ves-second',object:OBJECT2,order:ORDER2B};OBJECT2.orders.push(ORDER2B);TARGETS.push(TARGET2B);
+    ORDER2.photos=[{id:'photo-first',caption:'Первый заказ',addedAt:'2026-09-01T12:00:00.000Z'}];
+    frameSetTopic(TARGET.key);const namedObjectCard=frameLocalOpenIntent('Открой карточку Веселковая 12Б');
+    assert(namedObjectCard?.links?.[0]?.kind==='object'&&namedObjectCard.links[0].objectId===OBJECT2.id,'explicit multi-order object fell back to the wrong sticky object');
+    frameSetTopic(TARGET2.key);const stickyGallery=frameLocalOpenIntent('Хочу посмотреть галерею по этому объекту');
+    assert(stickyGallery?.links?.[0]?.kind==='object_photos'&&stickyGallery.links[0].objectId===OBJECT2.id&&/2 фото/.test(stickyGallery.text||''),'object gallery did not aggregate every order under the sticky object');
+    ORDER2.documentHistory=[{id:'act-old',type:'act',date:'2026-09-01'}];
+    const exactAct=frameLocalOpenIntent('Дай ссылку на акт по этому объекту');
+    assert(exactAct?.links?.[0]?.documentId==='act-old','document navigation returned the latest wrong document type');
+    const exactProposal=frameLocalOpenIntent('Дай ссылку на КП по этому объекту'),exactWorklist=frameLocalOpenIntent('Покажи перечень выполненных работ по этому объекту');
+    assert(exactProposal?.links?.[0]?.documentId==='proposal-new','Cyrillic КП lookup did not find the exact document across object orders');
+    assert(exactWorklist?.links?.[0]?.documentId==='worklist-mid','worklist lookup did not find the exact document across object orders');
+    const exactOrder=frameLocalOpenIntent('Открой заказ Сантехнические работы');
+    assert(exactOrder?.links?.[0]?.kind==='order'&&exactOrder.links[0].orderId===ORDER2.id,'named order lookup opened the object or wrong order');
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'proposal plan',actions:[{type:'create_document',object_id:OBJECT2.id,order_id:ORDER2.id,document_type:'proposal',closure_id:''}]}};
+    await send('Создай КП и дай ссылку');
+    assert(CAPTURED.at(-1)?.text==='Создай КП и дай ссылку'&&frameRestorePending()?.actions?.[0]?.type==='create_document','create-and-link command was swallowed by local navigation instead of reaching the backend');
+    document.querySelector('[data-chat-cancel]')?.click();BRAIN_REPLY=null;
+    OBJECT2.orders.pop();TARGETS.pop();ORDER2.photos=[];
 
     // 7. A unique work may switch target; a duplicated work name may not.
     frameSetTopic(TARGET.key);
@@ -402,15 +472,21 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 
     // Explicit test recording exports a sanitized, non-executable diagnostic file.
     const transcript=frameTranscriptPayload(),serializedTranscript=JSON.stringify(transcript);
-    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.8','test transcript schema or app version is wrong');
+    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.9','test transcript schema or app version is wrong');
     assert(transcript.message_count===transcript.messages.length&&transcript.message_count>0,'test transcript message count is wrong');
     assert(transcript.messages.some(m=>m.status==='applied'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'applied action snapshot missing from test transcript');
     assert(transcript.messages.some(m=>m.status==='cancelled'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'cancelled action snapshot missing from test transcript');
+    const appliedTranscriptMessage=transcript.messages.find(m=>m.status==='applied'&&m.receipt?.action_types?.includes('add_work'));
+    assert(appliedTranscriptMessage?.receipt?.ok===true&&appliedTranscriptMessage.receipt.postcondition_verified===true&&appliedTranscriptMessage.receipt.status==='applied','local test transcript lost the verified Apply result');
+    assert(appliedTranscriptMessage?.receipt?.log_id&&appliedTranscriptMessage.receipt.entity_ids?.object_id===OBJECT.id&&appliedTranscriptMessage.receipt.entity_ids?.order_id===ORDER.id&&appliedTranscriptMessage.receipt.links?.[0]?.kind==='order','local test transcript lost Apply IDs, undo log binding, or link');
     assert(!serializedTranscript.includes(TEST_SERVER_TOKEN)&&!serializedTranscript.includes(TEST_SERVER_URL),'test transcript leaked server credentials');
     assert(!serializedTranscript.includes('"draft"')&&!serializedTranscript.toLowerCase().includes('authorization'),'test transcript retained executable draft data');
     for(let i=0;i<105;i++)frameAddChat({role:'user',text:`cap-${i}`,status:'done',turnId:`cap-turn-${i}`});
     const capped=frameTestTranscriptRead();
-    assert(capped?.messages?.length===100&&capped.messages.at(-1)?.text==='cap-104','test transcript did not enforce the 100-message cap');
+    assert(capped?.messages?.length===100&&capped.messages[0]?.text==='cap-5'&&capped.messages.at(-1)?.text==='cap-104','test transcript did not enforce FIFO at the 100-message cap');
+    const agedRaw=JSON.parse(STORE.frameAiTestTranscriptV278);agedRaw.messages.unshift({id:'expired-eight-days',turn_id:'old',at:new Date(Date.now()-8*86400000).toISOString(),role:'user',text:'expired-content',status:'done'});STORE.frameAiTestTranscriptV278=JSON.stringify(agedRaw);
+    const agePruned=frameTestTranscriptRead();
+    assert(!agePruned?.messages?.some(message=>message.id==='expired-eight-days')&&!STORE.frameAiTestTranscriptV278.includes('expired-content'),'seven-day transcript pruning was not persisted');
     frameStopTestTranscript();
     assert(frameTestTranscriptRead()?.active===false,'test transcript did not stop');
     const staleTranscript=JSON.parse(STORE.frameAiTestTranscriptV278);
@@ -418,8 +494,26 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     staleTranscript.messages[0].status='pending';
     STORE.frameAiTestTranscriptV278=JSON.stringify(staleTranscript);
     assert(frameTestTranscriptRead()?.messages?.[0]?.status==='expired','persisted pending test entry remained executable-looking after reload');
+    STORE.frameOwnerTestOutboxV279=JSON.stringify([{destination:'a'.repeat(64),event:{event_id:'old-event',client_at:new Date(Date.now()-8*86400000).toISOString(),session_id:'old'}},{destination:'broken',event:{client_at:'not-a-date'}}]);
+    assert(frameOwnerOutboxRead().length===0&&STORE.frameOwnerTestOutboxV279==='[]','stale or malformed owner outbox entries were not physically pruned');
+    OWNER_FAILS=20;aiBrainStatus=null;await checkAiBrain({toastResult:false});const destinationA=aiBrainStatus?.ownerDestination;
+    assert(await frameStartTestTranscript(true),'explicit remote consent did not start');
+    assert(frameTestTranscriptRead()?.remote_sync===true&&frameTestTranscriptRead()?.remote_destination===destinationA,'remote synchronization consent was not bound to the verified destination');
+    await frameOwnerFlush();const beforeDestinationChange=frameOwnerOutboxRead().length;
+    TEST_SERVER_TOKEN='token-C';aiBrainStatus=null;await checkAiBrain({toastResult:false});const destinationB=aiBrainStatus?.ownerDestination;
+    frameAddChat({role:'user',text:'Сообщение до нового согласия',status:'done',turnId:'destination-mismatch'});
+    assert(destinationB&&destinationB!==destinationA&&frameOwnerOutboxRead().length===beforeDestinationChange,'credential change sent content to a destination without fresh consent');
+    assert(await frameStartTestTranscript(true),'fresh consent for the changed destination did not start');
+    assert(frameTestTranscriptRead()?.destination_consents?.length===2,'destination consent ledger forgot the prior server copy');
     frameClearTestTranscript();
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'test transcript was not deleted');
+    const deleteOutbox=frameOwnerOutboxRead(),deleteDestinations=new Set(deleteOutbox.map(item=>item.destination));
+    assert(deleteOutbox.length===2&&deleteOutbox.every(item=>item?.event?.type==='session.delete'&&Object.keys(item.event.payload||{}).length===0)&&deleteDestinations.has(destinationA)&&deleteDestinations.has(destinationB),'deleting a test did not queue an empty tombstone for every contacted destination');
+    OWNER_FAILS=2;await frameOwnerFlush();await frameOwnerFlush();const destinationBPosts=OWNER_POSTS.flat().filter(event=>event.type==='session.delete'&&deleteOutbox.find(item=>item.destination===destinationB)?.event?.event_id===event.event_id);
+    assert(destinationBPosts.length>=2&&new Set(destinationBPosts.map(event=>event.event_id)).size===1,'retry changed the tombstone event ID or did not retry it');
+    OWNER_FAILS=0;window.dispatchEvent(new Event('online'));await waitFor(()=>frameOwnerOutboxRead().length===1,2000);
+    TEST_SERVER_TOKEN='token-B';aiBrainStatus=null;await checkAiBrain({toastResult:false});window.dispatchEvent(new Event('online'));await waitFor(()=>frameOwnerOutboxRead().length===0,2000);
+    assert(frameOwnerOutboxRead().length===0,'confirmed multi-destination deletions remained in the outbox');
     STORE.frameAiTestTranscriptV278='{broken json';
     assert(frameTestTranscriptRead()===null&&!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV278'),'malformed test transcript was not rejected and removed');
 

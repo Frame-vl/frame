@@ -2,8 +2,12 @@ name: FRAME UI Safety Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/frame-chat-first-279]
     paths:
+      - 'index.html'
+      - 'styles.css'
+      - 'ai-chat.css'
+      - 'sw.js'
       - 'app.js'
       - 'ai-safety.js'
       - 'ai-chat.js'
@@ -21,7 +25,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: frame-ui-safety
+  group: frame-ui-safety-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -55,7 +59,7 @@ jobs:
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor'
 
       - name: Publish test status
-        if: always()
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           FRAME_CI_JOB_STATUS: ${{ job.status }}
