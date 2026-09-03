@@ -130,7 +130,7 @@ def browser(case: str) -> None:
     if stderr.strip():
         print("Edge stderr:")
         print(stderr)
-    match = re.search(r'<pre\\s+id=["\\']result["\\'][^>]*>([\\s\\S]*?)</pre>', stdout, re.IGNORECASE)
+    match = re.search(r"""<pre\s+id=["']result["'][^>]*>([\s\S]*?)</pre>""", stdout, re.IGNORECASE)
     rendered = match.group(1).strip() if match else ""
     if completed.returncode != 0 or rendered != marker or "_FAIL" in rendered:
         print("Edge DOM output:")
