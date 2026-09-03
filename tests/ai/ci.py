@@ -110,7 +110,9 @@ def contract() -> None:
     if any(pattern in chat for pattern in durable_patterns):
         raise RuntimeError("AI chat session state still uses durable storage")
     test_transcript_required = (
-        "FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV277'",
+        "FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV278'",
+        "FRAME_RETIRED_TEST_TRANSCRIPT_KEYS=['frameAiTestTranscriptV277']",
+        "function frameTestActionsFromDraft",
         "function frameTestMessageProjection",
         "function frameBuildTestTrace",
         "function frameStartTestTranscript",
@@ -123,6 +125,9 @@ def contract() -> None:
     missing = [needle for needle in test_transcript_required if needle not in chat]
     if missing:
         raise RuntimeError("Explicit test-transcript contract missing: " + ", ".join(missing))
+    start_segment = chat[chat.index("function frameStartTestTranscript"):chat.index("function frameStopTestTranscript")]
+    if "frameChatMessages()" in start_segment:
+        raise RuntimeError("Starting or resuming a test transcript can backfill pre-consent chat")
     projection = chat[chat.index("function frameTestMessageProjection"):chat.index("function frameTestTranscriptRead")]
     if "message.draft" in projection or "authorization" in projection.lower():
         raise RuntimeError("Executable draft data can reach the test transcript")
@@ -146,6 +151,9 @@ def contract() -> None:
         raise RuntimeError("AI route does not tear down voice/wake state")
     index = (ROOT / "index.html").read_text(encoding="utf-8-sig")
     worker = (ROOT / "sw.js").read_text(encoding="utf-8-sig")
+    manifest = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8-sig"))
+    if manifest.get("start_url") != "./index.html?v=275":
+        raise RuntimeError("FRAME PWA start_url identity changed; keep the installed-app identity stable")
     app_version_match = re.search(r"const VERSION='(\d+)\.(\d+)\.(\d+)'", app)
     cache_version_match = re.search(r"const CACHE='frame-v(\d+)-field-safe'", worker)
     build_version_match = re.search(r'<div class="build">(\d+)\.(\d+)\.(\d+)</div>', index)

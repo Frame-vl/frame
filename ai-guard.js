@@ -1,6 +1,6 @@
 'use strict';
 
-// FRAME 2.7.5 AI guard.
+// FRAME 2.7.8 AI guard.
 // Focuses the model on the locked order, routes obvious add-work commands deterministically,
 // and removes superseded facts after explicit user corrections.
 (function(){
@@ -130,7 +130,7 @@
         confidence:1,
         clarification:''
       },
-      meta:{provider:'FRAME deterministic guard',model:'2.7.7',mode:typeof aiEffectiveMode==='function'?aiEffectiveMode(''):'',confirmation_required:true}
+      meta:{provider:'FRAME deterministic guard',model:'2.7.8',mode:typeof aiEffectiveMode==='function'?aiEffectiveMode(''):'',confirmation_required:true}
     };
   }
 
@@ -149,5 +149,5 @@
 
   window.frameDeterministicAddWork=deterministicAddWork;
   window.frameReconcileRecentUserStatements=reconcileRecentUserStatements;
-  console.info('[FRAME] 2.7.5 AI guard loaded');
+  console.info('[FRAME] 2.7.8 AI guard loaded');
 })();
