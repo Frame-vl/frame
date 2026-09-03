@@ -91,7 +91,7 @@
   function deterministicAddWork(text){
     const original=String(text||'').trim();
     const norm=aiNorm(original);
-    if(/(?:нов\w*\s+объект|созда\w*\s+(?:нов\w*\s+)?объект|нов\w*\s+квартир|нов\w*\s+заказчик)/.test(norm))return null;
+    if(/(?:нов[a-zа-яё0-9_]*\s+объект|созда[a-zа-яё0-9_]*\s+(?:нов[a-zа-яё0-9_]*\s+)?объект|нов[a-zа-яё0-9_]*\s+квартир|нов[a-zа-яё0-9_]*\s+заказчик)/.test(norm))return null;
     if(!/(?:добавь|добавить|допработ|новая\s+работа)/.test(norm))return null;
     const parsed=aiParseWorkAdd(original);
     if(!parsed||parseNum(parsed.price)<=0)return null;
