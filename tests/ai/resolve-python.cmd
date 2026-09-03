@@ -15,10 +15,12 @@ if not defined FRAME_FOUND_PYTHON (
   exit /b 1
 )
 
+for %%I in ("%FRAME_FOUND_PYTHON%") do set "FRAME_FOUND_PYTHON=%%~sI"
 "%FRAME_FOUND_PYTHON%" -X utf8 -c "import sys; print(sys.executable)"
 if errorlevel 1 exit /b 1
 >>"%GITHUB_ENV%" echo FRAME_PYTHON=%FRAME_FOUND_PYTHON%
 echo FRAME Python resolved without setup-python: %FRAME_FOUND_PYTHON%
+endlocal & set "FRAME_PYTHON=%FRAME_FOUND_PYTHON%"
 exit /b 0
 
 :probe
