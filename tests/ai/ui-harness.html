@@ -5,6 +5,7 @@
 <script>
 const STORE={};
 window.CAPTURED=[];
+let BRAIN_REPLY=null;
 window.storageGet=(k,d='')=>Object.prototype.hasOwnProperty.call(STORE,k)?STORE[k]:d;
 window.storageSet=(k,v)=>{STORE[k]=String(v)};
 window.uid=()=> 'id-'+Math.random().toString(36).slice(2);
@@ -29,12 +30,17 @@ window.money=v=>`${Number(v||0).toLocaleString('ru-RU')} ₽`;
 
 const ORDER={id:'order-arch',title:'Ремонт квартиры',works:[
   {id:'w-install',name:'Монтаж инсталляции',qty:1,unit:'компл.',price:10000,progress_pct:100},
-  {id:'w-toilet',name:'Установка унитаза и кнопки',qty:1,unit:'компл.',price:3000,progress_pct:0}
+  {id:'w-toilet',name:'Установка унитаза и кнопки',qty:1,unit:'компл.',price:3000,progress_pct:0},
+  {id:'w-shared-arch',name:'Гидроизоляция стен',qty:1,unit:'компл.',price:5000,progress_pct:0}
 ]};
 const OBJECT={id:'obj-arch',contact:{address:'Архангельская, 21',name:'Заказчик'},orders:[ORDER]};
 const TARGET={key:'obj-arch|order-arch',object:OBJECT,order:ORDER};
 
-const ORDER2={id:'order-ves',title:'Сантехнические работы',works:[{id:'w-water',name:'Вода и канализация',qty:1,unit:'компл.',price:35000,progress_pct:0}]};
+const ORDER2={id:'order-ves',title:'Сантехнические работы',works:[
+  {id:'w-water',name:'Вода и канализация',qty:1,unit:'компл.',price:35000,progress_pct:0},
+  {id:'w-shower',name:'Монтаж душевого поддона',qty:1,unit:'компл.',price:12000,progress_pct:0},
+  {id:'w-shared-ves',name:'Гидроизоляция стен',qty:1,unit:'компл.',price:5000,progress_pct:0}
+]};
 const OBJECT2={id:'obj-ves',contact:{address:'Веселковая, 12Б',name:'Офис'},orders:[ORDER2]};
 const TARGET2={key:'obj-ves|order-ves',object:OBJECT2,order:ORDER2};
 const TARGETS=[TARGET,TARGET2];
@@ -42,12 +48,14 @@ const TARGETS=[TARGET,TARGET2];
 window.aiDefaultTargetKey=()=>TARGET.key;
 window.aiTargetByKey=key=>TARGETS.find(x=>x.key===key)||null;
 window.aiAllTargets=()=>TARGETS;
+window.aiFindWork=(order,text)=>{const tokens=aiTokens(text);let best=null,bestScore=0;for(const row of order?.works||[]){const name=aiNorm(row.name),nameTokens=aiTokens(name);let score=0;for(const token of tokens){if(name.includes(token))score+=3;else if(nameTokens.some(n=>n.startsWith(token)||token.startsWith(n)))score+=2}if(score>bestScore){best=row;bestScore=score}}return bestScore>=2?best:null};
 window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,objects:TARGETS.map(t=>({id:t.object.id,address:t.object.contact.address,orders:[{id:t.order.id,title:t.order.title,works:t.order.works}]}))});
 window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
-window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return {result:{actions:[],summary:'stub'}}};
+window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return BRAIN_REPLY||{result:{actions:[],summary:'stub'}}};
 window.brainDraftFromResponse=(text,response)=>{
   const r=response?.result||{};
+  if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.'};
   if(Array.isArray(r.actions)&&r.actions.length)return {ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:routeState.aiTarget||TARGET.key};
   if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:routeState.aiTarget||TARGET.key};
   return {ok:false,error:'empty'};
@@ -98,6 +106,7 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     await send('Добавь ещё работу: штраба под кондиционер 6 метров по 800');
     const pending=await waitFor(()=>document.querySelector('[data-chat-apply]'));
     assert(pending,'apply button did not appear');
+    assert(ORDER.works.length===startCount,'proposed action mutated the order before Apply');
     assert(frameChatMessages().some(m=>m.role==='user'&&/6 метров по 800/i.test(m.text||'')),'user message not persisted');
     assert(frameChatMessages().some(m=>m.status==='pending'),'pending action card not persisted');
     document.querySelector('[data-chat-apply]')?.click();
@@ -120,7 +129,21 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(ORDER.works.length===beforeCancel,'cancelled action changed the order');
     assert(/Отменено/.test(document.body.textContent),'cancelled status not rendered in UI');
 
-    // 3. Recent explicit correction must replace the older conflicting fact before the model call.
+    // 3. A backend clarification is authoritative and can never become a local mutation.
+    const coreLocalParser=window.parseAiCommand;
+    let localParserCalls=0;
+    window.parseAiCommand=(text,key)=>{localParserCalls++;return {ok:true,type:'work_complete',source:'local',targetKey:key||TARGET.key,rowId:'w-toilet',rowName:'Установка унитаза и кнопки',text,summary:'local mutation'};};
+    BRAIN_REPLY={result:{actions:[],summary:'',needs_clarification:true,clarification:'Уточните, унитаз установлен полностью?'}};
+    const clarificationStart=frameChatMessages().length;
+    await send('Унитаз готов.');
+    const clarificationRows=frameChatMessages().slice(clarificationStart);
+    assert(localParserCalls===0,'backend clarification invoked local parser');
+    assert(!clarificationRows.some(m=>m.status==='pending'),'backend clarification created a pending mutation');
+    assert(clarificationRows.some(m=>m.role==='assistant'&&m.status==='done'&&/Уточните, унитаз установлен полностью/i.test(m.text||'')),'backend clarification was not shown');
+    BRAIN_REPLY=null;
+    window.parseAiCommand=coreLocalParser;
+
+    // 4. Recent explicit correction must replace the older conflicting fact before the model call.
     frameSetTopic(TARGET.key);
     await send('Унитаз уже установлен.');
     await send('Нет, поправка: унитаз не установлен, я ошибся.');
@@ -130,12 +153,24 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(!/унитаз уже установлен/i.test(guarded),'superseded positive fact leaked into guarded request');
     assert(frameTopic()===TARGET.key,'correction flow changed active object');
 
-    // 4. Explicit object name must switch the sticky conversation target.
+    // 5. Explicit object name must switch the sticky conversation target.
     await send('По Веселковой 12Б что сейчас по работам?');
     assert(frameTopic()===TARGET2.key,'explicit object switch did not lock Веселковая');
     assert(routeState.aiTarget===TARGET2.key,'route target did not follow explicit object switch');
     await send('А по этому объекту что запланировано?');
     assert(frameTopic()===TARGET2.key,'pronoun follow-up lost the switched object');
+
+    // 6. A unique work may switch target; a duplicated work name may not.
+    frameSetTopic(TARGET.key);
+    const uniqueWorkText='Монтаж душевого поддона поставь на 65 процентов';
+    assert(frameDetectTarget(uniqueWorkText)===TARGET2.key,'unique work name did not resolve Веселковая');
+    await send(uniqueWorkText);
+    assert(frameTopic()===TARGET2.key&&routeState.aiTarget===TARGET2.key,'unique work name did not switch sticky target');
+
+    const tiedWorkText='Гидроизоляция стен готова на 50 процентов';
+    assert(frameDetectTarget(tiedWorkText)==='','duplicate work name resolved despite a tie');
+    await send(tiedWorkText);
+    assert(frameTopic()===TARGET2.key&&routeState.aiTarget===TARGET2.key,'tied work name switched away from current target');
   }catch(e){failures.push('exception: '+(e?.stack||e))}
   document.getElementById('result').textContent=failures.length
     ? `FRAME_UI_E2E_FAIL\n${failures.join('\n')}`
