@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import shutil
@@ -9,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -134,11 +136,63 @@ def browser(case: str) -> None:
     print(f"FRAME {case} browser harness PASS")
 
 
+def publish_status() -> None:
+    token = os.environ.get("GH_TOKEN", "").strip()
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if not token or not repository:
+        raise RuntimeError("GH_TOKEN or GITHUB_REPOSITORY is missing")
+    job_status = os.environ.get("FRAME_CI_JOB_STATUS", "unknown").strip().lower()
+    payload = {
+        "schema_version": "1.0",
+        "workflow": "FRAME AI Tests",
+        "implementation": "python",
+        "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "runner_name": os.environ.get("RUNNER_NAME", ""),
+        "commit_sha": os.environ.get("GITHUB_SHA", ""),
+        "status": "DONE" if job_status == "success" else "BLOCKED",
+        "job_status": job_status,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    repo_path = "director/status/frame-ai-tests.json"
+    url = f"https://api.github.com/repos/{repository}/contents/{repo_path}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "frame-ai-python-ci",
+    }
+    current_sha = ""
+    try:
+        request = urllib.request.Request(url, headers=headers, method="GET")
+        with urllib.request.urlopen(request, timeout=30) as response:
+            current_sha = str(json.loads(response.read().decode("utf-8")).get("sha") or "")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+    body = {
+        "message": "director: update FRAME AI Python test status",
+        "content": base64.b64encode((json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")).decode("ascii"),
+        "branch": "main",
+    }
+    if current_sha:
+        body["sha"] = current_sha
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body, separators=(",", ":")).encode("utf-8"),
+        headers={**headers, "Content-Type": "application/json"},
+        method="PUT",
+    )
+    with urllib.request.urlopen(request, timeout=60):
+        pass
+    print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("health")
     sub.add_parser("contract")
+    sub.add_parser("status")
     browser_parser = sub.add_parser("browser")
     browser_parser.add_argument("case", choices=sorted(CASES))
     args = parser.parse_args()
@@ -147,6 +201,8 @@ def main() -> int:
         health()
     elif args.command == "contract":
         contract()
+    elif args.command == "status":
+        publish_status()
     else:
         browser(args.case)
     return 0
