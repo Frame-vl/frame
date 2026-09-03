@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
+const VERSION='2.7.7';
 const STORE={
   frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}]),
   frameAiPendingV270:JSON.stringify({ok:true,type:'payment',amount:99999}),
@@ -69,7 +70,8 @@ window.aiServerUrl=()=>TEST_SERVER_URL;
 window.aiServerToken=()=>TEST_SERVER_TOKEN;
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
 let BRAIN_HANDLER=null;
-function defaultBrainReply(text){const parsed=aiParseWorkAdd(text);if(parsed&&parseNum(parsed.price)>0){const target=aiTargetByKey(routeState.aiTarget)||TARGET;return {result:{summary:'provider add work',actions:[{type:'add_work',object_id:target.object.id,order_id:target.order.id,work_name:parsed.name,qty:parsed.qty,unit:parsed.unit,price:parsed.price}]}}}return {result:{actions:[],summary:'stub'}}}
+const TEST_RESPONSE_META={mode:'field_safe',provider:'openai',model:'gpt-5.6-luna',duration_ms:4321,input_tokens:1075,output_tokens:37,estimated_usd:.0004966,daily_limits:{spent_usd:.0004966,budget_usd:.25,calls_used:1,call_cap:30}};
+function defaultBrainReply(text){const parsed=aiParseWorkAdd(text);if(parsed&&parseNum(parsed.price)>0){const target=aiTargetByKey(routeState.aiTarget)||TARGET;return {meta:{...TEST_RESPONSE_META},result:{summary:'provider add work',actions:[{type:'add_work',object_id:target.object.id,order_id:target.order.id,work_name:parsed.name,qty:parsed.qty,unit:parsed.unit,price:parsed.price}]}}}return {meta:{...TEST_RESPONSE_META},result:{actions:[],summary:'stub'}}}
 window.requestAiBrain=async text=>{const context=aiContextPayload();CAPTURED.push({text:String(text||''),context});return BRAIN_HANDLER?BRAIN_HANDLER(String(text||''),context):(BRAIN_REPLY||defaultBrainReply(String(text||'')))};
 window.parseAiCommand=()=>({ok:false,error:'no local fallback'});
 window.aiBrainActionSummary=a=>a?.type==='add_work'?`Добавить работу ${a.work_name}`:String(a?.type||'action');
@@ -122,11 +124,16 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     render();
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
+    assert(!!document.getElementById('frameTestBtn'),'test transcript button missing');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'test transcript started without explicit consent');
     assert(!/Старый личный разговор про ужин/i.test(document.getElementById('app').textContent),'legacy durable chat was restored into the new page session');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'legacy transcript key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiPendingV270'),'legacy pending-draft key was not retired');
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTopicV270'),'legacy topic key was not retired');
     assert(STORE.frameAiLogV240==='business-audit-must-survive','business AI audit was deleted with chat memory');
+    frameStartTestTranscript();
+    assert(frameTestTranscriptActive(),'explicit test transcript did not start');
+    assert(Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'active test transcript was not persisted');
     const privateWords='личный разговор';
     const cleanAudit=aiSanitizeAuditEntries([{id:'audit-1',type:'brain_batch',actionTypes:['add_work'],targetKey:TARGET.key,summary:privateWords,text:privateWords,provider:privateWords,model:privateWords,draft:{secret:true},unexpected:privateWords,undo:{kind:'batch_v250',ops:[]}}]);
     assert(cleanAudit[0].id==='audit-1'&&/Новая работа/.test(cleanAudit[0].summary)&&cleanAudit[0].undo?.kind==='batch_v250','audit sanitizer deleted structured construction audit');
@@ -186,6 +193,9 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     const providerConversation=sessionCall.context?.conversation||[];
     assert(providerConversation.some(m=>/Проверка контекста текущей сессии/i.test(m.content||'')),'current-session message missing from provider context');
     assert(!providerConversation.some(m=>/Старый личный разговор про ужин/i.test(m.content||'')),'retired personal chat leaked into provider context');
+    const firstTrace=frameTestTranscriptRead()?.messages?.find(m=>m.role==='assistant'&&m.trace?.provider==='openai')?.trace;
+    assert(firstTrace?.model==='gpt-5.6-luna'&&firstTrace?.provider_duration_ms===4321,'test transcript lost provider/model latency');
+    assert(firstTrace?.estimated_usd===.0004966&&firstTrace?.input_tokens===1075&&firstTrace?.output_tokens===37,'test transcript lost provider cost or tokens');
 
     // 1. Apply a real add-work card through the visible chat controls.
     const startCount=ORDER.works.length;
@@ -364,6 +374,29 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     await new Promise(r=>setTimeout(r,50));
     assert(ORDER.works.length===tamperStart,'modified displayed draft passed exact authorization');
     frameCancelPending(tamperDraft.chatId);
+
+    // Explicit test recording exports a sanitized, non-executable diagnostic file.
+    const transcript=frameTranscriptPayload(),serializedTranscript=JSON.stringify(transcript);
+    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.7','test transcript schema or app version is wrong');
+    assert(transcript.message_count===transcript.messages.length&&transcript.message_count>0,'test transcript message count is wrong');
+    assert(transcript.messages.some(m=>m.status==='applied'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'applied action snapshot missing from test transcript');
+    assert(transcript.messages.some(m=>m.status==='cancelled'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'cancelled action snapshot missing from test transcript');
+    assert(!serializedTranscript.includes(TEST_SERVER_TOKEN)&&!serializedTranscript.includes(TEST_SERVER_URL),'test transcript leaked server credentials');
+    assert(!serializedTranscript.includes('"draft"')&&!serializedTranscript.toLowerCase().includes('authorization'),'test transcript retained executable draft data');
+    for(let i=0;i<105;i++)frameAddChat({role:'user',text:`cap-${i}`,status:'done',turnId:`cap-turn-${i}`});
+    const capped=frameTestTranscriptRead();
+    assert(capped?.messages?.length===100&&capped.messages.at(-1)?.text==='cap-104','test transcript did not enforce the 100-message cap');
+    frameStopTestTranscript();
+    assert(frameTestTranscriptRead()?.active===false,'test transcript did not stop');
+    const staleTranscript=JSON.parse(STORE.frameAiTestTranscriptV277);
+    staleTranscript.page_id='prior-page';
+    staleTranscript.messages[0].status='pending';
+    STORE.frameAiTestTranscriptV277=JSON.stringify(staleTranscript);
+    assert(frameTestTranscriptRead()?.messages?.[0]?.status==='expired','persisted pending test entry remained executable-looking after reload');
+    frameClearTestTranscript();
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'test transcript was not deleted');
+    STORE.frameAiTestTranscriptV277='{broken json';
+    assert(frameTestTranscriptRead()===null&&!Object.prototype.hasOwnProperty.call(STORE,'frameAiTestTranscriptV277'),'malformed test transcript was not rejected and removed');
 
     // Session traffic must never recreate retired durable AI chat keys.
     assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'session transcript was written to durable storage');

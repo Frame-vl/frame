@@ -130,7 +130,7 @@
         confidence:1,
         clarification:''
       },
-      meta:{provider:'FRAME deterministic guard',model:'2.7.6',mode:typeof aiEffectiveMode==='function'?aiEffectiveMode(''):'',confirmation_required:true}
+      meta:{provider:'FRAME deterministic guard',model:'2.7.7',mode:typeof aiEffectiveMode==='function'?aiEffectiveMode(''):'',confirmation_required:true}
     };
   }
 

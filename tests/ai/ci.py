@@ -109,6 +109,25 @@ def contract() -> None:
     durable_patterns = ("storageGet(FRAME_CHAT_", "storageSet(FRAME_CHAT_")
     if any(pattern in chat for pattern in durable_patterns):
         raise RuntimeError("AI chat session state still uses durable storage")
+    test_transcript_required = (
+        "FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV277'",
+        "function frameTestMessageProjection",
+        "function frameBuildTestTrace",
+        "function frameStartTestTranscript",
+        "function frameStopTestTranscript",
+        "function frameClearTestTranscript",
+        "function frameTranscriptPayload",
+        "function frameExportTestTranscript",
+        "frameTestTranscriptSync(item)",
+    )
+    missing = [needle for needle in test_transcript_required if needle not in chat]
+    if missing:
+        raise RuntimeError("Explicit test-transcript contract missing: " + ", ".join(missing))
+    projection = chat[chat.index("function frameTestMessageProjection"):chat.index("function frameTestTranscriptRead")]
+    if "message.draft" in projection or "authorization" in projection.lower():
+        raise RuntimeError("Executable draft data can reach the test transcript")
+    if "aiServerToken" in projection or "aiServerUrl" in projection:
+        raise RuntimeError("FRAME credentials can reach the test transcript")
     if "data-chat-authorization" in chat or "aiAuthorizeDisplayedDraft" in chat:
         raise RuntimeError("AI Apply authorization leaked into chat DOM/global flow")
     raw_utterance_patterns = ("text:d.text", "${d.text}", "utterance:d.")

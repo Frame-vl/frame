@@ -1,0 +1,54 @@
+.frameTestButton {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--line, #343a40);
+  border-radius: 12px;
+  background: var(--panel, #181b1f);
+  color: var(--muted, #aeb3b8);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.frameTestButton i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8b8f94;
+}
+
+.frameTestButton.active {
+  color: #fff;
+  border-color: rgba(205, 76, 76, .58);
+  background: rgba(145, 37, 37, .24);
+}
+
+.frameTestButton.active i {
+  background: #ef6565;
+  box-shadow: 0 0 0 3px rgba(239, 101, 101, .13);
+}
+
+.frameTestSummary {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line, #343a40);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .03);
+}
+
+.frameTestActions {
+  display: grid;
+  gap: 9px;
+}
+
+.frameTestActions .btn {
+  width: 100%;
+}
+
+.dangerText {
+  color: #e27575 !important;
+}
