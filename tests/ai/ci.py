@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CASES = {
     "guard": ("guard-harness.html", "FRAME_GUARD_TEST_PASS", None),
     "ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 10000),
+    "executor": ("executor-harness.html", "FRAME_EXECUTOR_E2E_PASS", 5000),
 }
 
 
@@ -77,6 +78,75 @@ def contract() -> None:
     missing = [needle for needle in required if needle not in source]
     if missing:
         raise RuntimeError("AI guard contract missing: " + ", ".join(missing))
+    safety = (ROOT / "ai-safety.js").read_text(encoding="utf-8-sig")
+    app = (ROOT / "app.js").read_text(encoding="utf-8-sig")
+    chat = (ROOT / "ai-chat.js").read_text(encoding="utf-8-sig")
+    safety_required = (
+        "FIELD_PATH='/frame-field'",
+        "configuredFieldSafe()?'field_safe'",
+        "fieldSafeHealthVerified",
+        "state:'displayed'",
+        "current.state='authorized'",
+        "event.isTrusted",
+        "bindDisplayedDraftApply",
+        "d?.type!=='brain_batch'",
+        "targetLabel||''",
+        "consumedDrafts.add(id)",
+        "expose('aiConsumeDraftAuthorization',consumeDraftAuthorization)",
+        "expose('aiConsumeAuthorizedDraft',consumeAuthorizedDraft)",
+        "sanitizeAuditEntries",
+        "writable:false,configurable:false",
+    )
+    missing = [needle for needle in safety_required if needle not in safety]
+    if missing:
+        raise RuntimeError("AI safety contract missing: " + ", ".join(missing))
+    for start, end in (("async function applyBrainDraft", "async function applyAiDraft"), ("async function applyAiDraft", "async function undoBrainBatch")):
+        segment = app[app.index(start):app.index(end)]
+        consume = segment.find("aiConsumeAuthorizedDraft")
+        first_await = segment.find("await ")
+        if consume < 0 or first_await < 0 or consume > first_await:
+            raise RuntimeError(f"AI authorization is not consumed synchronously at {start}")
+    durable_patterns = ("storageGet(FRAME_CHAT_", "storageSet(FRAME_CHAT_")
+    if any(pattern in chat for pattern in durable_patterns):
+        raise RuntimeError("AI chat session state still uses durable storage")
+    if "data-chat-authorization" in chat or "aiAuthorizeDisplayedDraft" in chat:
+        raise RuntimeError("AI Apply authorization leaked into chat DOM/global flow")
+    raw_utterance_patterns = ("text:d.text", "${d.text}", "utterance:d.")
+    if any(pattern in app for pattern in raw_utterance_patterns):
+        raise RuntimeError("Raw AI utterance still reaches durable app records")
+    if "retireAiLogRawUtterances();" not in app or "aiSanitizeAuditEntries" not in app:
+        raise RuntimeError("Legacy AI audit raw-text retirement is missing")
+    init_segment = app[app.index("async function init()"):]
+    if init_segment.index("retireAiLogRawUtterances();") > init_segment.index("await openDB()"):
+        raise RuntimeError("Legacy raw AI audit is not scrubbed before IndexedDB startup")
+    if "provider:d.provider" in app or "model:d.model" in app or "summary:d.summary" in app:
+        raise RuntimeError("Provider-controlled text still reaches durable AI audit")
+    if "const base=aiServerUrl(),token=aiServerToken(),current=" not in app or "{base,token}" not in app:
+        raise RuntimeError("AI health/analyze requests are not bound to a URL/token snapshot")
+    if "function frameLeaveAi()" not in chat or "typeof frameLeaveAi==='function'" not in app:
+        raise RuntimeError("AI route does not tear down voice/wake state")
+    index = (ROOT / "index.html").read_text(encoding="utf-8-sig")
+    worker = (ROOT / "sw.js").read_text(encoding="utf-8-sig")
+    app_version_match = re.search(r"const VERSION='(\d+)\.(\d+)\.(\d+)'", app)
+    cache_version_match = re.search(r"const CACHE='frame-v(\d+)-field-safe'", worker)
+    build_version_match = re.search(r'<div class="build">(\d+)\.(\d+)\.(\d+)</div>', index)
+    title_version_match = re.search(r'<title>FRAME (\d+)\.(\d+)\.(\d+) ', index)
+    if not all((app_version_match, cache_version_match, build_version_match, title_version_match)):
+        raise RuntimeError("FRAME version markers are incomplete")
+    app_version = tuple(app_version_match.groups())
+    app_cache_version = ''.join(app_version)
+    if app_version != tuple(build_version_match.groups()) or app_version != tuple(title_version_match.groups()):
+        raise RuntimeError("FRAME app, title, and build versions disagree")
+    if cache_version_match.group(1) != app_cache_version:
+        raise RuntimeError("FRAME service-worker cache version disagrees with app version")
+    production_scripts = re.findall(r'(?:ai-safety|app|ai-chat|ai-guard)\.js\?v=(\d+)', index)
+    worker_scripts = re.findall(r"(?:ai-safety|app|ai-chat|ai-guard)\.js\?v=(\d+)", worker)
+    if len(production_scripts) != 4 or set(production_scripts) != {app_cache_version}:
+        raise RuntimeError("FRAME index script versions disagree with app version")
+    if len(worker_scripts) != 4 or set(worker_scripts) != {app_cache_version}:
+        raise RuntimeError("FRAME service-worker script versions disagree with app version")
+    if f"navigator.serviceWorker.register('./sw.js?v={app_cache_version}'" not in app:
+        raise RuntimeError("FRAME service-worker registration version disagrees with app version")
     print("FRAME AI guard contract PASS")
 
 

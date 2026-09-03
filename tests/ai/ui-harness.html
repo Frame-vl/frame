@@ -3,11 +3,19 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
-const STORE={frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}])};
+const STORE={
+  frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}]),
+  frameAiPendingV270:JSON.stringify({ok:true,type:'payment',amount:99999}),
+  frameAiTopicV270:'obj-ves|order-ves',
+  frameAiLogV240:'business-audit-must-survive'
+};
 window.CAPTURED=[];
+window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;
+window.LAST_AUTHORIZATION='';
 let BRAIN_REPLY=null;
 window.storageGet=(k,d='')=>Object.prototype.hasOwnProperty.call(STORE,k)?STORE[k]:d;
 window.storageSet=(k,v)=>{STORE[k]=String(v)};
+window.storageRemove=k=>{delete STORE[k]};
 window.uid=()=> 'id-'+Math.random().toString(36).slice(2);
 window.now=()=> new Date().toISOString();
 window.$=id=>document.getElementById(id);
@@ -15,7 +23,7 @@ window.$$=sel=>Array.from(document.querySelectorAll(sel));
 window.esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.toast=()=>{};
 window.openSheet=()=>{};
-window.render=()=>{document.getElementById('app').innerHTML=renderAiView();bindAiView()};
+window.render=()=>{if(route==='ai'&&typeof frameLeaveAi==='function')frameLeaveAi();document.getElementById('app').innerHTML=renderAiView();bindAiView()};
 window.route='ai';
 window.routeState={aiTarget:'obj-arch|order-arch'};
 window.aiDraft=null;
@@ -56,23 +64,13 @@ window.aiTargetByKey=key=>TARGETS.find(x=>x.key===key)||null;
 window.aiAllTargets=()=>TARGETS;
 window.aiFindWork=(order,text)=>{const tokens=aiTokens(text);let best=null,bestScore=0;for(const row of order?.works||[]){const name=aiNorm(row.name),nameTokens=aiTokens(name);let score=0;for(const token of tokens){if(name.includes(token))score+=3;else if(nameTokens.some(n=>n.startsWith(token)||token.startsWith(n)))score+=2}if(score>bestScore){best=row;bestScore=score}}return bestScore>=2?best:null};
 window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,objects:TARGETS.map(t=>({id:t.object.id,address:t.object.contact.address,orders:[{id:t.order.id,title:t.order.title,works:t.order.works}]}))});
-window.aiServerUrl=()=> 'http://127.0.0.1:8787';
+let TEST_SERVER_URL='http://127.0.0.1:8787/frame-field',TEST_SERVER_TOKEN='test-auth-token';
+window.aiServerUrl=()=>TEST_SERVER_URL;
+window.aiServerToken=()=>TEST_SERVER_TOKEN;
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
 let BRAIN_HANDLER=null;
-window.requestAiBrain=async text=>{const context=aiContextPayload();CAPTURED.push({text:String(text||''),context});return BRAIN_HANDLER?BRAIN_HANDLER(String(text||''),context):(BRAIN_REPLY||{result:{actions:[],summary:'stub'}})};
-const AI_FIELD_SAFE_ACTIONS=new Set(['add_work','set_work_progress','add_note']);
-window.aiFieldSafeDraftError=d=>{if(String(d?.mode||'')!=='field_safe')return '';const actions=Array.isArray(d?.actions)?d.actions:[];if(!actions.length)return '';if(actions.some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||''))))return 'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.';const expected=String(d?.targetKey||'').split('|');return actions.some(a=>String(a?.object_id||'')!==expected[0]||String(a?.order_id||'')!==expected[1])?'FRAME заблокировал изменение: цель ответа не совпала с выбранным объектом. Ничего не применено.':''};
-window.brainDraftFromResponse=(text,response)=>{
-  const r=response?.result||{},mode=String(response?.meta?.mode||''),common={mode,text};
-  if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.',...common};
-  if(Array.isArray(r.actions)&&r.actions.length){
-    const candidate={ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:routeState.aiTarget||TARGET.key,...common};
-    const policyError=aiFieldSafeDraftError(candidate);
-    return policyError?{ok:false,source:'brain',blocked:true,error:policyError,actions:[],...common}:candidate;
-  }
-  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:routeState.aiTarget||TARGET.key,actions:[],...common};
-  return {ok:false,error:'empty',...common};
-};
+function defaultBrainReply(text){const parsed=aiParseWorkAdd(text);if(parsed&&parseNum(parsed.price)>0){const target=aiTargetByKey(routeState.aiTarget)||TARGET;return {result:{summary:'provider add work',actions:[{type:'add_work',object_id:target.object.id,order_id:target.order.id,work_name:parsed.name,qty:parsed.qty,unit:parsed.unit,price:parsed.price}]}}}return {result:{actions:[],summary:'stub'}}}
+window.requestAiBrain=async text=>{const context=aiContextPayload();CAPTURED.push({text:String(text||''),context});return BRAIN_HANDLER?BRAIN_HANDLER(String(text||''),context):(BRAIN_REPLY||defaultBrainReply(String(text||'')))};
 window.parseAiCommand=()=>({ok:false,error:'no local fallback'});
 window.aiBrainActionSummary=a=>a?.type==='add_work'?`Добавить работу ${a.work_name}`:String(a?.type||'action');
 window.aiParseWorkAdd=text=>{
@@ -81,9 +79,10 @@ window.aiParseWorkAdd=text=>{
   if(!m)return null;
   return {name:m[1].replace(/^.*?(?:добавь|добавить)\s+(?:ещ[её]\s+)?(?:работ[ау]?\s*:?\s*)?/i,''),qty:Number(m[2].replace(',','.')),unit:'м',price:Number(m[3].replace(',','.'))};
 };
-window.applyAiDraft=async function(){
+window.applyAiDraft=async function(authorizationToken=''){
   const d=window.aiDraft;
-  if(!d?.ok)return;
+  window.LAST_AUTHORIZATION=authorizationToken;
+  if(!d?.ok||!aiConsumeAuthorizedDraft(d,authorizationToken).ok)return false;
   for(const a of d.actions||[]){
     if(a.type==='add_work'){
       const target=aiTargetByKey(`${a.object_id}|${a.order_id}`)||aiTargetByKey(d.targetKey)||TARGET;
@@ -91,12 +90,19 @@ window.applyAiDraft=async function(){
     }
   }
   window.aiDraft=null;
+  return true;
 };
 window.undoLastAiAction=()=>{};
 window.requestAnimationFrame=fn=>setTimeout(fn,0);
 window.WAKE_REQUESTS=0;
 window.WAKE_RELEASES=0;
-try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async()=>{WAKE_REQUESTS++;return {addEventListener:()=>{},release:async()=>{WAKE_RELEASES++}}}}})}catch(e){}
+window.WAKE_OUTSTANDING=0;
+try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async()=>{WAKE_REQUESTS++;WAKE_OUTSTANDING++;let released=false;return {addEventListener:()=>{},release:async()=>{if(!released){released=true;WAKE_RELEASES++;WAKE_OUTSTANDING--}}}}}})}catch(e){}
+</script>
+<script src="../../ai-safety.js"></script>
+<script>
+aiRecordAuthenticatedHealth('field_safe',{url:aiServerUrl(),authenticated:true});
+window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||TARGET.key;return aiSafeDraftFromResponse(text,response,key,frameTargetLabel(key))};
 </script>
 <script src="../../ai-chat.js"></script>
 <script src="../../ai-guard.js"></script>
@@ -116,20 +122,68 @@ try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request
     render();
     frameSetTopic(TARGET.key);
     assert(!!document.getElementById('aiCommandInput'),'chat input missing');
-    assert(/Старый личный разговор про ужин/i.test(document.body.textContent),'persisted UI history was not rendered');
+    assert(!/Старый личный разговор про ужин/i.test(document.body.textContent),'legacy durable chat was restored into the new page session');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'legacy transcript key was not retired');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiPendingV270'),'legacy pending-draft key was not retired');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTopicV270'),'legacy topic key was not retired');
+    assert(STORE.frameAiLogV240==='business-audit-must-survive','business AI audit was deleted with chat memory');
+    const privateWords='личный разговор';
+    const cleanAudit=aiSanitizeAuditEntries([{id:'audit-1',type:'brain_batch',actionTypes:['add_work'],targetKey:TARGET.key,summary:privateWords,text:privateWords,provider:privateWords,model:privateWords,draft:{secret:true},unexpected:privateWords,undo:{kind:'batch_v250',ops:[]}}]);
+    assert(cleanAudit[0].id==='audit-1'&&/Новая работа/.test(cleanAudit[0].summary)&&cleanAudit[0].undo?.kind==='batch_v250','audit sanitizer deleted structured construction audit');
+    assert(!JSON.stringify(cleanAudit).includes(privateWords)&&!('draft' in cleanAudit[0])&&!('provider' in cleanAudit[0])&&!('model' in cleanAudit[0])&&!('unexpected' in cleanAudit[0]),'audit sanitizer retained provider-controlled durable text');
+    aiRecordAuthenticatedHealth('candidate',{url:aiServerUrl(),authenticated:true});
+    const unverifiedDraft=aiSafeDraftFromResponse('probe',{result:{summary:'probe',actions:[{type:'add_note',object_id:OBJECT.id,order_id:ORDER.id,note:'probe'}]}},TARGET.key,'Архангельская, 21 · Ремонт квартиры');
+    assert(!unverifiedDraft.ok&&unverifiedDraft.blocked,'field mutation was accepted without authenticated field_safe health mode');
+    aiRecordAuthenticatedHealth('field_safe',{url:aiServerUrl(),authenticated:true});
+    const immediateHealthFetch=window.aiBrainFetch;
+    let resolveOldHealth;
+    window.aiBrainFetch=()=>new Promise(resolve=>{resolveOldHealth=resolve});
+    TEST_SERVER_TOKEN='token-A';
+    aiBrainStatus=null;
+    const staleHealth=checkAiBrain({toastResult:false});
+    TEST_SERVER_TOKEN='token-B';
+    resolveOldHealth({ok:true,mode:'field_safe',provider:'stale'});
+    await staleHealth;
+    assert(!aiFieldSafeHealthVerified(),'late health response authenticated a different current token');
+    window.aiBrainFetch=immediateHealthFetch;
+    aiRecordAuthenticatedHealth('field_safe',{url:aiServerUrl(),authenticated:true});
+    aiBrainStatus={ok:true,mode:'field_safe'};
+    await new Promise(r=>setTimeout(r,25));
+    assert(WAKE_REQUESTS===0&&WAKE_OUTSTANDING===0,'render acquired a wake lock without focused composer or voice');
     const composer=document.getElementById('aiCommandInput');
     composer.focus();
     composer.dispatchEvent(new Event('input',{bubbles:true}));
     await waitFor(()=>WAKE_REQUESTS>0,1000);
-    assert(WAKE_REQUESTS>0,'focused iPhone keyboard dictation did not request screen wake lock');
+    assert(WAKE_REQUESTS===1&&WAKE_OUTSTANDING===1,'focused composer did not hold exactly one screen wake lock');
+    const releasesBeforeMicError=WAKE_RELEASES;
+    window.SpeechRecognition=function(){this.start=()=>{};this.abort=()=>{}};
+    frameVoiceWanted=true;
+    frameStartRecognition();
+    aiRecognition?.onerror?.({error:'not-allowed'});
+    await new Promise(r=>setTimeout(r,25));
+    assert(WAKE_RELEASES===releasesBeforeMicError&&WAKE_OUTSTANDING===1,'mic error released wake lock while keyboard composer remained focused');
+    delete window.SpeechRecognition;
     composer.blur();
     await waitFor(()=>WAKE_RELEASES>0,1000);
-    assert(WAKE_RELEASES>0,'screen wake lock was not released after composer blur');
+    assert(WAKE_OUTSTANDING===0,'screen wake lock was not fully released after composer blur');
+    composer.focus();
+    await waitFor(()=>WAKE_OUTSTANDING===1,1000);
+    let routeVoiceAborted=false;
+    frameVoiceWanted=true;
+    aiRecognition={abort:()=>{routeVoiceAborted=true}};
+    frameLeaveAi();
+    await waitFor(()=>WAKE_OUTSTANDING===0,1000);
+    assert(routeVoiceAborted&&aiRecognition===null,'leaving AI route did not stop active recognition');
+    assert(WAKE_OUTSTANDING===0&&!frameComposerWakeWanted&&!frameVoiceWanted,'leaving AI route retained wake intent or lock');
+    composer.blur();
+    await startAiVoice();
+    await waitFor(()=>WAKE_OUTSTANDING===0,1000);
+    assert(!frameVoiceWanted&&WAKE_OUTSTANDING===0,'unsupported speech API left voice wake intent active');
     await send('Проверка контекста текущей сессии');
     const sessionCall=CAPTURED[CAPTURED.length-1]||{};
     const providerConversation=sessionCall.context?.conversation||[];
     assert(providerConversation.some(m=>/Проверка контекста текущей сессии/i.test(m.content||'')),'current-session message missing from provider context');
-    assert(!providerConversation.some(m=>/Старый личный разговор про ужин/i.test(m.content||'')),'persisted personal chat leaked into provider context');
+    assert(!providerConversation.some(m=>/Старый личный разговор про ужин/i.test(m.content||'')),'retired personal chat leaked into provider context');
 
     // 1. Apply a real add-work card through the visible chat controls.
     const startCount=ORDER.works.length;
@@ -137,8 +191,16 @@ try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request
     const pending=await waitFor(()=>document.querySelector('[data-chat-apply]'));
     assert(pending,'apply button did not appear');
     assert(ORDER.works.length===startCount,'proposed action mutated the order before Apply');
-    assert(frameChatMessages().some(m=>m.role==='user'&&/6 метров по 800/i.test(m.text||'')),'user message not persisted');
-    assert(frameChatMessages().some(m=>m.status==='pending'),'pending action card not persisted');
+    assert(frameChatMessages().some(m=>m.role==='user'&&/6 метров по 800/i.test(m.text||'')),'user message missing from page session');
+    assert(frameChatMessages().some(m=>m.status==='pending'),'pending action card missing from page session');
+    const directResult=await applyAiDraft();
+    assert(directResult===false,'direct executor invocation without Apply authorization was accepted');
+    assert(ORDER.works.length===startCount,'direct executor invocation mutated the order');
+    FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=false;
+    document.querySelector('[data-chat-apply]')?.click();
+    await new Promise(r=>setTimeout(r,25));
+    assert(ORDER.works.length===startCount,'programmatic Apply click was accepted as human confirmation');
+    FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;
     document.querySelector('[data-chat-apply]')?.click();
     const applied=await waitFor(()=>ORDER.works.length===startCount+1);
     assert(applied,'work was not applied to order');
@@ -231,20 +293,20 @@ try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request
     assert(frameTopic()===TARGET.key&&routeState.aiTarget===TARGET.key,'add-work command left the active object');
     document.querySelector('[data-chat-cancel]')?.click();
     assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'explicit object did not switch add-work target');
-    // 9. field_safe rejects a mixed batch before it can create an Apply card.
+    // 9. /frame-field pins field_safe locally even when provider metadata is missing.
     const safetyStart=ORDER.works.length;
-    BRAIN_REPLY={meta:{mode:'field_safe'},result:{summary:'mixed',actions:[
+    BRAIN_REPLY={result:{summary:'mixed',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Безопасная работа',qty:1,unit:'компл.',price:1000},
       {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}
     ]}};
     await send('Проверь смешанный пакет');
     assert(!document.querySelector('[data-chat-apply]'),'field_safe mixed batch exposed Apply');
-    assert(!frameChatMessages().some(m=>m.status==='pending'&&m.draft?.mode==='field_safe'),'field_safe mixed batch was persisted');
+    assert(!frameChatMessages().some(m=>m.status==='pending'&&m.draft?.mode==='field_safe'),'field_safe mixed batch entered pending session state');
     assert(ORDER.works.length===safetyStart,'field_safe mixed batch mutated work data');
     assert(/Ничего не применено/i.test(document.body.textContent),'field_safe block was not explained');
 
     // 10. A permitted field_safe action still requires one explicit Apply.
-    BRAIN_REPLY={meta:{mode:'field_safe',confirmation_required:true},result:{summary:'safe',actions:[
+    BRAIN_REPLY={meta:{mode:'candidate',confirmation_required:false},result:{summary:'safe',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Полевой тест',qty:1,unit:'компл.',price:1000}
     ]}};
     await send('Подготовь разрешённую полевую работу');
@@ -252,13 +314,23 @@ try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request
     assert(ORDER.works.length===safetyStart,'allowed field_safe action applied without tap');
     assert(frameRestorePending()?.mode==='field_safe','field_safe mode was lost from pending draft');
     const safeDraft=frameRestorePending();
+    assert(safeDraft?.mode==='field_safe','provider metadata downgraded locally pinned field mode');
     assert(safeDraft?.targetLabel==='Архангельская, 21 · Ремонт квартиры','field_safe draft has no immutable target snapshot');
     assert(/Объект:\s*Архангельская, 21\s*·\s*Ремонт квартиры/i.test(document.body.textContent),'field_safe target is not visible in preview');
     const safeApply=document.querySelector('[data-chat-apply]');
+    document.getElementById('aiCommandInput')?.focus();
+    await waitFor(()=>WAKE_OUTSTANDING===1,1000);
     safeApply?.click();
     safeApply?.click();
     await waitFor(()=>ORDER.works.length===safetyStart+1);
     assert(ORDER.works.length===safetyStart+1,'allowed field_safe action was not applied exactly once');
+    await waitFor(()=>WAKE_OUTSTANDING===0,1000);
+    assert(WAKE_OUTSTANDING===0&&!frameComposerWakeWanted,'same-route Apply render retained composer wake lock');
+    window.aiDraft=safeDraft;
+    const replayResult=await frameCoreApplyAiDraft(LAST_AUTHORIZATION);
+    window.aiDraft=null;
+    assert(replayResult===false,'consumed Apply authorization was replayable');
+    assert(ORDER.works.length===safetyStart+1,'authorization replay applied the draft twice');
 
     // 11. A valid action aimed at another object is blocked before confirmation.
     frameSetTopic(TARGET.key);
@@ -269,14 +341,33 @@ try{Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request
     assert(!document.querySelector('[data-chat-apply]'),'cross-target field action exposed Apply');
     assert(/цель ответа не совпала/i.test(document.body.textContent),'cross-target field action was not explained');
 
-    // 12. Candidate mode remains backward compatible, but is not applied in this test.
+    // 12. Malicious candidate metadata cannot downgrade /frame-field or expose payment Apply.
     BRAIN_REPLY={meta:{mode:'candidate'},result:{summary:'candidate mixed',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Черновик',qty:1,unit:'компл.',price:1000},
       {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}
     ]}};
     await send('Проверь candidate пакет');
-    assert(!!document.querySelector('[data-chat-apply]'),'candidate batch was incorrectly blocked by field policy');
-    document.querySelector('[data-chat-cancel]')?.click();
+    assert(!document.querySelector('[data-chat-apply]'),'provider candidate metadata bypassed local field policy');
+
+    // 13. Any post-display draft change invalidates the exact authorization signature.
+    BRAIN_REPLY={result:{summary:'tamper test',actions:[
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Неизменяемый план',qty:1,unit:'компл.',price:1000}
+    ]}};
+    const tamperStart=ORDER.works.length;
+    await send('Подготовь проверку подписи');
+    const tamperDraft=frameRestorePending(),tamperApply=document.querySelector('[data-chat-apply]');
+    assert(!!tamperDraft&&!!tamperApply,'signature test plan was not displayed');
+    tamperDraft.actions[0].price=777777;
+    tamperApply?.click();
+    await new Promise(r=>setTimeout(r,50));
+    assert(ORDER.works.length===tamperStart,'modified displayed draft passed exact authorization');
+    frameCancelPending(tamperDraft.chatId);
+
+    // Session traffic must never recreate retired durable AI chat keys.
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiChatV270'),'session transcript was written to durable storage');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiPendingV270'),'session draft was written to durable storage');
+    assert(!Object.prototype.hasOwnProperty.call(STORE,'frameAiTopicV270'),'session target was written to durable storage');
+    assert(STORE.frameAiLogV240==='business-audit-must-survive','business audit changed during chat-key retirement');
     BRAIN_REPLY=null;
   }catch(e){failures.push('exception: '+(e?.stack||e))}
   document.getElementById('result').textContent=failures.length

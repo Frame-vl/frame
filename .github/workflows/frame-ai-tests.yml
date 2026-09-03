@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'app.js'
+      - 'ai-safety.js'
       - 'ai-chat.js'
       - 'ai-guard.js'
       - 'tests/ai/ci.py'
       - 'tests/ai/guard-harness.html'
       - 'tests/ai/ui-harness.html'
+      - 'tests/ai/executor-harness.html'
       - 'tests/ai/resolve-python.cmd'
       - 'tests/ai/find-python.vbs'
       - '.github/workflows/frame-ai-tests.yml'
@@ -48,6 +50,9 @@ jobs:
 
       - name: Run FRAME chat end-to-end in real browser engine
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui'
+
+      - name: Run real app executor safety boundary
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor'
 
       - name: Publish test status
         if: always()

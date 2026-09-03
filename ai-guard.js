@@ -96,6 +96,9 @@
   function deterministicAddWork(text){
     const original=String(text||'').trim();
     const norm=aiNorm(original);
+    // A configured field endpoint is authoritative; never synthesize a local
+    // mutation in front of it or after it fails.
+    if(typeof aiConfiguredFieldSafe==='function'&&aiConfiguredFieldSafe())return null;
     if(/(?:нов[a-zа-яё0-9_]*\s+объект|созда[a-zа-яё0-9_]*\s+(?:нов[a-zа-яё0-9_]*\s+)?объект|нов[a-zа-яё0-9_]*\s+квартир|нов[a-zа-яё0-9_]*\s+заказчик)/.test(norm))return null;
     if(!/(?:добавь|добавить|допработ|новая\s+работа)/.test(norm))return null;
     const parsed=aiParseWorkAdd(original);
@@ -127,7 +130,7 @@
         confidence:1,
         clarification:''
       },
-      meta:{provider:'FRAME deterministic guard',model:'2.7.5'}
+      meta:{provider:'FRAME deterministic guard',model:'2.7.6',mode:typeof aiEffectiveMode==='function'?aiEffectiveMode(''):'',confirmation_required:true}
     };
   }
 

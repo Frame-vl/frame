@@ -5,6 +5,7 @@ const ASSETS=[
   './index.html',
   './styles.css?v=262',
   './ai-chat.css?v=272',
+  './ai-safety.js?v=276',
   './app.js?v=276',
   './ai-chat.js?v=276',
   './ai-guard.js?v=276',

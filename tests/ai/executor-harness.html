@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="theme-color" content="#0f1113"><title>FRAME Executor Boundary Harness</title></head>
+<body>
+<button id="brandHome"></button><button id="globalDocsBtn"></button><button id="settingsBtn"></button>
+<button id="lightBtn"></button><button id="darkBtn"></button><button id="closeDocumentBtn"></button><button id="printDocumentBtn"></button>
+<div id="viewHost"></div><div id="sheet"><div id="sheetPanel"></div></div><div id="documentView" class="hidden"></div><div id="toast"></div>
+<pre id="result">RUNNING</pre>
+<script>window.FRAME_TEST_SKIP_APP_INIT=true;window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;</script>
+<script src="../../ai-safety.js"></script>
+<script src="../../app.js"></script>
+<script>
+(async()=>{
+  const failures=[];
+  const assert=(ok,message)=>{if(!ok)failures.push(message)};
+  try{
+    aiServerUrl=()=> 'https://field.invalid/frame-field';
+    aiServerToken=()=> 'executor-test-token';
+    aiRecordAuthenticatedHealth('field_safe',{url:aiServerUrl(),authenticated:true});
+
+    const object=defaultObject(),order=object.orders[0];
+    object.id='obj-executor';object.contact.address='Тестовая, 1';
+    order.id='order-executor';order.title='Полевой тест';order.works=[];
+    objects=[normalizeObject(object)];
+    route='ai';routeState={aiTarget:'obj-executor|order-executor'};
+
+    let dbWrites=0;
+    const audit=[];
+    dbPut=async value=>{dbWrites++;const normalized=normalizeObject(clone(value)),index=objects.findIndex(x=>x.id===normalized.id);if(index>=0)objects[index]=normalized;else objects.push(normalized)};
+    reloadObjects=async()=>{};
+    mirrorBackup=()=>{};
+    render=()=>{};
+    toast=()=>{};
+    addAiLog=entry=>{const row=aiSanitizeAuditEntries([{id:'audit-test',at:now(),undone:false,...entry}])[0];audit.push(row);return row};
+
+    const response={meta:{mode:'candidate',provider:'private provider words'},result:{summary:'private utterance must stay in session',actions:[{type:'add_work',object_id:object.id,order_id:order.id,work_name:'Проверенная работа',qty:2,unit:'м',price:500}]}};
+    const draft=aiSafeDraftFromResponse('private utterance must stay in session',response,routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    draft.chatId='executor-draft-1';
+    assert(draft.ok&&draft.mode==='field_safe','production parser did not pin /frame-field locally');
+
+    const direct=await applyBrainDraft(draft,'');
+    assert(direct===false&&dbWrites===0&&objects[0].orders[0].works.length===0,'real executor accepted direct invocation without Apply');
+
+    const applyButton=document.createElement('button');document.body.appendChild(applyButton);
+    let applyPromise=null,usedAuthorization='';
+    assert(aiBindDisplayedDraftApply(applyButton,draft,token=>{usedAuthorization=token;applyPromise=applyBrainDraft(draft,token)}),'production Apply gate did not arm displayed draft');
+    applyButton.click();
+    const applied=await applyPromise;
+    assert(applied===true&&dbWrites===1&&objects[0].orders[0].works.length===1,'real executor did not apply authorized draft exactly once');
+    assert(objects[0].orders[0].works[0].name==='Проверенная работа','real executor applied wrong work payload');
+    assert(audit.length===1&&!JSON.stringify(audit).includes('private utterance')&&!JSON.stringify(audit).includes('private provider'),'real executor leaked provider text into durable audit');
+
+    const replay=await applyBrainDraft(draft,usedAuthorization);
+    assert(replay===false&&dbWrites===1&&objects[0].orders[0].works.length===1,'real executor replayed consumed authorization');
+
+    const tamper=aiSafeDraftFromResponse('tamper',response,routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    tamper.chatId='executor-draft-2';
+    const tamperButton=document.createElement('button');document.body.appendChild(tamperButton);
+    let tamperCalled=false;
+    assert(aiBindDisplayedDraftApply(tamperButton,tamper,()=>{tamperCalled=true}),'tamper draft did not arm before display mutation');
+    tamper.actions[0].price=999999;
+    tamperButton.click();
+    await new Promise(resolve=>setTimeout(resolve,0));
+    assert(!tamperCalled&&dbWrites===1,'changed displayed draft passed exact signature gate');
+
+    const missingMetaPayment=aiSafeDraftFromResponse('payment',{result:{summary:'pay',actions:[{type:'add_payment',object_id:object.id,order_id:order.id,amount:1000}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    assert(!missingMetaPayment.ok&&missingMetaPayment.blocked,'missing provider mode exposed payment under /frame-field');
+    const forgedShape={...draft,chatId:'executor-draft-3',type:'payment',actions:[{type:'add_note',object_id:object.id,order_id:order.id,note:'x'}]};
+    aiDraft=forgedShape;
+    const forgedResult=await applyAiDraft('');
+    assert(forgedResult===false&&dbWrites===1,'field draft type/action shape bypassed real local executor');
+  }catch(error){failures.push('exception: '+(error?.stack||error))}
+  document.getElementById('result').textContent=failures.length?`FRAME_EXECUTOR_E2E_FAIL\n${failures.join('\n')}`:'FRAME_EXECUTOR_E2E_PASS';
+})();
+</script>
+</body></html>
