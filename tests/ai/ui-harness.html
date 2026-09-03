@@ -60,7 +60,7 @@ window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
 window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return BRAIN_REPLY||{result:{actions:[],summary:'stub'}}};
 const AI_FIELD_SAFE_ACTIONS=new Set(['add_work','set_work_progress','add_note']);
-window.aiFieldSafeDraftError=d=>String(d?.mode||'')==='field_safe'&&(d?.actions||[]).some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||'')))?'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.':'';
+window.aiFieldSafeDraftError=d=>{if(String(d?.mode||'')!=='field_safe')return '';if((d?.actions||[]).some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||''))))return 'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.';const expected=String(d?.targetKey||'').split('|');return (d?.actions||[]).some(a=>String(a?.object_id||'')!==expected[0]||String(a?.order_id||'')!==expected[1])?'FRAME заблокировал изменение: цель ответа не совпала с выбранным объектом. Ничего не применено.':''};
 window.brainDraftFromResponse=(text,response)=>{
   const r=response?.result||{},mode=String(response?.meta?.mode||''),common={mode,text};
   if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.',...common};
@@ -212,11 +212,22 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(!!document.querySelector('[data-chat-apply]'),'allowed field_safe action has no Apply');
     assert(ORDER.works.length===safetyStart,'allowed field_safe action applied without tap');
     assert(frameRestorePending()?.mode==='field_safe','field_safe mode was lost from pending draft');
-    document.querySelector('[data-chat-apply]')?.click();
+    const safeApply=document.querySelector('[data-chat-apply]');
+    safeApply?.click();
+    safeApply?.click();
     await waitFor(()=>ORDER.works.length===safetyStart+1);
     assert(ORDER.works.length===safetyStart+1,'allowed field_safe action was not applied exactly once');
 
-    // 10. Candidate mode remains backward compatible, but is not applied in this test.
+    // 10. A valid action aimed at another object is blocked before confirmation.
+    frameSetTopic(TARGET.key);
+    BRAIN_REPLY={meta:{mode:'field_safe'},result:{summary:'wrong target',actions:[
+      {type:'set_work_progress',object_id:OBJECT2.id,order_id:ORDER2.id,work_id:'w-shower',progress_pct:65}
+    ]}};
+    await send('Проверь чужую цель');
+    assert(!document.querySelector('[data-chat-apply]'),'cross-target field action exposed Apply');
+    assert(/цель ответа не совпала/i.test(document.body.textContent),'cross-target field action was not explained');
+
+    // 11. Candidate mode remains backward compatible, but is not applied in this test.
     BRAIN_REPLY={meta:{mode:'candidate'},result:{summary:'candidate mixed',actions:[
       {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Черновик',qty:1,unit:'компл.',price:1000},
       {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}
