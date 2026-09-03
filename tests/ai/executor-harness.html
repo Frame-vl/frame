@@ -24,14 +24,17 @@
     objects=[normalizeObject(object)];
     route='ai';routeState={aiTarget:'obj-executor|order-executor'};
 
-    let dbWrites=0;
-    const audit=[];
-    dbPut=async value=>{dbWrites++;const normalized=normalizeObject(clone(value)),index=objects.findIndex(x=>x.id===normalized.id);if(index>=0)objects[index]=normalized;else objects.push(normalized)};
+    let dbWrites=0,auditSequence=0;
+    const audit=[],auditSnapshots=[];
+    dbApplyBatch=async(upserts=[],deleteIds=[],expectedRevisions=null)=>{const checks=expectedRevisions instanceof Map?[...expectedRevisions.entries()]:Object.entries(expectedRevisions||{});for(const [id,revision] of checks){const actual=objects.find(item=>item.id===String(id)),valid=revision===null?!actual:!!actual&&String(actual.updatedAt||'')===String(revision);if(!valid)throw new Error('test revision conflict')}dbWrites++;for(const id of deleteIds)objects=objects.filter(item=>item.id!==id);for(const value of upserts){const normalized=normalizeObject(clone(value)),index=objects.findIndex(x=>x.id===normalized.id);if(index>=0)objects[index]=normalized;else objects.push(normalized)}};
+    dbPut=async value=>dbApplyBatch([value],[]);
     reloadObjects=async()=>{};
     mirrorBackup=()=>{};
     render=()=>{};
     toast=()=>{};
-    addAiLog=entry=>{const row=aiSanitizeAuditEntries([{id:'audit-test',at:now(),undone:false,...entry}])[0];audit.push(row);return row};
+    addAiLog=entry=>{const row=aiSanitizeAuditEntries([{id:`audit-test-${++auditSequence}`,at:now(),undone:false,...entry}])[0];audit.push(row);return row};
+    aiLogs=()=>clone(audit);
+    saveAiLogs=items=>{const clean=aiSanitizeAuditEntries(items);audit.splice(0,audit.length,...clone(clean));auditSnapshots.push(clone(clean));return JSON.stringify(aiSanitizeAuditEntries(audit))===JSON.stringify(clean)};
 
     const response={meta:{mode:'candidate',provider:'private provider words'},result:{summary:'private utterance must stay in session',actions:[{type:'add_work',object_id:object.id,order_id:order.id,work_name:'Проверенная работа',qty:2,unit:'м',price:500}]}};
     const draft=aiSafeDraftFromResponse('private utterance must stay in session',response,routeState.aiTarget,'Тестовая, 1 · Полевой тест');
@@ -63,12 +66,55 @@
     await new Promise(resolve=>setTimeout(resolve,0));
     assert(!tamperCalled&&dbWrites===1,'changed displayed draft passed exact signature gate');
 
+    const beforeInvalid=objects[0].orders[0].works.length;
+    const invalidBatch=aiSafeDraftFromResponse('Добавь работу и пустую заметку',{meta:{mode:'field_safe'},result:{summary:'invalid atomic batch',actions:[
+      {type:'add_work',object_id:object.id,order_id:order.id,work_name:'Не должна сохраниться',qty:1,unit:'шт.',price:100},
+      {type:'add_note',object_id:object.id,order_id:order.id,note:''}
+    ]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    invalidBatch.chatId='executor-invalid-batch';
+    const invalidButton=document.createElement('button');document.body.appendChild(invalidButton);let invalidPromise;
+    aiBindDisplayedDraftApply(invalidButton,invalidBatch,token=>{invalidPromise=applyBrainDraft(invalidBatch,token)});invalidButton.click();
+    assert(await invalidPromise===false&&dbWrites===1&&objects[0].orders[0].works.length===beforeInvalid,'invalid multi-action plan partially committed');
+
+    const liveOrder=objects[0].orders[0],closure=normalizeWorkClosure({id:'closure-1',number:1,date:'2026-09-03',amount:1000,snapshot:[normalizeGenericRow({name:'Проверенная работа',qty:'2',unit:'м',price:'500'},'Работы')]});liveOrder.workClosures=[closure];
+    const docDraft=aiSafeDraftFromResponse('Создай акт по закрытию номер 1',{meta:{mode:'field_safe'},result:{summary:'document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:closure.id}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    docDraft.chatId='executor-document';const docButton=document.createElement('button');document.body.appendChild(docButton);let docPromise;
+    assert(aiBindDisplayedDraftApply(docButton,docDraft,token=>{docPromise=applyBrainDraft(docDraft,token)}),'document draft did not arm');docButton.click();
+    assert(await docPromise===true&&objects[0].orders[0].documentHistory.length===1,'authorized document was not persisted');
+    const documentEntry=objects[0].orders[0].documentHistory[0];
+    assert(documentEntry.type==='act'&&documentEntry.closureId==='closure-1'&&frameLastApplyReceipt?.entityIds?.documentId===documentEntry.id,'document receipt is not linked to the persisted document');
+    assert(frameLastApplyReceipt?.links?.[0]?.kind==='document'&&frameLastApplyReceipt.links[0].documentId===documentEntry.id,'document receipt has no openable local link');
+    const documentLogId=frameLastApplyReceipt?.logId;
+
     const missingMetaPayment=aiSafeDraftFromResponse('payment',{result:{summary:'pay',actions:[{type:'add_payment',object_id:object.id,order_id:order.id,amount:1000}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
     assert(!missingMetaPayment.ok&&missingMetaPayment.blocked,'missing provider mode exposed payment under /frame-field');
     const forgedShape={...draft,chatId:'executor-draft-3',type:'payment',actions:[{type:'add_note',object_id:object.id,order_id:order.id,note:'x'}]};
     aiDraft=forgedShape;
     const forgedResult=await applyAiDraft('');
-    assert(forgedResult===false&&dbWrites===1,'field draft type/action shape bypassed real local executor');
+    assert(forgedResult===false&&dbWrites===2,'field draft type/action shape bypassed real local executor');
+
+    const undoSnapshotStart=auditSnapshots.length;
+    const documentUndo=await undoLastAiAction(documentLogId);
+    assert(documentUndo.ok&&documentUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===0,'verified document undo did not remove the exact document');
+    const undoSnapshots=auditSnapshots.slice(undoSnapshotStart),documentAudit=audit.find(item=>item.id===documentLogId);
+    assert(undoSnapshots[0]?.find(item=>item.id===documentLogId)?.undoPending===true,'undo did not persist its pending phase before changing data');
+    assert(documentAudit?.undone===true&&documentAudit?.undoPending===false,'undo journal did not finish in a verified done state');
+
+    const secondDocDraft=aiSafeDraftFromResponse('Создай ещё один акт по закрытию номер 1',{meta:{mode:'field_safe'},result:{summary:'second document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:closure.id}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    secondDocDraft.chatId='executor-document-2';const secondDocButton=document.createElement('button');document.body.appendChild(secondDocButton);let secondDocPromise;
+    aiBindDisplayedDraftApply(secondDocButton,secondDocDraft,token=>{secondDocPromise=applyBrainDraft(secondDocDraft,token)});secondDocButton.click();
+    assert(await secondDocPromise===true&&objects[0].orders[0].documentHistory.length===1,'second document setup failed');
+    const secondLogId=frameLastApplyReceipt?.logId,secondLog=audit.find(item=>item.id===secondLogId),expectedRevision=secondLog?.undo?.postRevisions?.[0]?.updatedAt,writeCountBeforeDrift=dbWrites;
+    objects[0].updatedAt=aiNextObjectRevision(expectedRevision);
+    const driftUndo=await undoLastAiAction(secondLogId);
+    assert(!driftUndo.ok&&dbWrites===writeCountBeforeDrift&&objects[0].orders[0].documentHistory.length===1,'undo overwrote a card after revision drift');
+    assert(!audit.find(item=>item.id===secondLogId)?.undone&&!audit.find(item=>item.id===secondLogId)?.undoPending,'blocked drift undo left a false success or permanent pending state');
+
+    objects[0].updatedAt=expectedRevision;
+    objects[0].orders[0].documentHistory=[];
+    const missingUndo=await undoLastAiAction(secondLogId);
+    assert(!missingUndo.ok&&dbWrites===writeCountBeforeDrift,'missing inverse entity produced a no-op success');
+    assert(!audit.find(item=>item.id===secondLogId)?.undone,'missing inverse entity was marked undone');
   }catch(error){failures.push('exception: '+(error?.stack||error))}
   document.getElementById('result').textContent=failures.length?`FRAME_EXECUTOR_E2E_FAIL\n${failures.join('\n')}`:'FRAME_EXECUTOR_E2E_PASS';
 })();

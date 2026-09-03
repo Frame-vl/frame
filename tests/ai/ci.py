@@ -156,7 +156,7 @@ def contract() -> None:
         raise RuntimeError("FRAME PWA start_url identity changed; keep the installed-app identity stable")
     app_version_match = re.search(r"const VERSION='(\d+)\.(\d+)\.(\d+)'", app)
     cache_version_match = re.search(r"const CACHE='frame-v(\d+)-field-safe'", worker)
-    build_version_match = re.search(r'<div class="build">(\d+)\.(\d+)\.(\d+)</div>', index)
+    build_version_match = re.search(r'<meta name="frame-version" content="(\d+)\.(\d+)\.(\d+)">', index)
     title_version_match = re.search(r'<title>FRAME (\d+)\.(\d+)\.(\d+) ', index)
     if not all((app_version_match, cache_version_match, build_version_match, title_version_match)):
         raise RuntimeError("FRAME version markers are incomplete")
