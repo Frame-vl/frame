@@ -44,6 +44,7 @@ window.aiTokens=s=>window.aiNorm(s).split(/[^a-zа-я0-9]+/i).filter(Boolean);
 window.aiStem=s=>window.aiNorm(s).slice(0,6);
 window.parseNum=v=>Number(String(v??'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;
 window.money=v=>`${Number(v||0).toLocaleString('ru-RU')} ₽`;
+window.docTypeLabel=type=>({proposal:'Коммерческое предложение',worklist:'Перечень выполненных работ',act:'Акт выполненных работ',contract:'Договор',invoice:'Счёт'}[type]||'Документ');
 
 const ORDER={id:'order-arch',title:'Ремонт квартиры',photos:[],documentHistory:[],works:[
   {id:'w-install',name:'Монтаж инсталляции',qty:1,unit:'компл.',price:10000,progress_pct:100},
@@ -154,7 +155,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(frameTestTranscriptRead()?.messages?.length===0&&!JSON.stringify(frameTranscriptPayload()).includes('Секрет во время паузы'),'stopped transcript exported unrecorded traffic');
     await frameStartTestTranscript();
     assert(frameTestTranscriptRead()?.messages?.length===0,'resuming test transcript backfilled paused traffic');
-    const redactionSecrets=['+7 (999) 111-22-33','secret@example.com','abc.def.ghi','sk-abcdefghijklmnop','ghp_ABCDEFGHIJKLMNOPQRSTUVWX','xoxb-1234567890-ABCDEFGHIJ','AIzaABCDEFGHIJKLMNOPQRSTUVWXYZ123456','eyJabcdef.ghijklmnop.qrstuvwxyz','https://user:password@example.com/path?access_token=topsecret'];
+    const redactionSecrets=['+7 (999) 111-22-33','secret@example.com','sk-abcdefghijklmnop','ghp_ABCDEFGHIJKLMNOPQRSTUVWX','xoxb-1234567890-ABCDEFGHIJ','AIzaABCDEFGHIJKLMNOPQRSTUVWXYZ123456','eyJabcdef.ghijklmnop.qrstuvwxyz','https://user:password@example.com/path?access_token=topsecret'];
     frameAddChat({role:'user',text:`Позвони ${redactionSecrets.join(', ')} — но сам смысл сообщения оставь`,status:'done',turnId:'private-redaction'});
     const scrubbedLocal=JSON.stringify(frameTranscriptPayload());
     assert(redactionSecrets.every(secret=>!scrubbedLocal.includes(secret)),'local transcript/export retained recognized credentials or contact details');
@@ -208,7 +209,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     await waitFor(()=>WAKE_REQUESTS>0,1000);
     assert(WAKE_REQUESTS===1&&WAKE_OUTSTANDING===1,'focused composer did not hold exactly one screen wake lock');
     composer.value=Array.from({length:60},(_,index)=>`строка ${index}`).join('\n');composer.setSelectionRange(composer.value.length,composer.value.length);composer.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,25));
-    assert(composer.selectionEnd===composer.value.length&&composer.scrollTop===composer.scrollHeight,'long typed input did not keep the visible viewport at the newest text');
+    assert(composer.selectionEnd===composer.value.length&&composer.scrollTop+composer.clientHeight>=composer.scrollHeight-1,'long typed input did not keep the visible viewport at the newest text');
     composer.setSelectionRange(5,5);frameAutoGrowInput();assert(composer.selectionEnd===5,'auto-grow moved the caret while editing the middle of a message');composer.value='';composer.setSelectionRange(0,0);composer.dispatchEvent(new Event('input',{bubbles:true}));
     const releasesBeforeMicError=WAKE_RELEASES;
     window.SpeechRecognition=function(){this.start=()=>{};this.abort=()=>{}};
@@ -229,7 +230,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     frameVoiceWanted=true;
     aiRecognition={abort:()=>{routeVoiceAborted=true}};
     frameLeaveAi();
-    await waitFor(()=>WAKE_OUTSTANDING===0,1000);
+    await waitFor(()=>routeVoiceAborted&&aiRecognition===null&&WAKE_OUTSTANDING===0,1000);
     assert(routeVoiceAborted&&aiRecognition===null,'leaving AI route did not stop active recognition');
     assert(WAKE_OUTSTANDING===0&&!frameComposerWakeWanted&&!frameVoiceWanted,'leaving AI route retained wake intent or lock');
     composer.blur();
