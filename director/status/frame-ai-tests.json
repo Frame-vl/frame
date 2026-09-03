@@ -2,10 +2,10 @@
   "schema_version": "1.0",
   "workflow": "FRAME AI Tests",
   "implementation": "python",
-  "run_id": "33706074878",
+  "run_id": "33709621667",
   "runner_name": "FRAME-PC",
-  "commit_sha": "8bf7b014c198969f40b4cb17e97bf20ed4b6c7d1",
-  "status": "DONE",
-  "job_status": "success",
-  "updated_at": "2026-09-03T02:02:54.354265+00:00"
+  "commit_sha": "d296dc43f3bea4a2dc315ed41c5c36c520e5bf62",
+  "status": "BLOCKED",
+  "job_status": "failure",
+  "updated_at": "2026-09-03T02:58:43.930436+00:00"
 }
