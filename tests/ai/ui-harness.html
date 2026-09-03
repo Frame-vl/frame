@@ -171,6 +171,15 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(frameDetectTarget(tiedWorkText)==='','duplicate work name resolved despite a tie');
     await send(tiedWorkText);
     assert(frameTopic()===TARGET2.key&&routeState.aiTarget===TARGET2.key,'tied work name switched away from current target');
+
+    // 7. An add-work command must stay on the active object unless an object is explicit.
+    frameSetTopic(TARGET.key);
+    const addNamedLikeExisting='Добавь работу: монтаж душевого поддона 1 метр по 1000';
+    assert(frameDetectTarget(addNamedLikeExisting)==='','add-work command switched by an existing work name');
+    await send(addNamedLikeExisting);
+    assert(frameTopic()===TARGET.key&&routeState.aiTarget===TARGET.key,'add-work command left the active object');
+    document.querySelector('[data-chat-cancel]')?.click();
+    assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'explicit object did not switch add-work target');
   }catch(e){failures.push('exception: '+(e?.stack||e))}
   document.getElementById('result').textContent=failures.length
     ? `FRAME_UI_E2E_FAIL\n${failures.join('\n')}`
