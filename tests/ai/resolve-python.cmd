@@ -25,7 +25,9 @@ endlocal & set "FRAME_PYTHON=%FRAME_FOUND_PYTHON%"
 exit /b 0
 
 :bootstrap_embed
-set "FRAME_EMBED_ROOT=%RUNNER_TEMP%\frame-python-embed-3.12.10"
+set "FRAME_EMBED_ROOT="
+if defined RUNNER_TOOL_CACHE set "FRAME_EMBED_ROOT=%RUNNER_TOOL_CACHE%\FramePython\3.12.10"
+if not defined FRAME_EMBED_ROOT set "FRAME_EMBED_ROOT=%RUNNER_TEMP%\frame-python-embed-3.12.10"
 set "FRAME_EMBED_ZIP=%RUNNER_TEMP%\frame-python-embed-3.12.10.zip"
 if not exist "%FRAME_EMBED_ROOT%\python.exe" (
   if not exist "%FRAME_EMBED_ROOT%" mkdir "%FRAME_EMBED_ROOT%"
