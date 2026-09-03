@@ -60,7 +60,7 @@ window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
 window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return BRAIN_REPLY||{result:{actions:[],summary:'stub'}}};
 const AI_FIELD_SAFE_ACTIONS=new Set(['add_work','set_work_progress','add_note']);
-window.aiFieldSafeDraftError=d=>{if(String(d?.mode||'')!=='field_safe')return '';if((d?.actions||[]).some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||''))))return 'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.';const expected=String(d?.targetKey||'').split('|');return (d?.actions||[]).some(a=>String(a?.object_id||'')!==expected[0]||String(a?.order_id||'')!==expected[1])?'FRAME заблокировал изменение: цель ответа не совпала с выбранным объектом. Ничего не применено.':''};
+window.aiFieldSafeDraftError=d=>{if(String(d?.mode||'')!=='field_safe')return '';const actions=Array.isArray(d?.actions)?d.actions:[];if(!actions.length)return '';if(actions.some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||''))))return 'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.';const expected=String(d?.targetKey||'').split('|');return actions.some(a=>String(a?.object_id||'')!==expected[0]||String(a?.order_id||'')!==expected[1])?'FRAME заблокировал изменение: цель ответа не совпала с выбранным объектом. Ничего не применено.':''};
 window.brainDraftFromResponse=(text,response)=>{
   const r=response?.result||{},mode=String(response?.meta?.mode||''),common={mode,text};
   if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.',...common};
