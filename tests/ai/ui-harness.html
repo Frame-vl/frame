@@ -53,12 +53,18 @@ window.aiContextPayload=()=>({current_target:routeState.aiTarget||TARGET.key,obj
 window.aiServerUrl=()=> 'http://127.0.0.1:8787';
 window.aiBrainFetch=async()=>({ok:true,provider:'test',model:'test'});
 window.requestAiBrain=async text=>{CAPTURED.push(String(text||''));return BRAIN_REPLY||{result:{actions:[],summary:'stub'}}};
+const AI_FIELD_SAFE_ACTIONS=new Set(['add_work','set_work_progress','add_note']);
+window.aiFieldSafeDraftError=d=>String(d?.mode||'')==='field_safe'&&(d?.actions||[]).some(a=>!AI_FIELD_SAFE_ACTIONS.has(String(a?.type||'')))?'FRAME заблокировал весь пакет изменений в безопасном режиме. Ничего не применено.':'';
 window.brainDraftFromResponse=(text,response)=>{
-  const r=response?.result||{};
-  if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.'};
-  if(Array.isArray(r.actions)&&r.actions.length)return {ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:routeState.aiTarget||TARGET.key};
-  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:routeState.aiTarget||TARGET.key};
-  return {ok:false,error:'empty'};
+  const r=response?.result||{},mode=String(response?.meta?.mode||''),common={mode,text};
+  if(r.needs_clarification)return {ok:false,source:'brain',clarification:true,error:r.clarification||'Нужно уточнение.',...common};
+  if(Array.isArray(r.actions)&&r.actions.length){
+    const candidate={ok:true,type:'brain_batch',summary:r.summary||'',actions:r.actions,targetKey:routeState.aiTarget||TARGET.key,...common};
+    const policyError=aiFieldSafeDraftError(candidate);
+    return policyError?{ok:false,source:'brain',blocked:true,error:policyError,actions:[],...common}:candidate;
+  }
+  if(r.summary)return {ok:true,type:'read_answer',summary:r.summary,targetKey:routeState.aiTarget||TARGET.key,actions:[],...common};
+  return {ok:false,error:'empty',...common};
 };
 window.parseAiCommand=()=>({ok:false,error:'no local fallback'});
 window.aiBrainActionSummary=a=>a?.type==='add_work'?`Добавить работу ${a.work_name}`:String(a?.type||'action');
@@ -180,6 +186,39 @@ window.requestAnimationFrame=fn=>setTimeout(fn,0);
     assert(frameTopic()===TARGET.key&&routeState.aiTarget===TARGET.key,'add-work command left the active object');
     document.querySelector('[data-chat-cancel]')?.click();
     assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'explicit object did not switch add-work target');
+    // 8. field_safe rejects a mixed batch before it can create an Apply card.
+    const safetyStart=ORDER.works.length;
+    BRAIN_REPLY={meta:{mode:'field_safe'},result:{summary:'mixed',actions:[
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Безопасная работа',qty:1,unit:'компл.',price:1000},
+      {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}
+    ]}};
+    await send('Проверь смешанный пакет');
+    assert(!document.querySelector('[data-chat-apply]'),'field_safe mixed batch exposed Apply');
+    assert(!frameChatMessages().some(m=>m.status==='pending'&&m.draft?.mode==='field_safe'),'field_safe mixed batch was persisted');
+    assert(ORDER.works.length===safetyStart,'field_safe mixed batch mutated work data');
+    assert(/Ничего не применено/i.test(document.body.textContent),'field_safe block was not explained');
+
+    // 9. A permitted field_safe action still requires one explicit Apply.
+    BRAIN_REPLY={meta:{mode:'field_safe',confirmation_required:true},result:{summary:'safe',actions:[
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Полевой тест',qty:1,unit:'компл.',price:1000}
+    ]}};
+    await send('Подготовь разрешённую полевую работу');
+    assert(!!document.querySelector('[data-chat-apply]'),'allowed field_safe action has no Apply');
+    assert(ORDER.works.length===safetyStart,'allowed field_safe action applied without tap');
+    assert(frameRestorePending()?.mode==='field_safe','field_safe mode was lost from pending draft');
+    document.querySelector('[data-chat-apply]')?.click();
+    await waitFor(()=>ORDER.works.length===safetyStart+1);
+    assert(ORDER.works.length===safetyStart+1,'allowed field_safe action was not applied exactly once');
+
+    // 10. Candidate mode remains backward compatible, but is not applied in this test.
+    BRAIN_REPLY={meta:{mode:'candidate'},result:{summary:'candidate mixed',actions:[
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Черновик',qty:1,unit:'компл.',price:1000},
+      {type:'add_payment',object_id:OBJECT.id,order_id:ORDER.id,amount:5000}
+    ]}};
+    await send('Проверь candidate пакет');
+    assert(!!document.querySelector('[data-chat-apply]'),'candidate batch was incorrectly blocked by field policy');
+    document.querySelector('[data-chat-cancel]')?.click();
+    BRAIN_REPLY=null;
   }catch(e){failures.push('exception: '+(e?.stack||e))}
   document.getElementById('result').textContent=failures.length
     ? `FRAME_UI_E2E_FAIL\n${failures.join('\n')}`
