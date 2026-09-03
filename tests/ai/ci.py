@@ -5,6 +5,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -129,10 +130,12 @@ def browser(case: str) -> None:
     if stderr.strip():
         print("Edge stderr:")
         print(stderr)
-    if marker not in stdout:
+    match = re.search(r'<pre\\s+id=["\\']result["\\'][^>]*>([\\s\\S]*?)</pre>', stdout, re.IGNORECASE)
+    rendered = match.group(1).strip() if match else ""
+    if completed.returncode != 0 or rendered != marker or "_FAIL" in rendered:
         print("Edge DOM output:")
         print(stdout)
-        raise RuntimeError(f"FRAME {case} browser harness failed")
+        raise RuntimeError(f"FRAME {case} browser harness failed: rendered={rendered!r}")
     print(f"FRAME {case} browser harness PASS")
 
 
@@ -196,13 +199,14 @@ def main() -> int:
     browser_parser = sub.add_parser("browser")
     browser_parser.add_argument("case", choices=sorted(CASES))
     args = parser.parse_args()
+    if args.command == "status":
+        publish_status()
+        return 0
     assert_runner()
     if args.command == "health":
         health()
     elif args.command == "contract":
         contract()
-    elif args.command == "status":
-        publish_status()
     else:
         browser(args.case)
     return 0
