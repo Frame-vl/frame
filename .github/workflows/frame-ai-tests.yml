@@ -59,7 +59,7 @@ jobs:
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor'
 
       - name: Publish test status
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           FRAME_CI_JOB_STATUS: ${{ job.status }}
