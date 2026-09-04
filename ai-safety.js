@@ -86,10 +86,10 @@
       const action=documents[0],type=String(action.document_type||''),closureId=String(action.closure_id||'');
       if(!['proposal','worklist','act'].includes(type))return 'FRAME заблокировал неподдерживаемый вид документа.';
       if(type==='proposal'&&closureId)return 'FRAME заблокировал КП с посторонним закрытием.';
-      if(type!=='proposal'&&!closureId)return 'FRAME заблокировал документ без зафиксированного закрытия.';
       const target=typeof global.aiTargetByKey==='function'?global.aiTargetByKey(String(d.targetKey||'')):null;
       if(!target||String(action.object_id||'')!==String(target.object?.id||'')||String(action.order_id||'')!==String(target.order?.id||''))return 'FRAME заблокировал документ для неподтверждённого заказа.';
-      if(type!=='proposal'&&!(target.order?.workClosures||[]).some(item=>String(item.id||'')===closureId))return 'FRAME заблокировал документ по неизвестному закрытию.';
+      if(type!=='proposal'&&closureId&&!(target.order?.workClosures||[]).some(item=>String(item.id||'')===closureId))return 'FRAME заблокировал документ по неизвестному закрытию.';
+      if(type!=='proposal'&&!closureId){const ready=Number(global.orderWorkProgress?.(target.order)?.ready||0);if(!(ready>.009))return 'FRAME заблокировал документ: нет выполненного объёма для закрытия.';}
     }
     const graphError=targetGraphError(d);if(graphError)return graphError+' Ничего не применено.';
     return '';

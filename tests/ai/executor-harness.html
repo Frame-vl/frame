@@ -100,6 +100,18 @@
     assert(undoSnapshots[0]?.find(item=>item.id===documentLogId)?.undoPending===true,'undo did not persist its pending phase before changing data');
     assert(documentAudit?.undone===true&&documentAudit?.undoPending===false,'undo journal did not finish in a verified done state');
 
+    const autoOrder=objects[0].orders[0],autoWork=autoOrder.works[0];
+    autoWork.progressPct=100;autoWork.closedAmount=0;autoOrder.workClosures=[];
+    const autoDraft=aiSafeDraftFromResponse('Выкати акт',{meta:{mode:'field_safe'},result:{summary:'auto-close document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:''}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    autoDraft.chatId='executor-auto-close-document';const autoButton=document.createElement('button');document.body.appendChild(autoButton);let autoPromise;
+    assert(autoDraft.ok&&aiBindDisplayedDraftApply(autoButton,autoDraft,token=>{autoPromise=applyBrainDraft(autoDraft,token)}),'auto-close document draft did not arm');autoButton.click();
+    assert(await autoPromise===true&&objects[0].orders[0].documentHistory.length===1&&objects[0].orders[0].workClosures.length===1,'act did not atomically freeze ready volume and persist document');
+    const autoDocument=objects[0].orders[0].documentHistory[0],autoClosure=objects[0].orders[0].workClosures[0],autoLogId=frameLastApplyReceipt?.logId;
+    assert(autoDocument.closureId===autoClosure.id&&autoWork.id===objects[0].orders[0].works[0].id&&objects[0].orders[0].works[0].closedAmount===1000,'auto-close act did not bind its immutable closure');
+    const autoUndo=await undoLastAiAction(autoLogId);
+    assert(autoUndo.ok&&autoUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===0&&objects[0].orders[0].workClosures.length===0&&objects[0].orders[0].works[0].closedAmount===0,'auto-close document undo did not restore document, closure, and work amount together');
+    objects[0].orders[0].workClosures=[clone(closure)];
+
     const secondDocDraft=aiSafeDraftFromResponse('Создай ещё один акт по закрытию номер 1',{meta:{mode:'field_safe'},result:{summary:'second document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:closure.id}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
     secondDocDraft.chatId='executor-document-2';const secondDocButton=document.createElement('button');document.body.appendChild(secondDocButton);let secondDocPromise;
     aiBindDisplayedDraftApply(secondDocButton,secondDocDraft,token=>{secondDocPromise=applyBrainDraft(secondDocDraft,token)});secondDocButton.click();

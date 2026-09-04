@@ -149,6 +149,15 @@ def contract() -> None:
         raise RuntimeError("AI health/analyze requests are not bound to a URL/token snapshot")
     if "function frameLeaveAi()" not in chat or "typeof frameLeaveAi==='function'" not in app:
         raise RuntimeError("AI route does not tear down voice/wake state")
+    menu = app[app.index("function showMainMenu"):app.index("function renderSystemSettings")]
+    menu_routes = re.findall(r'data-menu-route="([^"]+)"', menu)
+    if menu_routes != ["objectsList", "globalDocs", "globalGallery", "settings"]:
+        raise RuntimeError(f"Chat-first menu routes changed: {menu_routes}")
+    for needle in ("function renderGlobalGallery", "function objectOrderWorksPreview", "data-object-works", "kind:'remove_document_and_closure'", "function freezeReadyClosure"):
+        if needle not in app:
+            raise RuntimeError(f"Chat-first workflow contract missing: {needle}")
+    if "if(['order','works','photos','documents'].includes(link.kind))" not in chat:
+        raise RuntimeError("Chat cannot open the works list by receipt link")
     index = (ROOT / "index.html").read_text(encoding="utf-8-sig")
     worker = (ROOT / "sw.js").read_text(encoding="utf-8-sig")
     manifest = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8-sig"))
