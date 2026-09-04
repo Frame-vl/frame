@@ -83,7 +83,7 @@ def contract() -> None:
     chat = (ROOT / "ai-chat.js").read_text(encoding="utf-8-sig")
     safety_required = (
         "FIELD_PATH='/frame-field'",
-        "FIELD_EDGE_SUFFIXES=Object.freeze(['.trycloudflare.com','.pinggy.link','.pinggy.io'])",
+        "FIELD_EDGE_SUFFIXES=Object.freeze(['.trycloudflare.com','.pinggy.link','.pinggy.online','.pinggy.io'])",
         "configuredFieldSafe()?'field_safe'",
         "fieldSafeHealthVerified",
         "state:'displayed'",
