@@ -1,9 +1,10 @@
 'use strict';
 
-// FRAME 2.8.0 chat-first companion.
+// FRAME 2.8.1 chat-first companion.
 const FRAME_CHAT_KEY='frameAiChatV270';
 const FRAME_CHAT_PENDING_KEY='frameAiPendingV270';
 const FRAME_CHAT_TOPIC_KEY='frameAiTopicV270';
+const FRAME_CHAT_TOPIC_SESSION_KEY='frameAiTopicSessionV281';
 const FRAME_CHAT_LIMIT=100;
 const FRAME_TEST_TRANSCRIPT_KEY='frameAiTestTranscriptV278';
 const FRAME_RETIRED_TEST_TRANSCRIPT_KEYS=['frameAiTestTranscriptV277'];
@@ -23,7 +24,9 @@ const FRAME_TEST_PAGE_ID=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.r
 let frameVoiceWanted=false,frameVoiceStopping=false,frameVoiceStopPromise=null,frameComposerWakeWanted=false,frameVoiceRestartTimer=null,frameComposerWakeTimer=null,frameVoiceBase='',frameVoiceFinal='',frameVoiceInterim='',frameVoiceStartedAt=0,frameVoiceUiTimer=null,frameVoiceWakeLock=null,frameWakeAcquirePromise=null,frameVoiceSession=0,frameThinking=false,frameApplyingDraftId='',frameOwnerFlushTimer=null,frameOwnerFlushBusy=false,frameOwnerRetryAttempt=0,frameOwnerVerifiedCredential='',frameMutationClarificationSession='';
 let frameVoiceEndWaiter=null;
 const frameSessionMessageIds=new Set();
-let frameChatSession=[],framePendingSession=null,frameTopicSession='',frameComposerDraftSession='';
+function frameSessionTopicRead(){try{return String(sessionStorage.getItem(FRAME_CHAT_TOPIC_SESSION_KEY)||'')}catch(e){return ''}}
+function frameSessionTopicWrite(key=''){try{if(key)sessionStorage.setItem(FRAME_CHAT_TOPIC_SESSION_KEY,String(key));else sessionStorage.removeItem(FRAME_CHAT_TOPIC_SESSION_KEY)}catch(e){}}
+let frameChatSession=[],framePendingSession=null,frameTopicSession=frameSessionTopicRead(),frameComposerDraftSession='';
 
 function frameRetireLegacyAiChatStorage(){for(const key of [FRAME_CHAT_KEY,FRAME_CHAT_PENDING_KEY,FRAME_CHAT_TOPIC_KEY,...FRAME_RETIRED_TEST_TRANSCRIPT_KEYS]){try{if(typeof storageRemove==='function')storageRemove(key);else localStorage.removeItem(key)}catch(e){}}}
 frameRetireLegacyAiChatStorage();
@@ -218,8 +221,8 @@ function frameRestorePending(){if(aiDraft?.ok){if(!frameDraftPolicyError(aiDraft
 function frameClearPending(){framePendingSession=null}
 function frameClearPendingIf(id=''){if(!id||String(framePendingSession?.chatId||'')===String(id)){framePendingSession=null;if(String(aiDraft?.chatId||'')===String(id))aiDraft=null}}
 function frameChatTime(v){try{return new Date(v).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
-function frameTopic(){return frameTopicSession}
-function frameSetTopic(key=''){if(!key){frameTopicSession='';routeState.aiTarget='';return}if(aiTargetByKey(key)){frameTopicSession=key;routeState.aiTarget=key;const data=frameTestTranscriptRead();if(data?.active){data.topic_key=frameTestString(key,256);data.topic_label=frameTestString(frameTopicLabel(),1000);frameTestTranscriptWrite(data)}}}
+function frameTopic(){return aiTargetByKey(frameTopicSession)?frameTopicSession:''}
+function frameSetTopic(key=''){if(!key){frameTopicSession='';routeState.aiTarget='';frameSessionTopicWrite('');return}if(aiTargetByKey(key)){frameTopicSession=key;routeState.aiTarget=key;frameSessionTopicWrite(key);const data=frameTestTranscriptRead();if(data?.active){data.topic_key=frameTestString(key,256);data.topic_label=frameTestString(frameTopicLabel(),1000);frameTestTranscriptWrite(data)}}}
 const FRAME_TARGET_GENERIC=new Set(['монтаж','работа','работы','работам','готова','готов','поставь','поставить','процент','процентов']);
 function frameWorkTargetScore(order,text=''){const tokens=aiTokens(text).filter(x=>x.length>=4&&!FRAME_TARGET_GENERIC.has(x));let best=0;for(const row of order?.works||[]){const name=aiNorm(row.name),nameTokens=aiTokens(name);let score=0;for(const token of tokens){if(name.includes(token))score+=3;else if(nameTokens.some(x=>x.startsWith(token)||token.startsWith(x)))score+=2}best=Math.max(best,score)}return best}
 function frameDetectTarget(text=''){const norm=aiNorm(text),tokens=aiTokens(norm),addingWork=/(?:добавь|добавить|допработ|новая\\s+работа)/.test(norm);let best='',bestScore=0,tied=false;for(const x of aiAllTargets()){const hay=aiNorm(`${x.object.contact.address} ${x.object.contact.name} ${x.order.title}`);let score=0;for(const token of tokens){if(token.length>=4&&hay.includes(token))score+=2}for(const p of aiNorm(x.object.contact.address).split(' ')){const s=aiStem(p);if(s.length>=5&&norm.includes(s))score+=4}if(!addingWork)score+=frameWorkTargetScore(x.order,norm);if(score>bestScore){bestScore=score;best=x.key;tied=false}else if(score===bestScore&&score>0&&best!==x.key)tied=true}return bestScore>=3&&!tied?best:''}
@@ -285,7 +288,7 @@ analyzeAiInput=async function(){
     const localOpen=mutationIntent?null:frameLocalOpenIntent(text);
     if(localOpen){frameAddChat({role:'assistant',text:localOpen.text,status:'done',turnId,links:localOpen.links,trace:{provider:'FRAME local navigation',model:VERSION,mode:'local',outcome:'answer',round_trip_ms:Math.round(performance.now()-started),proposed_actions:[],policy_blocked_actions:[]}});return}
     let draft,response=null;if(aiServerUrl()){response=await requestAiBrain(text);if(mutationIntent)response={...response,meta:{...(response?.meta||{}),mutation_intent:true}};draft=brainDraftFromResponse(text,response)}else draft=parseAiCommand(text,frameTopic()||routeState.aiTarget);
-    if(draft?.targetKey&&aiTargetByKey(draft.targetKey)){const explicit=frameDetectTarget(text);if(explicit)frameSetTopic(explicit);else if(frameTopic())draft.targetKey=frameTopic()}
+    if(draft?.targetKey&&aiTargetByKey(draft.targetKey)){const explicit=frameDetectTarget(text);if(explicit)frameSetTopic(explicit);else if(frameTopic())draft.targetKey=frameTopic();else frameSetTopic(draft.targetKey)}
     frameAttachTargetSnapshot(draft);const policyError=frameDraftPolicyError(draft);if(policyError)draft={...draft,ok:false,source:'brain',blocked:true,error:policyError,text};
     if(draft?.clarification&&mutationIntent)frameMutationClarificationSession=directMutation?text:previousMutation;const trace=frameBuildTestTrace(draft,response,Math.round(performance.now()-started));
     if(draft?.ok&&draft.type==='read_answer')frameAddChat({role:'assistant',text:draft.summary,status:'done',turnId,trace,sources:draft.sources||[]});
@@ -325,4 +328,4 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState!==
 
 bindAiResult=function(){frameBindChatActions()};bindAiView=function(){frameRestorePending();if($('aiAnalyzeBtn'))$('aiAnalyzeBtn').onclick=analyzeAiInput;if($('aiMicBtn'))$('aiMicBtn').onclick=startAiVoice;if($('frameAttachBtn'))$('frameAttachBtn').onclick=frameShowAttachMenu;if($('frameTestBtn'))$('frameTestBtn').onclick=frameShowTestTranscript;const input=$('aiCommandInput');if(input){if(frameComposerDraftSession)frameSetComposerText(frameComposerDraftSession);input.addEventListener('focus',()=>frameComposerWake(true));input.addEventListener('blur',()=>frameComposerWake(false));input.addEventListener('input',()=>{frameComposerDraftSession=input.value;frameAutoGrowInput();frameComposerWake(document.activeElement===input)});input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();analyzeAiInput()}})}frameBindChatActions();frameScrollChat();frameRenderConnectionDot();frameUpdateTestButton();if(aiServerUrl()&&!aiBrainStatus)checkAiBrain({toastResult:false});else frameOwnerFlush()};
 const frameCoreApplyAiDraft=applyAiDraft;applyAiDraft=async function(authorizationToken=''){const d=frameRestorePending()||aiDraft,id=d?.chatId||'',policyError=frameDraftPolicyError(d);if(policyError){if(id)frameUpdateChat(id,{status:'error',text:policyError,draft:null,links:[]});if(d)aiRevokeDraftAuthorization(d);frameClearPendingIf(id);toast(policyError);if(route==='ai')render();return false}if(d)aiDraft=d;const applied=await frameCoreApplyAiDraft(authorizationToken),receipt=frameLastApplyReceipt||{ok:false,error:'Не удалось подтвердить запись',links:[]};if(id&&applied===true&&receipt.ok&&receipt.postconditionVerified){if(receipt.targetKey)frameSetTopic(receipt.targetKey);frameUpdateChat(id,{status:'applied',text:frameAppliedSummary(d,receipt),draft:null,links:receipt.links||[],receipt},{eventType:'action.apply_result',receipt});frameClearPendingIf(id);if(route==='ai')render()}else if(id&&authorizationToken){frameUpdateChat(id,{status:'error',text:`Не получилось записать изменение: ${receipt.error||'сохранение не подтверждено'}. Ничего не отмечаю как готовое.`,draft:null,links:[],receipt},{eventType:'action.apply_result',receipt});frameClearPendingIf(id);if(route==='ai')render()}return applied===true&&receipt.ok===true&&receipt.postconditionVerified===true};
-console.info('[FRAME] 2.8.0 chat-first companion loaded');
+console.info('[FRAME] 2.8.1 chat-first companion loaded');
