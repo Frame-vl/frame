@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><title>FRAME UI E2E Harness</title></head>
 <body><div id="app"></div><pre id="result">RUNNING</pre>
 <script>
-const VERSION='2.8.4';
+const VERSION='2.8.5';
 const STORE={
   frameAiChatV270:JSON.stringify([{id:'persisted-old',at:'2026-01-01T00:00:00.000Z',role:'user',status:'done',text:'Старый личный разговор про ужин'}]),
   frameAiPendingV270:JSON.stringify({ok:true,type:'payment',amount:99999}),
@@ -245,7 +245,8 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(startedInTap&&startedRecognition,'voice recognition was deferred beyond the user tap');
     assert(startedRecognition.continuous===false&&startedRecognition.interimResults===true,'iPhone-safe recognition settings were not applied');
     const previewResult=[{transcript:'проверка микрофона'}];previewResult.isFinal=false;startedRecognition.onresult?.({resultIndex:0,results:[previewResult]});
-    assert(/проверка микрофона/i.test(document.getElementById('frameVoicePreview')?.textContent||''),'recognized voice was not shown during recording');
+    assert(!document.getElementById('frameVoicePreview'),'recognized text was rendered over the waveform');
+    assert(!/проверка микрофона/i.test(document.getElementById('frameVoicePanel')?.textContent||''),'recognized text leaked into the recording panel');
     startedRecognition.onerror?.({error:'network'});
     assert(!frameVoiceWanted&&aiRecognition===null&&/VPN/.test(TOASTS.at(-1)||''),'speech network failure stayed silent or retained stale recognition');
     await directStart;
@@ -491,7 +492,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 
     // Explicit test recording exports a sanitized, non-executable diagnostic file.
     const transcript=frameTranscriptPayload(),serializedTranscript=JSON.stringify(transcript);
-    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.8.4','test transcript schema or app version is wrong');
+    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.8.5','test transcript schema or app version is wrong');
     assert(transcript.message_count===transcript.messages.length&&transcript.message_count>0,'test transcript message count is wrong');
     assert(transcript.messages.some(m=>m.status==='applied'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'applied action snapshot missing from test transcript');
     assert(transcript.messages.some(m=>m.status==='cancelled'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'cancelled action snapshot missing from test transcript');

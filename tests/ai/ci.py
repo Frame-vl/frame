@@ -148,6 +148,8 @@ def contract() -> None:
         raise RuntimeError("Provider-controlled text still reaches durable AI audit")
     if "const base=aiServerUrl(),token=aiServerToken(),current=" not in app or "{base,token}" not in app:
         raise RuntimeError("AI health/analyze requests are not bound to a URL/token snapshot")
+    if "request_id:requestId" not in app or app.count("aiBrainFetch('/analyze',{method:'POST',body},{base,token})") != 2:
+        raise RuntimeError("AI analyze retry is not bound to one idempotency key and body")
     if "function frameLeaveAi()" not in chat or "typeof frameLeaveAi==='function'" not in app:
         raise RuntimeError("AI route does not tear down voice/wake state")
     menu = app[app.index("function showMainMenu"):app.index("function renderSystemSettings")]
