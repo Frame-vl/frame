@@ -3,7 +3,7 @@
 // FRAME AI mutation safety. All state in this module is page-session only.
 (function initFrameAiSafety(global){
   const FIELD_PATH='/frame-field';
-  const FIELD_EDGE_SUFFIX='.trycloudflare.com';
+  const FIELD_EDGE_SUFFIXES=Object.freeze(['.trycloudflare.com','.pinggy.link','.pinggy.io']);
   const ALLOWED_FIELD_ACTIONS=new Set(['create_object','create_order','update_object','update_order','add_work','set_work_progress','add_note','create_document']);
   const AUDIT_LABELS=Object.freeze({brain_batch:'Пакет изменений FRAME AI',payment:'Оплата',expense:'Расход',purchase:'Покупка',work_add:'Новая работа',work_complete:'Прогресс работы',order_note:'Заметка',create_object:'Новый объект',create_order:'Новый заказ',update_object:'Изменение объекта',update_order:'Изменение заказа',add_work:'Новая работа',delete_work:'Удаление работы',update_work:'Изменение работы',set_work_progress:'Прогресс работы',add_payment:'Оплата',add_expense:'Расход',add_purchase:'Покупка',add_note:'Заметка',reimburse_purchase:'Возмещение',create_document:'Новый документ'});
   const authorizationByDraft=new Map();
@@ -25,7 +25,7 @@
     try{
       const url=new URL(raw,global.location?.href||'https://frame.invalid/');
       return url.pathname.replace(/\/+$/,'')===FIELD_PATH||(
-        url.protocol==='https:'&&url.hostname.toLowerCase().endsWith(FIELD_EDGE_SUFFIX)
+        url.protocol==='https:'&&FIELD_EDGE_SUFFIXES.some(suffix=>url.hostname.toLowerCase().endsWith(suffix))
       );
     }catch(e){return false}
   }
