@@ -3,7 +3,7 @@
 // FRAME AI mutation safety. All state in this module is page-session only.
 (function initFrameAiSafety(global){
   const FIELD_PATH='/frame-field';
-  const FIELD_EDGE_SUFFIXES=Object.freeze(['.trycloudflare.com','.pinggy.link','.pinggy.online','.pinggy.io']);
+  const FIELD_EDGE_SUFFIXES=Object.freeze(['.trycloudflare.com','.pinggy-free.link','.pinggy.net','.pinggy.link','.pinggy.online','.pinggy.io']);
   const ALLOWED_FIELD_ACTIONS=new Set(['create_object','create_order','update_object','update_order','add_work','set_work_progress','add_note','create_document']);
   const AUDIT_LABELS=Object.freeze({brain_batch:'Пакет изменений FRAME AI',payment:'Оплата',expense:'Расход',purchase:'Покупка',work_add:'Новая работа',work_complete:'Прогресс работы',order_note:'Заметка',create_object:'Новый объект',create_order:'Новый заказ',update_object:'Изменение объекта',update_order:'Изменение заказа',add_work:'Новая работа',delete_work:'Удаление работы',update_work:'Изменение работы',set_work_progress:'Прогресс работы',add_payment:'Оплата',add_expense:'Расход',add_purchase:'Покупка',add_note:'Заметка',reimburse_purchase:'Возмещение',create_document:'Новый документ'});
   const authorizationByDraft=new Map();
