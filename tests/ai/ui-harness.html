@@ -475,7 +475,7 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 
     // Explicit test recording exports a sanitized, non-executable diagnostic file.
     const transcript=frameTranscriptPayload(),serializedTranscript=JSON.stringify(transcript);
-    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.7.9','test transcript schema or app version is wrong');
+    assert(transcript.format==='FRAME_TEST_TRANSCRIPT'&&transcript.schema_version===1&&transcript.app_version==='2.8.0','test transcript schema or app version is wrong');
     assert(transcript.message_count===transcript.messages.length&&transcript.message_count>0,'test transcript message count is wrong');
     assert(transcript.messages.some(m=>m.status==='applied'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'applied action snapshot missing from test transcript');
     assert(transcript.messages.some(m=>m.status==='cancelled'&&m.trace?.proposed_actions?.some(a=>a.type==='add_work')),'cancelled action snapshot missing from test transcript');
