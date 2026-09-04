@@ -375,6 +375,8 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(exactWorklist?.links?.[0]?.documentId==='worklist-mid',`worklist lookup did not find the exact document across object orders: ${JSON.stringify(exactWorklist)}`);
     const exactOrder=frameLocalOpenIntent('Открой заказ Сантехнические работы');
     assert(exactOrder?.links?.[0]?.kind==='order'&&exactOrder.links[0].orderId===ORDER2.id,'named order lookup opened the object or wrong order');
+    const exactWorks=frameLocalOpenIntent('Открой работы по Сантехническим работам');
+    assert(exactWorks?.links?.[0]?.kind==='works'&&exactWorks.links[0].orderId===ORDER2.id,'voice-first works lookup did not open the exact work list');
     BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'proposal plan',actions:[{type:'create_document',object_id:OBJECT2.id,order_id:ORDER2.id,document_type:'proposal',closure_id:''}]}};
     await send('Создай КП и дай ссылку');
     assert(CAPTURED.at(-1)?.text==='Создай КП и дай ссылку'&&frameRestorePending()?.actions?.[0]?.type==='create_document','create-and-link command was swallowed by local navigation instead of reaching the backend');
