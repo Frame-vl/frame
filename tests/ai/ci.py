@@ -83,6 +83,7 @@ def contract() -> None:
     chat = (ROOT / "ai-chat.js").read_text(encoding="utf-8-sig")
     safety_required = (
         "FIELD_PATH='/frame-field'",
+        "FIELD_EDGE_SUFFIX='.trycloudflare.com'",
         "configuredFieldSafe()?'field_safe'",
         "fieldSafeHealthVerified",
         "state:'displayed'",
