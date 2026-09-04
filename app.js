@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.8.0';
+const VERSION='2.8.1';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -1351,7 +1351,7 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=280',{updateViaCache:'none'}).catch(console.warn);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=281',{updateViaCache:'none'}).catch(console.warn);
 }
 const frameSkipInitForExecutorHarness=window.FRAME_TEST_SKIP_APP_INIT===true&&location.protocol==='file:'&&/\/tests\/ai\/executor-harness\.html$/i.test(decodeURI(location.pathname||''));
 if(!frameSkipInitForExecutorHarness)init();
