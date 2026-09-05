@@ -127,6 +127,7 @@
     // full act exists, eight rows are corrected back to 0%, three electrical
     // rows are then completed again, and both current-state documents must be
     // rebuilt from the live 12/17 rows rather than the historical closure.
+    const executorState=clone(objects[0]);
     const ownerWorks=[
       ['owner-plumbing','Сантехнические работы полный монтаж',1,'компл.',50000],
       ['owner-installation','Монтаж инсталляции под унитаз',1,'шт.',10000],
@@ -171,7 +172,7 @@
     assert(replayDoc.closureId===''&&replayDoc.total===180000&&replayDoc.snapshot.length===12,'current act did not use the exact 12/17 live rows and 180000 total');
     assert(!/Монтаж розеток|кварц-винил|керамогранита/.test(replayNames),'current act leaked one of the five unfinished rows');
     assert(replayOrder.workClosures.length===1&&replayOrder.workClosures[0].amount===273500,'current documents mutated or replaced the historical full closure');
-    objects=[normalizeObject(object)];routeState.aiTarget='obj-executor|order-executor';
+    objects=[normalizeObject(executorState)];routeState.aiTarget='obj-executor|order-executor';
 
     const secondDocDraft=aiSafeDraftFromResponse('Создай ещё один акт по закрытию номер 1',{meta:{mode:'field_safe'},result:{summary:'second document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:closure.id}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
     secondDocDraft.chatId='executor-document-2';const secondDocButton=document.createElement('button');document.body.appendChild(secondDocButton);let secondDocPromise;
