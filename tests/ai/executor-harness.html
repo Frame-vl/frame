@@ -109,9 +109,14 @@
     const autoDocument=objects[0].orders[0].documentHistory[0],autoClosure=objects[0].orders[0].workClosures[0],autoLogId=frameLastApplyReceipt?.logId;
     assert(autoDocument.closureId===autoClosure.id&&autoWork.id===objects[0].orders[0].works[0].id&&objects[0].orders[0].works[0].closedAmount===1000,'auto-close act did not bind its immutable closure');
     objects[0].orders[0].works[0].progressPct=50;
-    const corrected=aiDocumentEntry(objects[0],objects[0].orders[0],{document_type:'act',closure_id:''});
-    assert(corrected.entry.closureId===''&&corrected.autoClosure===null,'corrected current-state act silently reused the old closure');
-    assert(corrected.entry.total===500&&corrected.entry.snapshot.length===1&&parseNum(corrected.entry.snapshot[0].qty)===1,'corrected current-state act did not use only the currently completed volume');
+    const correctedDraft=aiSafeDraftFromResponse('По выполненным работам этого объекта сделай акт',{meta:{mode:'field_safe'},result:{summary:'corrected document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:''}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
+    correctedDraft.chatId='executor-current-state-document';const correctedButton=document.createElement('button');document.body.appendChild(correctedButton);let correctedPromise;
+    assert(correctedDraft.ok&&aiBindDisplayedDraftApply(correctedButton,correctedDraft,token=>{correctedPromise=applyBrainDraft(correctedDraft,token)}),'client safety rejected a current-state act after an old full closure');correctedButton.click();
+    assert(await correctedPromise===true&&objects[0].orders[0].documentHistory.length===2,'current-state act was not persisted through the real executor');
+    const correctedDocument=objects[0].orders[0].documentHistory.at(-1),correctedLogId=frameLastApplyReceipt?.logId;
+    assert(correctedDocument.closureId===''&&correctedDocument.total===500&&correctedDocument.snapshot.length===1&&parseNum(correctedDocument.snapshot[0].qty)===1,'corrected current-state act did not use only the currently completed volume');
+    const correctedUndo=await undoLastAiAction(correctedLogId);
+    assert(correctedUndo.ok&&correctedUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===1,'current-state document undo did not preserve the historical closure document');
     objects[0].orders[0].works[0].progressPct=100;
     const autoUndo=await undoLastAiAction(autoLogId);
     assert(autoUndo.ok&&autoUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===0&&objects[0].orders[0].workClosures.length===0&&objects[0].orders[0].works[0].closedAmount===0,'auto-close document undo did not restore document, closure, and work amount together');

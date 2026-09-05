@@ -95,7 +95,11 @@
       const target=typeof global.aiTargetByKey==='function'?global.aiTargetByKey(String(d.targetKey||'')):null;
       if(!target||String(action.object_id||'')!==String(target.object?.id||'')||String(action.order_id||'')!==String(target.order?.id||''))return 'FRAME заблокировал документ для неподтверждённого заказа.';
       if(type!=='proposal'&&closureId&&!(target.order?.workClosures||[]).some(item=>String(item.id||'')===closureId))return 'FRAME заблокировал документ по неизвестному закрытию.';
-      if(type!=='proposal'&&!closureId){const ready=Number(global.orderWorkProgress?.(target.order)?.ready||0);if(!(ready>.009))return 'FRAME заблокировал документ: нет выполненного объёма для закрытия.';}
+      if(type!=='proposal'&&!closureId){
+        const ready=Number(global.orderWorkProgress?.(target.order)?.ready||0);
+        const completed=Number(global.completedDocumentDraft?.(target.order)?.amount||0);
+        if(!(ready>.009)&&!(completed>.009))return 'FRAME заблокировал документ: нет выполненного объёма для закрытия.';
+      }
     }
     const graphError=targetGraphError(d);if(graphError)return graphError+' Ничего не применено.';
     return '';
