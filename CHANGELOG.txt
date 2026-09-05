@@ -1,3 +1,8 @@
+FRAME 2.8.7 — Live dialog regression gate
+- Исправлен клиентский предохранитель: акт и перечень можно создать по текущим отметкам выполнения, даже если старое закрытие уже поглотило весь денежный остаток.
+- Добавлен сквозной браузерный тест реального сценария: полное старое закрытие → изменение прогресса → новый актуальный акт → проверенное сохранение и откат.
+- Серверный набор дополнен живыми формулировками владельца для перечня и акта после повторной отметки трёх работ.
+
 FRAME 2.8.6 — Current-state completion documents
 - Acts and completed-work lists now use the works currently marked complete instead of silently reusing an older closure.
 - A corrected act can be generated after completion marks are reduced, even when the earlier full closure has no new ready amount.
