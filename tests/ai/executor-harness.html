@@ -108,6 +108,11 @@
     assert(await autoPromise===true&&objects[0].orders[0].documentHistory.length===1&&objects[0].orders[0].workClosures.length===1,'act did not atomically freeze ready volume and persist document');
     const autoDocument=objects[0].orders[0].documentHistory[0],autoClosure=objects[0].orders[0].workClosures[0],autoLogId=frameLastApplyReceipt?.logId;
     assert(autoDocument.closureId===autoClosure.id&&autoWork.id===objects[0].orders[0].works[0].id&&objects[0].orders[0].works[0].closedAmount===1000,'auto-close act did not bind its immutable closure');
+    objects[0].orders[0].works[0].progressPct=50;
+    const corrected=aiDocumentEntry(objects[0],objects[0].orders[0],{document_type:'act',closure_id:''});
+    assert(corrected.entry.closureId===''&&corrected.autoClosure===null,'corrected current-state act silently reused the old closure');
+    assert(corrected.entry.total===500&&corrected.entry.snapshot.length===1&&parseNum(corrected.entry.snapshot[0].qty)===1,'corrected current-state act did not use only the currently completed volume');
+    objects[0].orders[0].works[0].progressPct=100;
     const autoUndo=await undoLastAiAction(autoLogId);
     assert(autoUndo.ok&&autoUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===0&&objects[0].orders[0].workClosures.length===0&&objects[0].orders[0].works[0].closedAmount===0,'auto-close document undo did not restore document, closure, and work amount together');
     objects[0].orders[0].workClosures=[clone(closure)];

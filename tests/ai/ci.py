@@ -156,7 +156,7 @@ def contract() -> None:
     menu_routes = re.findall(r'data-menu-route="([^"]+)"', menu)
     if menu_routes != ["objectsList", "globalDocs", "globalGallery", "settings"]:
         raise RuntimeError(f"Chat-first menu routes changed: {menu_routes}")
-    for needle in ("function renderGlobalGallery", "function objectOrderWorksPreview", "data-object-works", "kind:'remove_document_and_closure'", "function freezeReadyClosure"):
+    for needle in ("function renderGlobalGallery", "function objectOrderWorksPreview", "data-object-works", "kind:'remove_document_and_closure'", "function freezeReadyClosure", "function completedDocumentDraft", "currentCompletedSnapshot:true"):
         if needle not in app:
             raise RuntimeError(f"Chat-first workflow contract missing: {needle}")
     if "if(['order','works','photos','documents'].includes(link.kind))" not in chat:

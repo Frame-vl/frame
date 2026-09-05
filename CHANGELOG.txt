@@ -1,3 +1,9 @@
+FRAME 2.8.6 — Current-state completion documents
+- Acts and completed-work lists now use the works currently marked complete instead of silently reusing an older closure.
+- A corrected act can be generated after completion marks are reduced, even when the earlier full closure has no new ready amount.
+- Manual act review no longer overwrites the completed subtotal with the full contract total.
+- Existing frozen closures remain available only when the user explicitly selects the historical closure.
+
 FRAME 2.8.5 — Field dialog cleanup and resilient delivery
 - Во время диктовки остаются только голосовая дорожка и таймер: распознанный текст больше не перекрывает диаграмму.
 - Из шапки чата убрано название текущего объекта; объект по-прежнему удерживается внутри контекста разговора.
