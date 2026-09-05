@@ -122,6 +122,57 @@
     assert(correctedUndo.ok&&correctedUndo.postconditionVerified&&objects[0].orders[0].documentHistory.length===0&&objects[0].orders[0].workClosures.length===1,'current-state document undo did not preserve the historical closure');
     objects[0].orders[0].works[0].progressPct=100;
 
+    // Exact stateful replay of Nikolai's 2026-09-05 field test.  This is
+    // intentionally broader than the one-row regression above: a historical
+    // full act exists, eight rows are corrected back to 0%, three electrical
+    // rows are then completed again, and both current-state documents must be
+    // rebuilt from the live 12/17 rows rather than the historical closure.
+    const ownerWorks=[
+      ['owner-plumbing','Сантехнические работы полный монтаж',1,'компл.',50000],
+      ['owner-installation','Монтаж инсталляции под унитаз',1,'шт.',10000],
+      ['owner-box','Зашивка коробом инсталляции и трубы',1,'компл.',15000],
+      ['owner-shower','Монтаж душевого поддона с бортиком',1,'компл.',15000],
+      ['owner-cable-chase','Прокладка кабеля в штробе',17,'пог. м',200],
+      ['owner-cable-open','Прокладка кабеля открытая',20,'пог. м',150],
+      ['owner-sockets','Устройство гнёзд под розетки и выключатели',10,'шт.',500],
+      ['owner-switches','Монтаж розеток и выключателей',20,'шт.',250],
+      ['owner-vinyl','Укладка кварц-винила на пол',35,'м²',800],
+      ['owner-plinth','Монтаж плинтуса ПВХ',25,'пог. м',300],
+      ['owner-fleece','Поклейка малярного флизелина',60,'м²',450],
+      ['owner-door','Монтаж межкомнатной двери',1,'шт.',7000],
+      ['owner-wall-tile','Укладка керамогранита на стены',10,'м²',4000],
+      ['owner-floor-tile','Укладка керамогранита на пол',3,'м²',3500],
+      ['owner-podium','Облицовка подиума душевого поддона керамогранитом',1,'компл.',10000],
+      ['owner-paint','Покраска стен',70,'м²',450],
+      ['owner-waterproof','Устройство гидроизоляции санузла',7,'м²',800]
+    ];
+    const ownerObject=defaultObject(),ownerOrder=ownerObject.orders[0];
+    ownerObject.id='obj-owner-history';ownerObject.contact.address='Архангельское 21, корпус 5, квартира 80';
+    ownerOrder.id='order-owner-history';ownerOrder.title='Ремонт квартиры';ownerOrder.pricing.contractTotal='273500';
+    ownerOrder.works=ownerWorks.map(([id,name,qty,unit,price])=>({id,name,qty:String(qty),unit,price:String(price),progressPct:100,closedAmount:qty*price,progressNote:''}));
+    const fullSnapshot=ownerOrder.works.map(row=>normalizeGenericRow({name:row.name,qty:row.qty,unit:row.unit,price:row.price},'Работы'));
+    ownerOrder.workClosures=[normalizeWorkClosure({id:'owner-full-closure',number:1,date:'2026-09-05',amount:273500,snapshot:fullSnapshot})];
+    ownerOrder.documentHistory=[];objects=[normalizeObject(ownerObject)];routeState.aiTarget='obj-owner-history|order-owner-history';
+    const executeOwnerDraft=async(chatId,text,actions)=>{const candidate=aiSafeDraftFromResponse(text,{meta:{mode:'field_safe'},result:{summary:'owner history replay',actions}},routeState.aiTarget,'Архангельское 21 · Ремонт квартиры');candidate.chatId=chatId;const button=document.createElement('button');document.body.appendChild(button);let promise;assert(candidate.ok&&aiBindDisplayedDraftApply(button,candidate,token=>{promise=applyBrainDraft(candidate,token)}),chatId+' did not arm');button.click();assert(await promise===true,chatId+' did not apply');return objects[0].orders[0]};
+    const incompleteIds=['owner-cable-chase','owner-cable-open','owner-sockets','owner-switches','owner-vinyl','owner-wall-tile','owner-floor-tile','owner-podium'];
+    let replayOrder=await executeOwnerDraft('owner-remove-eight','Электромонтаж, напольное покрытие и керамогранит не выполнены',incompleteIds.map(work_id=>({type:'set_work_progress',object_id:ownerObject.id,order_id:ownerOrder.id,work_id,progress_pct:0})));
+    assert(replayOrder.works.filter(row=>workProgressPct(row)===100).length===9,'owner replay did not preserve exact 9/17 corrected completed rows');
+    replayOrder=await executeOwnerDraft('owner-corrected-act','Сделай откорректированный акт выполненных работ',[{type:'create_document',object_id:ownerObject.id,order_id:ownerOrder.id,document_type:'act',closure_id:''}]);
+    let replayDoc=replayOrder.documentHistory.at(-1);
+    assert(replayDoc.closureId===''&&replayDoc.total===168600&&replayDoc.snapshot.length===9,'corrected 9/17 act reused the historical 273500 closure or has the wrong live total');
+    const restoredElectrical=['owner-cable-chase','owner-cable-open','owner-sockets'];
+    replayOrder=await executeOwnerDraft('owner-complete-three-electrical','Прокладка кабеля в штробе, открытая прокладка и устройство гнёзд выполнены',restoredElectrical.map(work_id=>({type:'set_work_progress',object_id:ownerObject.id,order_id:ownerOrder.id,work_id,progress_pct:100})));
+    assert(replayOrder.works.filter(row=>workProgressPct(row)===100).length===12,'owner replay did not reach exact 12/17 current completion state');
+    replayOrder=await executeOwnerDraft('owner-current-worklist','По выполненным работам сделай перечень',[{type:'create_document',object_id:ownerObject.id,order_id:ownerOrder.id,document_type:'worklist',closure_id:''}]);
+    replayDoc=replayOrder.documentHistory.at(-1);
+    assert(replayDoc.closureId===''&&replayDoc.total===180000&&replayDoc.snapshot.length===12,'current worklist did not use the exact 12/17 live rows and 180000 total');
+    replayOrder=await executeOwnerDraft('owner-current-act','По выполненным работам этого объекта сделай акт',[{type:'create_document',object_id:ownerObject.id,order_id:ownerOrder.id,document_type:'act',closure_id:''}]);
+    replayDoc=replayOrder.documentHistory.at(-1);const replayNames=replayDoc.snapshot.map(row=>row.name).join('|');
+    assert(replayDoc.closureId===''&&replayDoc.total===180000&&replayDoc.snapshot.length===12,'current act did not use the exact 12/17 live rows and 180000 total');
+    assert(!/Монтаж розеток|кварц-винил|керамогранита/.test(replayNames),'current act leaked one of the five unfinished rows');
+    assert(replayOrder.workClosures.length===1&&replayOrder.workClosures[0].amount===273500,'current documents mutated or replaced the historical full closure');
+    objects=[normalizeObject(object)];routeState.aiTarget='obj-executor|order-executor';
+
     const secondDocDraft=aiSafeDraftFromResponse('Создай ещё один акт по закрытию номер 1',{meta:{mode:'field_safe'},result:{summary:'second document plan',actions:[{type:'create_document',object_id:object.id,order_id:order.id,document_type:'act',closure_id:closure.id}]}},routeState.aiTarget,'Тестовая, 1 · Полевой тест');
     secondDocDraft.chatId='executor-document-2';const secondDocButton=document.createElement('button');document.body.appendChild(secondDocButton);let secondDocPromise;
     aiBindDisplayedDraftApply(secondDocButton,secondDocDraft,token=>{secondDocPromise=applyBrainDraft(secondDocDraft,token)});secondDocButton.click();
