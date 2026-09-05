@@ -1,16 +1,16 @@
-const CACHE='frame-v285-field-safe';
+const CACHE='frame-v286-field-safe';
 const FRAME_CACHE_PREFIX='frame-v';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=285',
-  './ai-chat.css?v=285',
-  './ai-test.css?v=285',
-  './ai-safety.js?v=285',
-  './app.js?v=285',
-  './ai-chat.js?v=285',
-  './ai-guard.js?v=285',
-  './manifest.webmanifest?v=285',
+  './styles.css?v=286',
+  './ai-chat.css?v=286',
+  './ai-test.css?v=286',
+  './ai-safety.js?v=286',
+  './app.js?v=286',
+  './ai-chat.js?v=286',
+  './ai-guard.js?v=286',
+  './manifest.webmanifest?v=286',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
