@@ -1,6 +1,6 @@
 'use strict';
 
-// FRAME 2.8.5 chat-first companion.
+// FRAME 2.8.7 chat-first companion.
 const FRAME_CHAT_KEY='frameAiChatV270';
 const FRAME_CHAT_PENDING_KEY='frameAiPendingV270';
 const FRAME_CHAT_TOPIC_KEY='frameAiTopicV270';
