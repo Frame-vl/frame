@@ -420,6 +420,22 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(frameTopic()===TARGET.key&&routeState.aiTarget===TARGET.key,'add-work command left the active object');
     document.querySelector('[data-chat-cancel]')?.click();
     assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'explicit object did not switch add-work target');
+    // Owner dialogue 07 Sep: add-work clarification must retain the newly selected object.
+    frameSetTopic(TARGET.key);
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{needs_clarification:true,clarification:'Как правильно называются вторые и третьи работы?',summary:'Уточни названия',actions:[]}};
+    await send('Давай добавим на работу на этот объект монтаж душевого поддона 50 000 руб. Наташ поручни 20 000 руб. комплексом подкова для Слонов четыре штуки по пять тыщ рублей');
+    assert(frameTopic()===TARGET.key,'давай добавим switched to another object by work name');
+    assert(!!frameMutationClarificationSession,'add-work clarification intent was lost');
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Добавить работы',actions:[
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Монтаж душевого поддона',qty:1,unit:'компл.',price:50000},
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Монтаж поручней',qty:1,unit:'компл.',price:20000},
+      {type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Подковы для слонов',qty:4,unit:'шт.',price:5000}
+    ]}};
+    await send('Монтаж душевого поддона 50 000 руб. монтаж поручной 20 000 руб. комплексом подковы для Слонов четыре штуки по 5000 руб. за каждую');
+    assert(frameTopic()===TARGET.key&&!!document.querySelector('[data-chat-apply]'),'clarification follow-up lost target or was blocked');
+    document.querySelector('[data-chat-cancel]')?.click();BRAIN_REPLY=null;
+    const abbreviatedProposal=frameLocalOpenIntent('Вы коммерческое предложение по этому объе');
+    assert(!!abbreviatedProposal&&abbreviatedProposal.links.length>0,'dictated document request did not return a saved-document link');
     // 9. /frame-field pins field_safe locally even when provider metadata is missing.
     const safetyStart=ORDER.works.length;
     BRAIN_REPLY={result:{summary:'mixed',actions:[
@@ -550,3 +566,4 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 })();
 </script>
 </body></html>
+

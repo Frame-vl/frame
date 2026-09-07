@@ -9,6 +9,8 @@ on:
       - 'ai-chat.css'
       - 'sw.js'
       - 'app.js'
+      - 'owner-reset.js'
+      - 'tests/ai/owner-reset.test.cjs'
       - 'ai-safety.js'
       - 'ai-chat.js'
       - 'ai-guard.js'
@@ -19,6 +21,8 @@ on:
       - 'tests/ai/resolve-python.cmd'
       - 'tests/ai/find-python.vbs'
       - '.github/workflows/frame-ai-tests.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -59,8 +63,9 @@ jobs:
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor'
 
       - name: Publish test status
-        if: always()
+        if: always() && github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           FRAME_CI_JOB_STATUS: ${{ job.status }}
         run: '"%FRAME_PYTHON%" -X utf8 tests\ai\ci.py status'
+
