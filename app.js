@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.8.7';
+const VERSION='2.8.8';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -357,7 +357,7 @@ function localKeys(){try{return Array.from({length:localStorage.length},(_,i)=>l
 async function migrateLegacy(){
   const existing=await dbAll();const ids=new Set(existing.map(x=>x.id));
   const keys=[...new Set([...OLD_BACKUP_KEYS,...localKeys().filter(k=>/^frameObjects/i.test(k))])];
-  for(const key of keys){try{const arr=JSON.parse(storageGet(key,'[]')||'[]');if(!Array.isArray(arr))continue;for(const raw of arr){const object=normalizeObject(raw);if(!ids.has(object.id)){await dbPut(object);ids.add(object.id)}}}catch(e){console.warn('migration',key,e)}}
+  for(const key of keys){try{const arr=JSON.parse(storageGet(key,'[]')||'[]');if(!Array.isArray(arr))continue;for(const raw of arr){const object=normalizeObject(raw);if(!ids.has(object.id)&&!frameOwnerRetiredIds().has(object.id)){await dbPut(object);ids.add(object.id)}}}catch(e){console.warn('migration',key,e)}}
 }
 async function reloadObjects(){const stored=await dbAll(),migrations=[];objects=stored.map(raw=>{const normalized=normalizeObject(raw),needsStableIds=(raw.orders||[]).some(order=>(order.photos||[]).some(photo=>!photo?.id)||(order.documentHistory||[]).some(doc=>!doc?.id));if(needsStableIds){normalized.updatedAt=raw.updatedAt||normalized.updatedAt;migrations.push(normalized)}return normalized}).sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));if(migrations.length)await dbApplyBatch(migrations,[]);mirrorBackup()}
 async function saveObject(object,{reload=false}={}){object.updatedAt=now();object.version=VERSION;const normalized=normalizeObject(object);normalized.updatedAt=object.updatedAt;await dbPut(normalized);const i=objects.findIndex(o=>o.id===object.id);if(i<0)objects.push(object);objects.sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));mirrorBackup();if(reload)await reloadObjects();return object}
@@ -1379,6 +1379,7 @@ async function init(){
     await migrateLegacy();
     await reloadObjects();
     retireLegacyContentPatches();
+    try{await framePrepareOwnerRetest()}catch(error){console.error("Owner retest preparation",error);toast("Не удалось подготовить карточки к тесту: "+String(error.message||error))}
   }catch(e){
     console.error('IndexedDB',e);
     try{
@@ -1391,7 +1392,8 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=287',{updateViaCache:'none'}).catch(console.warn);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=288',{updateViaCache:'none'}).catch(console.warn);
 }
 const frameSkipInitForExecutorHarness=window.FRAME_TEST_SKIP_APP_INIT===true&&location.protocol==='file:'&&/\/tests\/ai\/executor-harness\.html$/i.test(decodeURI(location.pathname||''));
 if(!frameSkipInitForExecutorHarness)init();
+
