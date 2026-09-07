@@ -288,7 +288,7 @@ analyzeAiInput=async function(){
     const localOpen=mutationIntent?null:frameLocalOpenIntent(text);
     if(localOpen){frameAddChat({role:'assistant',text:localOpen.text,status:'done',turnId,links:localOpen.links,trace:{provider:'FRAME local navigation',model:VERSION,mode:'local',outcome:'answer',round_trip_ms:Math.round(performance.now()-started),proposed_actions:[],policy_blocked_actions:[]}});return}
     let draft,response=null;if(aiServerUrl()){response=await requestAiBrain(text);if(mutationIntent)response={...response,meta:{...(response?.meta||{}),mutation_intent:true}};draft=brainDraftFromResponse(text,response)}else draft=parseAiCommand(text,frameTopic()||routeState.aiTarget);
-    if(draft?.targetKey&&aiTargetByKey(draft.targetKey)){const explicit=frameDetectTarget(text);if(explicit)frameSetTopic(explicit);else if(frameTopic())draft.targetKey=frameTopic();else frameSetTopic(draft.targetKey)}
+    if(draft?.targetKey&&aiTargetByKey(draft.targetKey)){const explicit=detected;if(explicit)frameSetTopic(explicit);else if(frameTopic())draft.targetKey=frameTopic();else frameSetTopic(draft.targetKey)}
     frameAttachTargetSnapshot(draft);const policyError=frameDraftPolicyError(draft);if(policyError)draft={...draft,ok:false,source:'brain',blocked:true,error:policyError,text};
     if(draft?.clarification&&mutationIntent)frameMutationClarificationSession=directMutation?text:previousMutation;const trace=frameBuildTestTrace(draft,response,Math.round(performance.now()-started));
     if(draft?.ok&&draft.type==='read_answer')frameAddChat({role:'assistant',text:draft.summary,status:'done',turnId,trace,sources:draft.sources||[]});
