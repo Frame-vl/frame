@@ -1,16 +1,16 @@
-const CACHE='frame-v287-field-safe';
+const CACHE='frame-v288-field-safe';
 const FRAME_CACHE_PREFIX='frame-v';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=287',
-  './ai-chat.css?v=287',
-  './ai-test.css?v=287',
-  './ai-safety.js?v=287',
-  './app.js?v=287',
-  './ai-chat.js?v=287',
-  './ai-guard.js?v=287',
-  './manifest.webmanifest?v=287',
+  './styles.css?v=288',
+  './ai-chat.css?v=288',
+  './ai-test.css?v=288',
+  './ai-safety.js?v=288',
+  './app.js?v=288',
+  './ai-chat.js?v=288',
+  './ai-guard.js?v=288',
+  './manifest.webmanifest?v=288',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -73,3 +73,4 @@ self.addEventListener('fetch',event=>{
       .catch(async()=>await caches.match(event.request)||Response.error())
   );
 });
+
