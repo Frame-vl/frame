@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.8.8';
+const VERSION='2.8.9';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -354,32 +354,10 @@ function dbApplyBatch(upserts=[],deleteIds=[],expectedRevisions=null){return new
 function stripPhotos(object){const c=clone(object);for(const order of c.orders||[]){order.photos=(order.photos||[]).map(p=>({id:p.id,caption:p.caption||'',missing:true}));for(const purchase of order.purchases||[])if(purchase.receiptData){purchase.receiptData='';purchase.receiptMissing=true}for(const exp of order.expenses||[])if(exp.receiptData){exp.receiptData='';exp.receiptMissing=true}}return c}
 function mirrorBackup(){storageSet(BACKUP_KEY,JSON.stringify(objects.map(stripPhotos)))}
 function localKeys(){try{return Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(Boolean)}catch(e){return []}}
-// Owner-requested maintenance: exact saved IDs only, once per device, with full undo data.
-const FRAME_OWNER_CLEANUP_20260907='ownerCleanup20260907';
-const FRAME_OWNER_KEEP_ID='d99ee27d-bc10-48fe-93a1-317b76c7c134';
-const FRAME_OWNER_DUPLICATE_ID='746c985f-f709-4399-868a-d30f2473e6b6';
-const FRAME_OWNER_ARCH_ID='f5567c04-8fe0-4776-9756-03dce89422c9';
-async function applyOwnerCleanup20260907(){
-  const upserts=[],deletes=[],revisions=new Map();
-  const keep=objects.find(o=>o.id===FRAME_OWNER_KEEP_ID),duplicate=objects.find(o=>o.id===FRAME_OWNER_DUPLICATE_ID);
-  const matchesKate=o=>o&&/октябр/i.test(o.contact?.address||'')&&/(?:^|\D)16(?:\D|$)/.test(o.contact.address)&&/екатерин/i.test(o.contact?.name||'');
-  if(matchesKate(keep)&&matchesKate(duplicate)&&!keep.legacyMeta?.[FRAME_OWNER_CLEANUP_20260907]){
-    const next=clone(keep);next.legacyMeta={...next.legacyMeta,[FRAME_OWNER_CLEANUP_20260907]:{at:now(),archivedObject:clone(duplicate)}};next.updatedAt=now();
-    upserts.push(next);deletes.push(duplicate.id);revisions.set(keep.id,keep.updatedAt);revisions.set(duplicate.id,duplicate.updatedAt);
-  }
-  const arch=objects.find(o=>o.id===FRAME_OWNER_ARCH_ID);
-  if(arch&&/арханг/i.test(arch.contact?.address||'')&&!arch.legacyMeta?.[FRAME_OWNER_CLEANUP_20260907]){
-    const next=clone(arch);next.legacyMeta={...next.legacyMeta,[FRAME_OWNER_CLEANUP_20260907]:{at:now(),progress:next.orders.map(o=>({orderId:o.id,works:o.works.map(w=>({id:w.id,progressPct:w.progressPct,progressNote:w.progressNote||''}))}))}};
-    for(const order of next.orders)for(const work of order.works){work.progressPct=0;work.progressNote='Сброс перед личным тестом 07.09.2026'}
-    next.updatedAt=now();upserts.push(next);revisions.set(arch.id,arch.updatedAt);
-  }
-  if(!upserts.length)return false;
-  await dbApplyBatch(upserts,deletes,revisions);await reloadObjects();return true;
-}
 async function migrateLegacy(){
-  const existing=await dbAll();const ids=new Set(existing.map(x=>x.id));for(const object of existing){const archived=object.legacyMeta?.[FRAME_OWNER_CLEANUP_20260907]?.archivedObject;if(archived?.id)ids.add(archived.id)}
+  const existing=await dbAll();const ids=new Set(existing.map(x=>x.id));
   const keys=[...new Set([...OLD_BACKUP_KEYS,...localKeys().filter(k=>/^frameObjects/i.test(k))])];
-  for(const key of keys){try{const arr=JSON.parse(storageGet(key,'[]')||'[]');if(!Array.isArray(arr))continue;for(const raw of arr){const object=normalizeObject(raw);if(!ids.has(object.id)){await dbPut(object);ids.add(object.id)}}}catch(e){console.warn('migration',key,e)}}
+  for(const key of keys){try{const arr=JSON.parse(storageGet(key,'[]')||'[]');if(!Array.isArray(arr))continue;for(const raw of arr){const object=normalizeObject(raw);if(!ids.has(object.id)&&!frameOwnerRetiredIds().has(object.id)){await dbPut(object);ids.add(object.id)}}}catch(e){console.warn('migration',key,e)}}
 }
 async function reloadObjects(){const stored=await dbAll(),migrations=[];objects=stored.map(raw=>{const normalized=normalizeObject(raw),needsStableIds=(raw.orders||[]).some(order=>(order.photos||[]).some(photo=>!photo?.id)||(order.documentHistory||[]).some(doc=>!doc?.id));if(needsStableIds){normalized.updatedAt=raw.updatedAt||normalized.updatedAt;migrations.push(normalized)}return normalized}).sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));if(migrations.length)await dbApplyBatch(migrations,[]);mirrorBackup()}
 async function saveObject(object,{reload=false}={}){object.updatedAt=now();object.version=VERSION;const normalized=normalizeObject(object);normalized.updatedAt=object.updatedAt;await dbPut(normalized);const i=objects.findIndex(o=>o.id===object.id);if(i<0)objects.push(object);objects.sort((a,b)=>String(a.updatedAt).localeCompare(String(b.updatedAt)));mirrorBackup();if(reload)await reloadObjects();return object}
@@ -1401,7 +1379,7 @@ async function init(){
     await migrateLegacy();
     await reloadObjects();
     retireLegacyContentPatches();
-    await applyOwnerCleanup20260907();
+    try{await framePrepareOwnerRetest()}catch(error){console.error("Owner retest preparation",error);toast("Не удалось подготовить карточки к тесту: "+String(error.message||error))}
   }catch(e){
     console.error('IndexedDB',e);
     try{
@@ -1414,8 +1392,9 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=288',{updateViaCache:'none'}).catch(console.warn);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js?v=289',{updateViaCache:'none'}).catch(console.warn);
 }
 const frameSkipInitForExecutorHarness=window.FRAME_TEST_SKIP_APP_INIT===true&&location.protocol==='file:'&&/\/tests\/ai\/executor-harness\.html$/i.test(decodeURI(location.pathname||''));
 if(!frameSkipInitForExecutorHarness)init();
+
 

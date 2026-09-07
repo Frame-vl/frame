@@ -9,6 +9,8 @@ on:
       - 'ai-chat.css'
       - 'sw.js'
       - 'app.js'
+      - 'owner-reset.js'
+      - 'tests/ai/owner-reset.test.cjs'
       - 'ai-safety.js'
       - 'ai-chat.js'
       - 'ai-guard.js'

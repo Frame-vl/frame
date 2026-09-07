@@ -8,6 +8,7 @@
 <pre id="result">RUNNING</pre>
 <script>window.FRAME_TEST_SKIP_APP_INIT=true;window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;</script>
 <script src="../../ai-safety.js"></script>
+<script src="../../owner-reset.js"></script>
 <script src="../../app.js"></script>
 <script>
 (async()=>{
@@ -189,26 +190,6 @@
     const missingUndo=await undoLastAiAction(secondLogId);
     assert(!missingUndo.ok&&dbWrites===writeCountBeforeDrift,'missing inverse entity produced a no-op success');
     assert(!audit.find(item=>item.id===secondLogId)?.undone,'missing inverse entity was marked undone');
-    // Exact owner cleanup: one card, preserved archive, zero current progress, no replay.
-    const makeOwner=(id,address,name)=>{const o=normalizeObject(defaultObject());o.id=id;o.contact.address=address;o.contact.name=name;return o};
-    const keep=makeOwner(FRAME_OWNER_KEEP_ID,'Владивосток, улица Октябрьская, 16','Екатерина');
-    const duplicate=makeOwner(FRAME_OWNER_DUPLICATE_ID,'улица Октябрьская, 16','Екатерина');
-    duplicate.orders[0].documentHistory=[{id:'historic-doc',type:'proposal',snapshot:[]}];
-    const arch=makeOwner(FRAME_OWNER_ARCH_ID,'Архангельское 21, корпус 5, квартира 80','Денис');
-    arch.orders[0].works=[normalizeGenericRow({id:'owner-w',name:'Монтаж',qty:'4',price:'5000',progressPct:65,closedAmount:1000},'Работы')];
-    const other=makeOwner('unrelated','Другая 1','Другой'),otherBefore=JSON.stringify(other);
-    objects=[keep,duplicate,arch,other];const duplicateBefore=JSON.stringify(duplicate);
-    await applyOwnerCleanup20260907();
-    assert(objects.filter(o=>/октябр/i.test(o.contact.address)).length===1,'cleanup left duplicate card');
-    assert(JSON.stringify(objects.find(o=>o.id===keep.id).legacyMeta[FRAME_OWNER_CLEANUP_20260907].archivedObject)===duplicateBefore,'cleanup lost historical card data');
-    const resetWork=objects.find(o=>o.id===arch.id).orders[0].works[0];
-    assert(workProgressPct(resetWork)===0&&resetWork.qty==='4'&&resetWork.price==='5000'&&resetWork.closedAmount===1000,'cleanup damaged quantities/prices/closure history');
-    assert(JSON.stringify(objects.find(o=>o.id==='unrelated'))===otherBefore,'cleanup touched unrelated object');
-    resetWork.progressPct=100;await applyOwnerCleanup20260907();
-    assert(workProgressPct(resetWork)===100,'cleanup repeated and erased new progress');
-    // Legacy mirrors must not resurrect the removed duplicate on next startup.
-    const realStorageGet=storageGet;dbAll=async()=>clone(objects);storageGet=(k,f='')=>k===OLD_BACKUP_KEYS[0]?JSON.stringify([duplicate]):realStorageGet(k,f);
-    await migrateLegacy();assert(!objects.some(o=>o.id===duplicate.id),'legacy mirror resurrected duplicate');storageGet=realStorageGet;
   }catch(error){failures.push('exception: '+(error?.stack||error))}
   document.getElementById('result').textContent=failures.length?`FRAME_EXECUTOR_E2E_FAIL\n${failures.join('\n')}`:'FRAME_EXECUTOR_E2E_PASS';
 })();
