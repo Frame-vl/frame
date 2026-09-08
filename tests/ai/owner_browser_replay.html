@@ -46,7 +46,7 @@ try{
   await dbPut(normalizeObject(oct));await dbPut(normalizeObject(circ));await reloadObjects();
   const otherBefore=JSON.stringify(objects.find(o=>o.id===oct.id));
   route='ai';routeState={aiTarget:'obj-circus|ord-circus'};frameSetTopic(routeState.aiTarget);render();
-  const health=await checkAiBrain({toastResult:false});assert(health?.ok&&aiFieldSafeHealthVerified(),'Field health not authenticated');
+  const health=await checkAiBrain({toastResult:false});assert(health?.ok&&aiFieldSafeHealthVerified(),'Field health not authenticated: '+JSON.stringify(health));
   frameAddChat({role:'user',text:'По Октябрьской 16 покажи работы',status:'done'});
   frameAddChat({role:'assistant',text:'На Октябрьской есть монтаж плинтуса.',status:'done'});
   frameAddChat({role:'user',text:'Теперь работаем на Цирковой 21',status:'done'});

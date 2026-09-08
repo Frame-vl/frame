@@ -65,6 +65,7 @@ class Handler(BaseHTTPRequestHandler):
         self.forward()
     def forward(self):
         global COST, CALLS
+        print("BRIDGE_REQUEST "+self.command+" "+self.path.removeprefix("/"+NONCE),flush=True)
         prefix = "/frame-field"
         suffix = self.path.removeprefix(prefix)
         if not self.path.startswith(prefix) or suffix not in ("/health","/analyze") or self.headers.get("Authorization") != "Bearer "+NONCE:
@@ -137,6 +138,11 @@ def main():
     assert_runner()
     if not TOKEN:
         raise RuntimeError("FRAME token unavailable on browser runner")
+    with urllib.request.urlopen(urllib.request.Request(URL+"/health", headers={"Authorization":"Bearer "+TOKEN}), timeout=15) as response:
+        live_health=json.load(response)
+    print("INSTALLED_HEALTH "+json.dumps({k:live_health.get(k) for k in ("ok","version","mode")}),flush=True)
+    if not live_health.get("ok") or live_health.get("mode")!="field_safe":
+        raise RuntimeError("Installed server is not healthy field_safe")
     edge = next((Path(p) for p in [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"] if Path(p).exists()), None)
     if not edge:
         raise RuntimeError("Edge is unavailable")
