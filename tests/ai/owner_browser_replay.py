@@ -7,6 +7,10 @@ import json
 import os
 import secrets
 import shutil
+import socket
+import struct
+import base64
+import urllib.parse
 import subprocess
 import tempfile
 import threading
@@ -81,6 +85,54 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             self.reply(502, {"ok":False,"message":type(exc).__name__+": "+str(exc)})
 
+
+class BrowserConsole:
+    """Small local CDP client; no browser credentials or external packages."""
+    def __init__(self, port):
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=3) as r:
+            pages=json.load(r)
+        page=next(x for x in pages if x.get("type")=="page")
+        target=urllib.parse.urlsplit(page["webSocketDebuggerUrl"])
+        self.sock=socket.create_connection(("127.0.0.1",port),timeout=5)
+        key=base64.b64encode(secrets.token_bytes(16)).decode()
+        request=f"GET {target.path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"
+        self.sock.sendall(request.encode())
+        response=b""
+        while not response.endswith(b"\r\n\r\n"):
+            response+=self.sock.recv(1)
+        if b" 101 " not in response.split(b"\r\n",1)[0]:
+            raise RuntimeError("CDP handshake rejected")
+        self.seq=0
+    def read(self,n):
+        result=b""
+        while len(result)<n:
+            chunk=self.sock.recv(n-len(result))
+            if not chunk:
+                raise RuntimeError("CDP connection closed")
+            result+=chunk
+        return result
+    def evaluate(self,expression):
+        self.seq+=1
+        data=json.dumps({"id":self.seq,"method":"Runtime.evaluate","params":{"expression":expression,"returnByValue":True}}).encode()
+        mask=secrets.token_bytes(4)
+        length=len(data)
+        header=bytes([0x81,0x80|length]) if length<126 else bytes([0x81,0x80|126])+struct.pack("!H",length)
+        self.sock.sendall(header+mask+bytes(c^mask[i%4] for i,c in enumerate(data)))
+        while True:
+            first,second=self.read(2)
+            length=second&127
+            if length==126:length=struct.unpack("!H",self.read(2))[0]
+            elif length==127:length=struct.unpack("!Q",self.read(8))[0]
+            payload=self.read(length)
+            if first&15==8:raise RuntimeError("CDP closed")
+            if first&15!=1:continue
+            message=json.loads(payload)
+            if message.get("id")==self.seq:
+                return message.get("result",{}).get("result",{}).get("value")
+    def close(self):
+        self.sock.close()
+
+
 def main():
     assert_runner()
     if not TOKEN:
@@ -91,6 +143,7 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1",0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     process = None
+    console = None
     try:
         with tempfile.TemporaryDirectory(prefix="frame-live-browser-", ignore_cleanup_errors=True) as folder:
             root=Path(folder)
@@ -110,8 +163,22 @@ def main():
             print("BROWSER_FRONTEND_REF="+FRONTEND_REF,flush=True)
             with (root/"edge.log").open("wb") as log:
                 process=subprocess.Popen([str(edge),"--headless=new","--remote-debugging-port=0","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-first-run","--no-default-browser-check","--allow-file-access-from-files","--disable-background-timer-throttling","--user-data-dir="+str(root/"profile"),harness.as_uri()],stdout=log,stderr=log)
-                deadline=time.monotonic()+600
+                deadline=time.monotonic()+240
+                last_step=""
+                boot=time.monotonic()
                 while not DONE.wait(1):
+                    port_file=root/"profile"/"DevToolsActivePort"
+                    if console is None and port_file.exists():
+                        try:console=BrowserConsole(int(port_file.read_text().splitlines()[0]))
+                        except (OSError, StopIteration):pass
+                    if console is not None:
+                        state=console.evaluate("({result:window.FRAME_REPLAY_RESULT||null,step:window.FRAME_REPLAY_STEP||document.readyState,url:location.href})") or {}
+                        if state.get("step")!=last_step:
+                            last_step=state.get("step");print("CDP_STEP "+str(last_step),flush=True)
+                        if state.get("result"):
+                            RESULT.update(state["result"]);DONE.set();break
+                    elif time.monotonic()-boot>30:
+                        raise RuntimeError("Headless browser did not expose local debugging port")
                     if time.monotonic()>deadline:
                         raise RuntimeError("Browser replay timed out")
                     if process.poll() is not None:
@@ -126,6 +193,8 @@ def main():
                 process.wait(timeout=10)
                 process=None
     finally:
+        if console is not None:
+            console.close()
         if process is not None and process.poll() is None:
             process.kill()
             process.wait(timeout=10)

@@ -2,7 +2,7 @@
 <button id="brandHome"></button><button id="globalDocsBtn"></button><button id="settingsBtn"></button><button id="lightBtn"></button><button id="darkBtn"></button><button id="closeDocumentBtn"></button><button id="printDocumentBtn"></button>
 <div id="viewHost"></div><div id="sheet"><div id="sheetPanel"></div></div><div id="documentView" class="hidden"></div><div id="toast"></div>
 <script>window.FRAME_TEST_SKIP_APP_INIT=true;window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;const BRIDGE=__BRIDGE__,TEST_TOKEN=__TOKEN__;
-const reportBootError=error=>fetch(BRIDGE+'/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ok:false,step:'browser boot',error:String(error)})});
+const reportBootError=error=>{window.FRAME_REPLAY_RESULT={ok:false,step:'browser boot',error:String(error)}};
 window.addEventListener('error',event=>reportBootError(event.message+' '+event.filename+':'+event.lineno));
 window.addEventListener('unhandledrejection',event=>reportBootError(event.reason?.stack||event.reason));
 </script>
@@ -14,7 +14,7 @@ storageSet(AI_SERVER_URL_KEY,new URL(BRIDGE).origin+'/frame-field');storageSet(A
 <script>
 (async()=>{
 let checks=0,step='initialization';
-const report=async(path,value)=>{await fetch(BRIDGE+'/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)})};
+const report=async(path,value)=>{if(path==='result')window.FRAME_REPLAY_RESULT=value;else window.FRAME_REPLAY_STEP=value.step};
 const assert=(ok,message)=>{if(!ok)throw new Error(message);checks++};
 const wait=async fn=>{const end=Date.now()+110000;while(Date.now()<end){if(fn())return;await new Promise(r=>setTimeout(r,40))}throw new Error('Timeout at '+step)};
 const current=()=>aiTargetByKey('obj-circus|ord-circus').order;
