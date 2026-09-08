@@ -92,6 +92,10 @@ class Handler(BaseHTTPRequestHandler):
             req = urllib.request.Request(URL+suffix, data=raw, headers={"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"}, method=self.command)
             with urllib.request.urlopen(req, timeout=100) as response:
                 body = json.load(response)
+            if suffix == "/analyze":
+                request_body=json.loads(raw)
+                context=request_body.get("context",{})
+                print("BRIDGE_PLAN "+json.dumps({"text":request_body.get("text"),"target":context.get("current_target"),"locked":context.get("conversation_target_key"),"objects":[{"id":o.get("id"),"address":o.get("address"),"orders":[{"id":q.get("id"),"works":q.get("works")} for q in o.get("orders",[])]} for o in context.get("objects",[])],"result":body.get("result")},ensure_ascii=False),flush=True)
             COST += float(body.get("meta",{}).get("estimated_usd") or 0)
             self.reply(200, body)
         except Exception as exc:
