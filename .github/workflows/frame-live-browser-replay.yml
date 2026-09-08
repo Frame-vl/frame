@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'app.js'
+      - 'ai-chat.js'
+      - 'ai-guard.js'
+      - 'ai-safety.js'
+      - 'owner-reset.js'
       - 'tests/ai/owner_browser_replay.py'
       - 'tests/ai/owner_browser_replay.html'
       - '.github/workflows/frame-live-browser-replay.yml'

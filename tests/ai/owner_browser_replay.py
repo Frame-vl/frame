@@ -20,7 +20,7 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-FRONTEND_REF = "6c0bf204db76830d936422e1ac57c0835c822ed1"
+FRONTEND_REF = os.environ.get("GITHUB_SHA", "baebc9144d4b3e8491f2d4eaac7f8c603e552a37")
 FILES = ["app.js", "ai-chat.js", "ai-guard.js", "ai-safety.js", "owner-reset.js"]
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -170,10 +170,12 @@ def main():
             for name in FILES:
                 with urllib.request.urlopen("https://raw.githubusercontent.com/Frame-vl/frame/"+FRONTEND_REF+"/"+name, timeout=30) as response:
                     pinned = response.read()
-                with urllib.request.urlopen("https://frame-vl.github.io/frame/"+name+"?replay="+NONCE, timeout=30) as response:
-                    deployed = response.read()
-                if pinned != deployed:
-                    raise RuntimeError("Published frontend differs from pinned revision: "+name)
+                for attempt in range(18):
+                    with urllib.request.urlopen("https://frame-vl.github.io/frame/"+name+"?replay="+NONCE+str(attempt), timeout=30) as response:
+                        deployed = response.read()
+                    if pinned == deployed:break
+                    if attempt == 17:raise RuntimeError("Published frontend differs from tested revision: "+name)
+                    time.sleep(5)
                 (root/name).write_bytes(pinned)
                 STATIC[name]=pinned
             harness=root/"tests"/"ai"/"executor-harness.html"
