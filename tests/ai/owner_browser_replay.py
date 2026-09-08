@@ -18,6 +18,8 @@ from pathlib import Path
 
 FRONTEND_REF = "6c0bf204db76830d936422e1ac57c0835c822ed1"
 FILES = ["app.js", "ai-chat.js", "ai-guard.js", "ai-safety.js", "owner-reset.js"]
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ci import load_machine_env, assert_runner
 URL = "http://127.0.0.1:8788"
 TOKEN = load_machine_env("FRAME_AI_TOKEN")
