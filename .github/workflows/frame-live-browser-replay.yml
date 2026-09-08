@@ -11,7 +11,7 @@ permissions:
   contents: read
 concurrency:
   group: frame-live-browser-replay
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   live-browser:
     runs-on: [self-hosted, Windows, X64]
