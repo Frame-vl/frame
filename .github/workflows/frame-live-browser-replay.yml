@@ -1,0 +1,31 @@
+name: FRAME Live Browser Replay
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/ai/owner_browser_replay.py'
+      - 'tests/ai/owner_browser_replay.html'
+      - '.github/workflows/frame-live-browser-replay.yml'
+permissions:
+  contents: read
+concurrency:
+  group: frame-live-browser-replay
+  cancel-in-progress: false
+jobs:
+  live-browser:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: cmd
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-PC
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve existing FRAME Python
+        run: call tests\ai\resolve-python.cmd
+      - name: Replay owner chat through installed server and real browser database
+        run: '"%FRAME_PYTHON%" -X utf8 tests\ai\owner_browser_replay.py'

@@ -1,0 +1,89 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>FRAME live browser replay</title></head><body>
+<button id="brandHome"></button><button id="globalDocsBtn"></button><button id="settingsBtn"></button><button id="lightBtn"></button><button id="darkBtn"></button><button id="closeDocumentBtn"></button><button id="printDocumentBtn"></button>
+<div id="viewHost"></div><div id="sheet"><div id="sheetPanel"></div></div><div id="documentView" class="hidden"></div><div id="toast"></div>
+<script>window.FRAME_TEST_SKIP_APP_INIT=true;window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;const BRIDGE=__BRIDGE__,TEST_TOKEN=__TOKEN__;
+const reportBootError=error=>fetch(BRIDGE+'/result',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ok:false,step:'browser boot',error:String(error)})});
+window.addEventListener('error',event=>reportBootError(event.message+' '+event.filename+':'+event.lineno));
+window.addEventListener('unhandledrejection',event=>reportBootError(event.reason?.stack||event.reason));
+</script>
+<script src="../../ai-safety.js"></script><script src="../../owner-reset.js"></script><script src="../../app.js"></script>
+<script>
+storageSet(AI_SERVER_URL_KEY,new URL(BRIDGE).origin+'/frame-field');storageSet(AI_SERVER_TOKEN_KEY,TEST_TOKEN);
+</script>
+<script src="../../ai-chat.js"></script><script src="../../ai-guard.js"></script>
+<script>
+(async()=>{
+let checks=0,step='initialization';
+const report=async(path,value)=>{await fetch(BRIDGE+'/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)})};
+const assert=(ok,message)=>{if(!ok)throw new Error(message);checks++};
+const wait=async fn=>{const end=Date.now()+110000;while(Date.now()<end){if(fn())return;await new Promise(r=>setTimeout(r,40))}throw new Error('Timeout at '+step)};
+const current=()=>aiTargetByKey('obj-circus|ord-circus').order;
+const row=name=>current().works.find(w=>name.test(w.name));
+const send=async(text,apply=true)=>{
+  step=text;await report('progress',{step});
+  const before=frameChatMessages().length;
+  const input=$('aiCommandInput');assert(!!input,'Composer missing');input.value=text;$('aiAnalyzeBtn').click();
+  await wait(()=>frameChatMessages().length>before&&!aiAnalyzing&&!frameThinking);
+  const last=frameChatMessages().filter(m=>m.role==='assistant').at(-1);
+  assert(!!last,'No assistant message');
+  if(apply){
+    const button=document.querySelector('[data-chat-apply]');
+    assert(!!button&&!button.disabled,'No applicable plan: '+last.text);
+    button.click();
+    await wait(()=>!frameApplyingDraftId);
+    assert(frameLastApplyReceipt?.ok&&frameLastApplyReceipt?.postconditionVerified,'Apply failed: '+JSON.stringify(frameLastApplyReceipt));
+    assert(frameChatMessages().find(m=>m.id===last.id)?.status==='applied','Chat did not confirm verified save');
+    await reloadObjects();
+  }
+  return last;
+};
+try{
+  await report('progress',{step:'opening isolated IndexedDB'});
+  await openDB();
+  const oct=defaultObject();oct.id='obj-october';oct.contact.address='Октябрьская, 16';oct.contact.name='Екатерина';oct.orders[0].id='ord-october';
+  oct.orders[0].works=[normalizeGenericRow({id:'old-plinth',name:'Монтаж плинтуса',qty:20,price:800,unit:'м',progressPct:100})];
+  const circ=defaultObject();circ.id='obj-circus';circ.contact.address='Цирковая, 21';circ.contact.name='Клоун';circ.orders[0].id='ord-circus';circ.orders[0].works=[];
+  await dbPut(normalizeObject(oct));await dbPut(normalizeObject(circ));await reloadObjects();
+  const otherBefore=JSON.stringify(objects.find(o=>o.id===oct.id));
+  route='ai';routeState={aiTarget:'obj-circus|ord-circus'};frameSetTopic(routeState.aiTarget);render();
+  const health=await checkAiBrain({toastResult:false});assert(health?.ok&&aiFieldSafeHealthVerified(),'Field health not authenticated');
+  frameAddChat({role:'user',text:'По Октябрьской 16 покажи работы',status:'done'});
+  frameAddChat({role:'assistant',text:'На Октябрьской есть монтаж плинтуса.',status:'done'});
+  frameAddChat({role:'user',text:'Теперь работаем на Цирковой 21',status:'done'});
+  frameRefreshChat();
+  await send('Давай сделаем на этом объекте монтаж плинтуса 40 м',false);
+  assert(current().works.length===0,'Unconfirmed incomplete work was saved');
+  await send('Так монтаж плинтуса блин давай 400 руб. за метр');
+  assert(current().works.length===1&&parseNum(row(/плинтус/i)?.qty)===40&&parseNum(row(/плинтус/i)?.price)===400,'Price clarification lost new object or quantity');
+  assert(routeState.aiTarget==='obj-circus|ord-circus','Clarification switched object');
+  await send('Добавь на этот объект поклейку обоев 50 м2 по 500 рублей за квадрат');
+  await send('Добавь на этот объект монтаж унитаза 1 штука по 6000 рублей');
+  assert(current().works.length===3,'Wrong work count after additions');
+  await send('Так отметь по этому объекту монтаж плинтуса выполнена половина');
+  assert(row(/плинтус/i).progressPct===50,'Half is not 50%');
+  await send('Отметь поклейку обоев выполненной полностью');
+  await send('Отметь монтаж унитаза выполненным полностью');
+  assert(row(/обо/i).progressPct===100&&row(/унитаз/i).progressPct===100,'Completed rows not saved');
+  await send('Нужно просто выполнить перечень выполненных работ');
+  let doc=current().documentHistory.at(-1);
+  assert(doc?.type==='worklist'&&doc.total===39000&&doc.snapshot.length===3,'Worklist total/rows incorrect: '+JSON.stringify(doc));
+  assert(parseNum(doc.snapshot.find(w=>/плинтус/i.test(w.name))?.qty)===20,'Document lost half quantity');
+  await send('А можешь сделать акт выполненных работ по этому объек');
+  doc=current().documentHistory.at(-1);
+  assert(doc?.type==='act'&&doc.total===39000&&doc.snapshot.length===3,'Act after worklist incorrect');
+  const frozenHistory=JSON.stringify(current().workClosures);
+  await send('Так а теперь можешь убрать отметки о том что эти работы выполнены');
+  assert(current().works.every(w=>w.progressPct===0),'Reset did not clear all completed marks');
+  const count=current().documentHistory.length;
+  const noAct=await send('Теперь сделай акт выполненных работ по этому объекту',false);
+  assert(!document.querySelector('[data-chat-apply]'),'Empty act offered an applicable plan: '+noAct.text);
+  assert(current().documentHistory.length===count,'Empty act created a document');
+  assert(JSON.stringify(current().workClosures)===frozenHistory,'Reset rewrote historical closure');
+  await send('Давай по цирковой отметь половину плинтуса выполнили',false);
+  const cancel=document.querySelector('[data-chat-cancel]');assert(!!cancel,'Cancel button missing');cancel.click();
+  await reloadObjects();assert(row(/плинтус/i).progressPct===0,'Cancelled plan mutated card');
+  assert(JSON.stringify(objects.find(o=>o.id===oct.id))===otherBefore,'Replay changed October object');
+  await report('result',{ok:true,checks,frontend:VERSION,documents:current().documentHistory.map(d=>({type:d.type,total:d.total,rows:d.snapshot.length})),works:current().works.map(w=>({name:w.name,progress:w.progressPct}))});
+}catch(error){await report('result',{ok:false,checks,step,error:String(error.stack||error),lastMessages:typeof frameChatMessages==='function'?frameChatMessages().slice(-3).map(m=>({role:m.role,text:m.text,status:m.status})):[]})}
+})();
+</script></body></html>
