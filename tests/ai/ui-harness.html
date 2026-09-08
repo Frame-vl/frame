@@ -447,6 +447,17 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     await send('Так монтаж душевого поддона давай 400 руб. за метр');
     assert(frameTopic()===TARGET.key&&!!document.querySelector('[data-chat-apply]'),'price clarification switched from empty current order to existing work elsewhere');
     assert(aiContextPayload().conversation_target_key===TARGET.key,'provider did not receive the locked conversation key');
+    document.querySelector('[data-chat-cancel]')?.click();
+    // A provider can return a proposed plan, rather than a clarification bubble.
+    // Refining that unconfirmed plan must stay on its object as well.
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Предложенный план',actions:[{type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Монтаж душевого поддона',qty:40,unit:'м',price:800}]}};
+    await send('Давай сделаем на этом объекте монтаж душевого поддона 40 м');
+    assert(!!document.querySelector('[data-chat-apply]'),'initial proposed add-work plan missing');
+    BRAIN_REPLY={meta:{...TEST_RESPONSE_META},result:{summary:'Уточнённая цена',actions:[{type:'add_work',object_id:OBJECT.id,order_id:ORDER.id,work_name:'Монтаж душевого поддона',qty:40,unit:'м',price:400}]}};
+    await send('Так монтаж душевого поддона давай 400 руб. за метр');
+    assert(frameTopic()===TARGET.key&&!!document.querySelector('[data-chat-apply]'),'price refinement of proposed plan switched object');
+    assert(ORDER.works.length===0,'refining a proposed plan applied it without confirmation');
+    assert(frameDetectTarget('По Веселковой 12Б добавь работу: откос 1 метр по 1000')===TARGET2.key,'pending plan prevented explicit object switch');
     document.querySelector('[data-chat-cancel]')?.click();BRAIN_REPLY=null;ORDER.works=savedCurrentWorks;
     assert(frameDetectTarget('А можешь сделать акт выполненных работ по этому объек')==='','document request guessed an object by work vocabulary');
     assert(frameDetectTarget('По этому объекту монтаж душевого поддона выполнен наполовину')==='','this-object pronoun switched to a different object');
