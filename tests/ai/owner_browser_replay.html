@@ -1,7 +1,7 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="theme-color" content="#0f1113"><title>FRAME live browser replay</title></head><body>
 <button id="brandHome"></button><button id="globalDocsBtn"></button><button id="settingsBtn"></button><button id="lightBtn"></button><button id="darkBtn"></button><button id="closeDocumentBtn"></button><button id="printDocumentBtn"></button>
 <div id="viewHost"></div><div id="sheet"><div id="sheetPanel"></div></div><div id="documentView" class="hidden"></div><div id="toast"></div>
-<script>window.FRAME_TEST_SKIP_APP_INIT=true;window.FRAME_AI_TEST_ALLOW_SYNTHETIC_APPLY=true;const BRIDGE=__BRIDGE__,TEST_TOKEN=__TOKEN__;
+<script>const BRIDGE=__BRIDGE__,TEST_TOKEN=__TOKEN__;
 const reportBootError=error=>{window.FRAME_REPLAY_RESULT={ok:false,step:'browser boot',error:String(error)}};
 window.addEventListener('error',event=>reportBootError(event.message+' '+event.filename+':'+event.lineno));
 window.addEventListener('unhandledrejection',event=>reportBootError(event.reason?.stack||event.reason));
@@ -17,6 +17,7 @@ let checks=0,step='initialization';
 const report=async(path,value)=>{if(path==='result')window.FRAME_REPLAY_RESULT=value;else window.FRAME_REPLAY_STEP=value.step};
 const assert=(ok,message)=>{if(!ok)throw new Error(message);checks++};
 const wait=async fn=>{const end=Date.now()+110000;while(Date.now()<end){if(fn())return;await new Promise(r=>setTimeout(r,40))}throw new Error('Timeout at '+step)};
+const trustedClick=async selector=>{window.FRAME_REPLAY_CLICK=selector;await wait(()=>!window.FRAME_REPLAY_CLICK)};
 const current=()=>aiTargetByKey('obj-circus|ord-circus').order;
 const row=name=>current().works.find(w=>name.test(w.name));
 const send=async(text,apply=true)=>{
@@ -29,7 +30,7 @@ const send=async(text,apply=true)=>{
   if(apply){
     const button=document.querySelector('[data-chat-apply]');
     assert(!!button&&!button.disabled,'No applicable plan: '+last.text);
-    button.click();
+    await trustedClick('[data-chat-apply]');
     await wait(()=>!frameApplyingDraftId);
     assert(frameLastApplyReceipt?.ok&&frameLastApplyReceipt?.postconditionVerified,'Apply failed: '+JSON.stringify(frameLastApplyReceipt));
     assert(frameChatMessages().find(m=>m.id===last.id)?.status==='applied','Chat did not confirm verified save');
@@ -39,6 +40,7 @@ const send=async(text,apply=true)=>{
 };
 try{
   await report('progress',{step:'opening isolated IndexedDB'});
+  await wait(()=>!!$('aiCommandInput'));
   await openDB();
   const oct=defaultObject();oct.id='obj-october';oct.contact.address='Октябрьская, 16';oct.contact.name='Екатерина';oct.orders[0].id='ord-october';
   oct.orders[0].works=[normalizeGenericRow({id:'old-plinth',name:'Монтаж плинтуса',qty:20,price:800,unit:'м',progressPct:100})];

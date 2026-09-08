@@ -32,6 +32,7 @@ RESULT = {}
 DONE = threading.Event()
 COST = 0.0
 CALLS = 0
+STATIC = {}
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
@@ -50,6 +51,16 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.reply(200, {})
     def do_GET(self):
+        prefix="/"+NONCE+"/"
+        name=self.path.removeprefix(prefix)
+        if self.path.startswith(prefix) and name in STATIC:
+            data=STATIC[name]
+            self.send_response(200)
+            self.send_header("Content-Type","text/html; charset=utf-8" if name.endswith(".html") else "application/javascript; charset=utf-8")
+            self.send_header("Content-Length",str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         self.forward()
     def do_POST(self):
         global COST, CALLS
@@ -112,9 +123,9 @@ class BrowserConsole:
                 raise RuntimeError("CDP connection closed")
             result+=chunk
         return result
-    def evaluate(self,expression):
+    def call(self,method,params):
         self.seq+=1
-        data=json.dumps({"id":self.seq,"method":"Runtime.evaluate","params":{"expression":expression,"returnByValue":True}}).encode()
+        data=json.dumps({"id":self.seq,"method":method,"params":params}).encode()
         mask=secrets.token_bytes(4)
         length=len(data)
         header=bytes([0x81,0x80|length]) if length<126 else bytes([0x81,0x80|126])+struct.pack("!H",length)
@@ -129,7 +140,10 @@ class BrowserConsole:
             if first&15!=1:continue
             message=json.loads(payload)
             if message.get("id")==self.seq:
-                return message.get("result",{}).get("result",{}).get("value")
+                if message.get("error"):raise RuntimeError(str(message["error"]))
+                return message.get("result",{})
+    def evaluate(self,expression):
+        return self.call("Runtime.evaluate",{"expression":expression,"returnByValue":True}).get("result",{}).get("value")
     def close(self):
         self.sock.close()
 
@@ -161,14 +175,16 @@ def main():
                 if pinned != deployed:
                     raise RuntimeError("Published frontend differs from pinned revision: "+name)
                 (root/name).write_bytes(pinned)
+                STATIC[name]=pinned
             harness=root/"tests"/"ai"/"executor-harness.html"
             harness.parent.mkdir(parents=True)
             template=Path(__file__).with_suffix(".html").read_text(encoding="utf-8")
             base="http://127.0.0.1:"+str(server.server_port)+"/"+NONCE
             harness.write_text(template.replace("__BRIDGE__",json.dumps(base)).replace("__TOKEN__",json.dumps(NONCE)),encoding="utf-8")
+            STATIC["tests/ai/executor-harness.html"]=harness.read_bytes()
             print("BROWSER_FRONTEND_REF="+FRONTEND_REF,flush=True)
             with (root/"edge.log").open("wb") as log:
-                process=subprocess.Popen([str(edge),"--headless=new","--remote-debugging-port=0","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-first-run","--no-default-browser-check","--allow-file-access-from-files","--disable-background-timer-throttling","--user-data-dir="+str(root/"profile"),harness.as_uri()],stdout=log,stderr=log)
+                process=subprocess.Popen([str(edge),"--headless=new","--remote-debugging-port=0","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-first-run","--no-default-browser-check","--allow-file-access-from-files","--disable-background-timer-throttling","--user-data-dir="+str(root/"profile"),base+"/tests/ai/executor-harness.html"],stdout=log,stderr=log)
                 deadline=time.monotonic()+240
                 last_step=""
                 boot=time.monotonic()
@@ -178,9 +194,16 @@ def main():
                         try:console=BrowserConsole(int(port_file.read_text().splitlines()[0]))
                         except (OSError, StopIteration):pass
                     if console is not None:
-                        state=console.evaluate("({result:window.FRAME_REPLAY_RESULT||null,step:window.FRAME_REPLAY_STEP||document.readyState,url:location.href})") or {}
+                        state=console.evaluate("({result:window.FRAME_REPLAY_RESULT||null,step:window.FRAME_REPLAY_STEP||document.readyState,click:window.FRAME_REPLAY_CLICK||null,url:location.href})") or {}
                         if state.get("step")!=last_step:
                             last_step=state.get("step");print("CDP_STEP "+str(last_step),flush=True)
+                        if state.get("click"):
+                            selector=json.dumps(state["click"])
+                            point=console.evaluate("(()=>{const e=document.querySelector("+selector+");if(!e)return null;e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()")
+                            if not point:raise RuntimeError("Trusted click target disappeared")
+                            for event in ("mousePressed","mouseReleased"):
+                                console.call("Input.dispatchMouseEvent",{"type":event,"x":point["x"],"y":point["y"],"button":"left","clickCount":1})
+                            console.evaluate("window.FRAME_REPLAY_CLICK=null")
                         if state.get("result"):
                             RESULT.update(state["result"]);DONE.set();break
                     elif time.monotonic()-boot>30:
