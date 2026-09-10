@@ -1,18 +1,18 @@
-const CACHE='frame-v2811-hotfix1';
+const CACHE='frame-v2812-ownerfix';
 const FRAME_CACHE_PREFIX='frame-v';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=2811h1',
-  './ai-chat.css?v=2811h1',
-  './ai-test.css?v=2811h1',
-  './ai-safety.js?v=2811h1',
-  './owner-reset.js?v=2811h1',
-  './app.js?v=2811h1',
-  './ai-chat.js?v=2811h1',
-  './ai-guard.js?v=2811h1',
-  './version-fix.js?v=2811h1',
-  './manifest.webmanifest?v=2811h1',
+  './styles.css?v=2812',
+  './ai-chat.css?v=2812',
+  './ai-test.css?v=2812',
+  './ai-safety.js?v=2812',
+  './owner-reset.js?v=2812',
+  './app.js?v=2812',
+  './ai-chat.js?v=2812',
+  './ai-guard.js?v=2812',
+  './version-fix.js?v=2812',
+  './manifest.webmanifest?v=2812',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];

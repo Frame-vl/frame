@@ -1,5 +1,5 @@
 (()=>{
-  const BUILD='2.8.11-hotfix1';
+  const BUILD='2.8.12';
   const CACHE_PREFIX='frame-v';
   function fixBadge(){
     document.querySelectorAll('.aiBadge').forEach(el=>{
