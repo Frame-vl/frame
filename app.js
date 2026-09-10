@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.8.12';
+const VERSION='2.8.13';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -1014,7 +1014,20 @@ function bindObjectView(){const object=currentObject();if(!object)return;
   $('newOrderBtn').onclick=async()=>{const order=defaultOrder(object.orders.length+1);object.orders.push(order);await saveObject(object);frameSelectTargetRefs(object.id,order.id);editorState={key:'',snapshot:null,dirty:false};commitNavigate('order',{}, {scrollToId:'orderActionsCard',behavior:'smooth'});toast('Новый заказ создан')};
   $$('[data-order-id]').forEach(el=>{const open=()=>frameOpenOrderRef(object.id,el.dataset.orderId);el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}}});
   $$('[data-object-works]').forEach(button=>button.onclick=e=>{e.stopPropagation();frameOpenOrderRef(object.id,button.dataset.objectWorks,'works')});
-  $('deleteObjectBtn').onclick=async()=>{if(!confirm('Удалить объект вместе со всеми заказами?'))return;await dbDelete(object.id);objects=objects.filter(o=>o.id!==object.id);mirrorBackup();currentObjectId='';currentOrderId='';if(typeof frameSetTopic==='function')frameSetTopic('');editorState={key:'',snapshot:null,dirty:false};commitNavigate('ai');toast('Объект удалён')};
+  $('deleteObjectBtn').onclick=async()=>{if(!confirm('Удалить объект вместе со всеми заказами?'))return;const result=await frameDeleteObjectFromChat(object.id);if(!result.ok)return toast(result.error||'Объект не удалён');commitNavigate('ai');toast('Объект удалён')};
+}
+async function frameDeleteObjectFromChat(objectId){
+  const id=String(objectId||''),object=objects.find(o=>o.id===id);
+  if(!object)return {ok:false,error:'Объект уже не найден.'};
+  const label=object.contact?.address||object.contact?.name||'Объект',topicKey=typeof frameTopic==='function'?String(frameTopic()||''):'',routeKey=String(routeState.aiTarget||'');
+  await dbDelete(id);
+  objects=objects.filter(o=>o.id!==id);
+  mirrorBackup();
+  if(currentObjectId===id){currentObjectId='';currentOrderId=''}
+  if(topicKey.startsWith(id+'|')&&typeof frameSetTopic==='function')frameSetTopic('');
+  if(routeKey.startsWith(id+'|'))routeState.aiTarget='';
+  editorState={key:'',snapshot:null,dirty:false};
+  return {ok:true,objectId:id,label};
 }
 function updateOrderPricingLive(){const order=currentOrder();if(!order)return;const calculated=orderCalculatedWorkTotal(order),final=orderContractTotal(order),adjustment=final-calculated,paid=orderPaid(order);if($('calculatedWorkMetric'))$('calculatedWorkMetric').textContent=money(calculated);if($('orderWorkMetric'))$('orderWorkMetric').textContent=money(final);if($('orderRemainingMetric'))$('orderRemainingMetric').textContent=money(Math.max(0,final-paid));const label=$('pricingAdjustment');if(label){label.classList.toggle('discount',adjustment<0);label.classList.toggle('increase',adjustment>0);label.textContent=adjustment<0?`Индивидуальная скидка: ${money(Math.abs(adjustment))}`:adjustment>0?`Корректировка стоимости: +${money(adjustment)}`:'Итог совпадает с расчётом'}}
 function showOrderDatesSheet(){const order=currentOrder();if(!order)return;const lastPay=order.payments?.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];openSheet(`<div class="sectionTitle"><div><h1>Даты заказа</h1><p class="help compact">FRAME заполняет даты автоматически, но их можно поправить.</p></div><button class="sheetCloseIcon" data-close-sheet aria-label="Закрыть">×</button></div><div class="grid two"><label>Начало работ<input id="orderStartedAtEdit" type="date" value="${esc(order.startedAt||order.date||'')}"></label><label>Завершение<input id="orderCompletedAtEdit" type="date" value="${esc(order.completedAt||'')}"></label></div>${lastPay?`<div class="backupNote">Последняя оплата: ${ruDate(lastPay.date)} · ${money(lastPay.amount)}. Все платежи с датами находятся в разделе «Оплаты».</div>`:''}<button id="saveOrderDates" class="btn primary wide" style="margin-top:12px">Сохранить даты</button>`);$('saveOrderDates').onclick=()=>{order.startedAt=$('orderStartedAtEdit').value;order.completedAt=$('orderCompletedAtEdit').value;queueSave();closeSheet();render()}}
@@ -1392,7 +1405,7 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator){const reloadKey='frameSwControllerReloadV2812';navigator.serviceWorker.addEventListener('controllerchange',()=>{try{if(sessionStorage.getItem(reloadKey)!=='1'){sessionStorage.setItem(reloadKey,'1');location.reload()}}catch(e){}});navigator.serviceWorker.register('./sw.js?v=2812',{updateViaCache:'none'}).then(r=>r.update()).catch(console.warn);}
+  if('serviceWorker'in navigator){const reloadKey='frameSwControllerReloadV2813';navigator.serviceWorker.addEventListener('controllerchange',()=>{try{if(sessionStorage.getItem(reloadKey)!=='1'){sessionStorage.setItem(reloadKey,'1');location.reload()}}catch(e){}});navigator.serviceWorker.register('./sw.js?v=2813',{updateViaCache:'none'}).then(r=>r.update()).catch(console.warn);}
 }
 const frameSkipInitForExecutorHarness=window.FRAME_TEST_SKIP_APP_INIT===true&&location.protocol==='file:'&&/\/tests\/ai\/executor-harness\.html$/i.test(decodeURI(location.pathname||''));
 if(!frameSkipInitForExecutorHarness)init();

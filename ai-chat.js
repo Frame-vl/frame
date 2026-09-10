@@ -21,7 +21,7 @@ const FRAME_OWNER_TEST_RETRY_LIMIT=6;
 const FRAME_OWNER_TEST_RETRY_BASE_MS=1000;
 const FRAME_OWNER_TEST_RETRY_MAX_MS=30000;
 const FRAME_TEST_PAGE_ID=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-let frameVoiceWanted=false,frameVoiceStopping=false,frameVoiceStopPromise=null,frameComposerWakeWanted=false,frameVoiceRestartTimer=null,frameComposerWakeTimer=null,frameVoiceBase='',frameVoiceFinal='',frameVoiceInterim='',frameVoiceStartedAt=0,frameVoiceUiTimer=null,frameVoiceWakeLock=null,frameWakeAcquirePromise=null,frameVoiceSession=0,frameThinking=false,frameApplyingDraftId='',frameOwnerFlushTimer=null,frameOwnerFlushBusy=false,frameOwnerRetryAttempt=0,frameOwnerVerifiedCredential='',frameMutationClarificationSession='';
+let frameVoiceWanted=false,frameVoiceStopping=false,frameVoiceStopPromise=null,frameComposerWakeWanted=false,frameVoiceRestartTimer=null,frameComposerWakeTimer=null,frameVoiceBase='',frameVoiceFinal='',frameVoiceInterim='',frameVoiceStartedAt=0,frameVoiceUiTimer=null,frameVoiceWakeLock=null,frameWakeAcquirePromise=null,frameVoiceSession=0,frameThinking=false,frameApplyingDraftId='',frameOwnerFlushTimer=null,frameOwnerFlushBusy=false,frameOwnerRetryAttempt=0,frameOwnerVerifiedCredential='',frameMutationClarificationSession='',frameObjectDeleteSession=null;
 let frameVoiceEndWaiter=null;
 const frameSessionMessageIds=new Set();
 function frameSessionTopicRead(){try{return String(sessionStorage.getItem(FRAME_CHAT_TOPIC_SESSION_KEY)||'')}catch(e){return ''}}
@@ -225,6 +225,80 @@ function frameTopic(){return aiTargetByKey(frameTopicSession)?frameTopicSession:
 function frameSetTopic(key=''){if(!key){frameTopicSession='';routeState.aiTarget='';frameSessionTopicWrite('');return}if(aiTargetByKey(key)){frameTopicSession=key;routeState.aiTarget=key;frameSessionTopicWrite(key);const data=frameTestTranscriptRead();if(data?.active){data.topic_key=frameTestString(key,256);data.topic_label=frameTestString(frameTopicLabel(),1000);frameTestTranscriptWrite(data)}}}
 const FRAME_TARGET_GENERIC=new Set(['монтаж','работа','работы','работам','готова','готов','поставь','поставить','процент','процентов']);
 function frameWorkTargetScore(order,text=''){const tokens=aiTokens(text).filter(x=>x.length>=4&&!FRAME_TARGET_GENERIC.has(x));let best=0;for(const row of order?.works||[]){const name=aiNorm(row.name),nameTokens=aiTokens(name);let score=0;for(const token of tokens){if(name.includes(token))score+=3;else if(nameTokens.some(x=>x.startsWith(token)||token.startsWith(x)))score+=2}best=Math.max(best,score)}return best}
+
+function frameObjectDeleteRequest(text=''){
+  const norm=aiNorm(text);
+  return /(?:^|\s)(?:удал[a-zа-яё]*|снес[a-zа-яё]*|убер[a-zа-яё]*)(?:\s|$)/i.test(norm)&&/(?:объект|карточк)/.test(norm);
+}
+function frameObjectDeleteAffirm(text=''){
+  const norm=aiNorm(text).replace(/[!?.,]+/g,' ').replace(/\s+/g,' ').trim();
+  return /^(?:да|ага|угу|подтверждаю|точно|да точно|да уверен|да уверена|да удалить|да удаляй|удали|удаляй)$/.test(norm);
+}
+function frameObjectDeleteReject(text=''){
+  const norm=aiNorm(text).replace(/[!?.,]+/g,' ').replace(/\s+/g,' ').trim();
+  return /^(?:нет|не надо|не удаляй|отмена|отмени|стоп|оставь|оставить)$/.test(norm);
+}
+function frameObjectDeleteNamedObject(text=''){
+  const tokens=frameOpenIdentityTokens(text).filter(token=>! /^(?:удал|снес|убер|полност|вообще|навсегд|целик|совсем)/.test(token)),numbers=(aiNorm(text).match(/\d+[a-zа-я]?/g)||[]);
+  if(!tokens.length)return {hadIdentity:false,objectId:'',ambiguous:false};
+  const seen=new Map();for(const target of aiAllTargets())if(!seen.has(String(target.object?.id||'')))seen.set(String(target.object.id),target.object);
+  const scored=[];
+  for(const object of seen.values()){
+    const hay=aiNorm(`${object.contact?.address||''} ${object.contact?.name||''}`),objectTokens=aiTokens(hay),hits=tokens.filter(token=>hay.includes(token)||objectTokens.some(value=>value.startsWith(token)||token.startsWith(value))).length,addressNumbers=aiNorm(object.contact?.address||'').match(/\d+[a-zа-я]?/g)||[];
+    if(!hits)continue;if(numbers.length&&addressNumbers.length&&!numbers.some(value=>addressNumbers.includes(value)))continue;
+    scored.push({id:String(object.id),score:hits+(numbers.some(value=>addressNumbers.includes(value))?4:0)});
+  }
+  const best=Math.max(0,...scored.map(item=>item.score)),matches=scored.filter(item=>item.score===best);
+  return {hadIdentity:true,objectId:matches.length===1?matches[0].id:'',ambiguous:matches.length>1};
+}
+function frameObjectDeleteTarget(text=''){
+  const named=frameObjectDeleteNamedObject(text);
+  if(named.ambiguous)return {error:'Нашла несколько похожих объектов. Назови точный адрес объекта, который нужно удалить.'};
+  if(named.hadIdentity&&!named.objectId)return {error:'Не смогла однозначно найти такой объект. Назови его точный адрес.'};
+  let objectId=named.objectId;
+  if(!objectId&&/(?:этот|этого|текущ[a-zа-яё]*|данн[a-zа-яё]*)\s+(?:же\s+)?(?:объект|карточк)/i.test(aiNorm(text))){const target=aiTargetByKey(frameTopic()||routeState.aiTarget);objectId=String(target?.object?.id||'')}
+  if(!objectId)return {error:'Какой именно объект удалить? Назови точный адрес или скажи «удали этот объект», когда он выбран в чате.'};
+  const target=aiAllTargets().find(item=>String(item.object?.id||'')===objectId),object=target?.object;
+  if(!object)return {error:'Этот объект уже не найден.'};
+  const label=[object.contact?.address,object.contact?.name].map(v=>String(v||'').trim()).filter(Boolean).join(' · ')||'Объект';
+  return {objectId,label};
+}
+function frameObjectDeleteDecision(text=''){
+  if(frameObjectDeleteSession&&Date.now()>Number(frameObjectDeleteSession.expiresAt||0))frameObjectDeleteSession=null;
+  if(frameObjectDeleteSession){
+    const current={...frameObjectDeleteSession};
+    if(frameObjectDeleteReject(text)){frameObjectDeleteSession=null;return {handled:true,reply:`Удаление объекта «${current.label}» отменено.`}}
+    if(frameObjectDeleteAffirm(text)){
+      if(current.stage===1){frameObjectDeleteSession={...current,stage:2,expiresAt:Date.now()+120000};return {handled:true,reply:`Вы уверены? Объект «${current.label}» будет удалён полностью вместе со всеми его заказами, работами, документами, фото и историей. Скажи «Да» ещё раз, чтобы удалить, или «Нет», чтобы отменить.`}}
+      frameObjectDeleteSession=null;return {handled:true,execute:true,objectId:current.objectId,label:current.label};
+    }
+    frameObjectDeleteSession=null;
+    if(!frameObjectDeleteRequest(text))return null;
+  }
+  if(!frameObjectDeleteRequest(text))return null;
+  const target=frameObjectDeleteTarget(text);
+  if(target.error)return {handled:true,reply:target.error};
+  frameObjectDeleteSession={objectId:target.objectId,label:target.label,stage:1,expiresAt:Date.now()+120000};
+  return {handled:true,reply:`Ты хочешь полностью удалить объект «${target.label}»? Вместе с ним удалятся все заказы и данные внутри этого объекта. Скажи «Да» для первого подтверждения или «Нет», чтобы отменить.`};
+}
+async function frameObjectDeleteApplyDecision(decision,turnId,started){
+  if(!decision?.handled)return false;
+  frameThinking=false;let reply=String(decision.reply||''),outcome='answer',didDelete=false;
+  if(decision.execute){
+    outcome='applied';
+    try{
+      if(typeof frameDeleteObjectFromChat!=='function')throw new Error('локальная функция удаления недоступна');
+      const result=await frameDeleteObjectFromChat(decision.objectId);
+      if(!result?.ok)throw new Error(result?.error||'объект не удалён');
+      didDelete=true;
+      reply=`Объект «${decision.label}» полностью удалён.`;
+    }catch(e){outcome='error';reply=`Не удалила объект: ${String(e?.message||e)}.`}
+  }
+  frameAddChat({role:'assistant',text:reply,status:'done',turnId,trace:{provider:'FRAME local destructive gate',model:VERSION,mode:'local',outcome,round_trip_ms:Math.round(performance.now()-started),proposed_actions:[],policy_blocked_actions:[]}});
+  if(didDelete&&route==='ai')render();else frameRefreshChat();
+  return true;
+}
+
 function frameDetectTarget(text=''){const named=frameResolveNamedObject(text);if(named.named)return named.objectId?framePreferredTargetKeyForObject(named.objectId):'';const norm=aiNorm(text),tokens=aiTokens(norm),pending=frameRestorePending(),continuingPlan=!!pending?.ok&&pending.targetKey===frameTopic();if(((frameMutationClarificationSession||continuingPlan)&&!frameLooksMutationRequest(text))||/(?:этом|этому|этот|этого|этой)\s+(?:же\s+)?(?:объект|заказ)|(?:акт|перечень|коммерческ|\bкп\b)/.test(norm))return '';const addingWork=/(?:сделаем|добав(?:ь|ить|им|ляем)|допработ|новая\s+работа)/.test(norm)||!!frameMutationClarificationSession;let best='',bestScore=0,tied=false;for(const x of aiAllTargets()){const hay=aiNorm(`${x.object.contact.address} ${x.object.contact.name} ${x.order.title}`);let score=0;for(const token of tokens){if(token.length>=4&&hay.includes(token))score+=2}for(const p of aiNorm(x.object.contact.address).split(' ')){const s=aiStem(p);if(s.length>=5&&norm.includes(s))score+=4}if(!addingWork)score+=frameWorkTargetScore(x.order,norm);if(score>bestScore){bestScore=score;best=x.key;tied=false}else if(score===bestScore&&score>0&&best!==x.key)tied=true}return bestScore>=3&&!tied?best:''}
 function frameTopicLabel(){const t=aiTargetByKey(frameTopic());return t?(t.object.contact.address||t.order.title||''):''}
 function frameTargetLabel(key=''){const t=aiTargetByKey(String(key||''));if(!t)return '';return [t.object?.contact?.address,t.order?.title].map(x=>String(x||'').trim()).filter(Boolean).join(' · ')}
@@ -281,10 +355,12 @@ analyzeAiInput=async function(){
     if(frameVoiceWanted||aiRecognition||frameVoiceStopping)await frameStopVoice(true,true);
     const input=$('aiCommandInput'),text=String(input?.value||frameComposerDraftSession||'').trim();if(!text){toast('Сначала скажите или напишите сообщение');return}
     frameVoiceSession++;frameHardClearComposer();
-    const detected=frameDetectTarget(text);if(detected)frameSetTopic(detected);else if(frameTopic())routeState.aiTarget=frameTopic();
+    const objectDeleteDecision=frameObjectDeleteDecision(text);
+    const detected=objectDeleteDecision?.handled?'':frameDetectTarget(text);if(detected)frameSetTopic(detected);else if(frameTopic())routeState.aiTarget=frameTopic();
     const old=frameRestorePending();if(old?.chatId){aiRevokeDraftAuthorization(old);frameUpdateChat(old.chatId,{status:'cancelled',draft:null})}aiDraft=null;frameClearPending();
     const previousMutation=frameMutationClarificationSession,directMutation=frameLooksMutationRequest(text),mutationIntent=directMutation||(!!previousMutation&&!frameLocalOpenIntent(text));frameMutationClarificationSession='';
     turnId=uid();started=performance.now();frameAddChat({role:'user',text,status:'done',turnId});frameThinking=true;frameRefreshChat();
+    if(await frameObjectDeleteApplyDecision(objectDeleteDecision,turnId,started))return;
     const localOpen=mutationIntent?null:frameLocalOpenIntent(text);
     if(localOpen){frameAddChat({role:'assistant',text:localOpen.text,status:'done',turnId,links:localOpen.links,trace:{provider:'FRAME local navigation',model:VERSION,mode:'local',outcome:'answer',round_trip_ms:Math.round(performance.now()-started),proposed_actions:[],policy_blocked_actions:[]}});if(localOpen.autoOpen)setTimeout(()=>frameOpenObjectRef(localOpen.autoOpen.objectId,localOpen.autoOpen.orderId),0);return}
     let draft,response=null;if(aiServerUrl()){response=await requestAiBrain(text);if(mutationIntent)response={...response,meta:{...(response?.meta||{}),mutation_intent:true}};draft=brainDraftFromResponse(text,response)}else draft=parseAiCommand(text,frameTopic()||routeState.aiTarget);
@@ -323,7 +399,7 @@ async function frameStopVoice(keepText=true,silent=false){
   })();
   frameVoiceStopPromise=operation;try{return await operation}finally{if(frameVoiceStopPromise===operation)frameVoiceStopPromise=null}
 }
-function frameLeaveAi(){clearTimeout(frameComposerWakeTimer);frameComposerWakeTimer=null;frameComposerWakeWanted=false;const input=$('aiCommandInput');if(input)frameComposerDraftSession=input.value;if(frameVoiceWanted||aiRecognition||frameVoiceStopping)void frameStopVoice(true,true);frameReleaseWakeLock()}
+function frameLeaveAi(){frameObjectDeleteSession=null;clearTimeout(frameComposerWakeTimer);frameComposerWakeTimer=null;frameComposerWakeWanted=false;const input=$('aiCommandInput');if(input)frameComposerDraftSession=input.value;if(frameVoiceWanted||aiRecognition||frameVoiceStopping)void frameStopVoice(true,true);frameReleaseWakeLock()}
 startAiVoice=async function(){if(frameVoiceWanted||aiRecognition||frameVoiceStopping){await frameStopVoice(true);return}if(frameVoiceStopPromise)await frameVoiceStopPromise;frameVoiceSession++;const input=$('aiCommandInput');frameVoiceBase=input?.value?.trim()||frameComposerDraftSession.trim();frameVoiceFinal='';frameVoiceInterim='';frameVoiceWanted=true;frameStartRecognition();frameRefreshWakeLock()}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'){if(frameVoiceWanted){try{aiRecognition?.stop()}catch(e){}}frameReleaseWakeLock()}else{frameRefreshWakeLock();if(frameVoiceWanted&&!aiRecognition)frameStartRecognition()}});
 
