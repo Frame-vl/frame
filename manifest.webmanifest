@@ -1,8 +1,8 @@
 {
-  "name": "FRAME Field",
+  "name": "FRAME",
   "short_name": "FRAME",
   "description": "Локальный помощник мастера: расчёты, заказы, цены и документы.",
-  "start_url": "./index.html?v=275",
+  "start_url": "./index.html?v=2811h1",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f1113",
