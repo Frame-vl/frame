@@ -17,6 +17,13 @@ def precise_once(text,old,new,label):
         count=text.count(anchor)
         if count!=1: raise RuntimeError(f'{label}: precise declaration anchor count {count}')
         return text.replace(anchor,replacement,1)
+    if label=='executor object delete helper test':
+        anchor="  }catch(error){failures.push('exception: '+(error?.stack||error))}"
+        count=text.count(anchor)
+        if count!=1: raise RuntimeError(f'{label}: precise executor anchor count {count}')
+        if not new.endswith(old): raise RuntimeError(f'{label}: generated payload shape changed')
+        payload=new[:-len(old)]
+        return text.replace(anchor,payload+anchor,1)
     return _original_once(text,old,new,label)
 
 base.once=precise_once
