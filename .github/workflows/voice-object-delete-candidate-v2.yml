@@ -1,0 +1,62 @@
+name: FRAME voice object delete candidate v2
+
+on:
+  push:
+    branches: ['audit/voice-object-delete-20260910']
+    paths:
+      - 'audit/voice_object_delete_candidate_v2.py'
+      - '.github/workflows/voice-object-delete-candidate-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-PC
+    steps:
+      - name: Checkout isolated audit branch
+        uses: actions/checkout@v4
+        with:
+          ref: audit/voice-object-delete-20260910
+          path: voice-delete-src
+          persist-credentials: false
+
+      - name: Build isolated 2.8.13 candidate
+        shell: cmd
+        run: |
+          call voice-delete-src\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 voice-delete-src\audit\voice_object_delete_candidate_v2.py --src voice-delete-src --out C:\FRAME\Voice-Object-Delete-Candidate-20260910
+
+      - name: Real browser chat flow including two voice confirmations
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui
+
+      - name: Real app object deletion helper boundary
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor
+
+      - name: Existing browser guard remains green
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser guard
+
+      - name: Report candidate status
+        shell: powershell
+        run: |
+          $r=Get-Content 'C:\FRAME\Voice-Object-Delete-Candidate-20260910\voice-object-delete-report.json' -Raw|ConvertFrom-Json
+          if($r.build -ne '2.8.13'){throw 'candidate build marker mismatch'}
+          [ordered]@{state='VOICE_OBJECT_DELETE_CANDIDATE_GREEN';build=$r.build;browser_ui='PASS';browser_executor='PASS';browser_guard='PASS';production_changed=$false;owner_db_accessed=$false}|ConvertTo-Json
