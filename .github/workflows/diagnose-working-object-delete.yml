@@ -16,29 +16,43 @@ jobs:
           ref: main
           path: diagnose-main
           persist-credentials: false
-      - name: Probe exact working origin without touching IndexedDB
+      - name: Probe working gateway and source versions without touching IndexedDB
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
-          $origin='https://home-pc.tail9b1df8.ts.net'
-          $expected=@{
-            'app.js'=(Get-FileHash 'diagnose-main\app.js' -Algorithm SHA256).Hash.ToLower()
-            'ai-chat.js'=(Get-FileHash 'diagnose-main\ai-chat.js' -Algorithm SHA256).Hash.ToLower()
-            'index.html'=(Get-FileHash 'diagnose-main\index.html' -Algorithm SHA256).Hash.ToLower()
-            'sw.js'=(Get-FileHash 'diagnose-main\sw.js' -Algorithm SHA256).Hash.ToLower()
+          $expected=@{}
+          foreach($name in @('index.html','app.js','ai-chat.js','sw.js')){$expected[$name]=(Get-FileHash (Join-Path 'diagnose-main' $name) -Algorithm SHA256).Hash.ToLower()}
+          function Probe($label,$url){
+            $tmp=Join-Path $env:RUNNER_TEMP ('frame-probe-'+($label -replace '[^A-Za-z0-9_.-]','_'))
+            try{
+              $r=Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp -Headers @{'Cache-Control'='no-cache'} -ErrorAction Stop
+              $text=Get-Content $tmp -Raw
+              $sha=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()
+              return [ordered]@{ok=$true;status=200;sha=$sha;bytes=(Get-Item $tmp).Length;has_2813=($text -match '2\.8\.13|2813');has_helper=($text -match 'frameDeleteObjectFromChat');has_gate=($text -match 'frameObjectDeleteApplyDecision')}
+            }catch{
+              $status=$null
+              try{$status=[int]$_.Exception.Response.StatusCode}catch{}
+              return [ordered]@{ok=$false;status=$status;error=$_.Exception.Message}
+            }
           }
           $result=[ordered]@{}
+          $result['public_root']=Probe 'public_root' 'https://home-pc.tail9b1df8.ts.net/'
+          $result['public_index']=Probe 'public_index' 'https://home-pc.tail9b1df8.ts.net/index.html'
+          $result['public_app']=Probe 'public_app' 'https://home-pc.tail9b1df8.ts.net/app.js?v=2813'
+          $result['public_chat']=Probe 'public_chat' 'https://home-pc.tail9b1df8.ts.net/ai-chat.js?v=2813'
+          $result['public_sw']=Probe 'public_sw' 'https://home-pc.tail9b1df8.ts.net/sw.js?v=2813'
+          $result['gateway_root']=Probe 'gateway_root' 'http://127.0.0.1:8799/'
+          $result['gateway_index']=Probe 'gateway_index' 'http://127.0.0.1:8799/index.html'
+          $result['gateway_app']=Probe 'gateway_app' 'http://127.0.0.1:8799/app.js?v=2813'
+          $result['gateway_chat']=Probe 'gateway_chat' 'http://127.0.0.1:8799/ai-chat.js?v=2813'
+          $result['gateway_sw']=Probe 'gateway_sw' 'http://127.0.0.1:8799/sw.js?v=2813'
+          $local=[ordered]@{}
+          $root='C:\FRAME\Owner-Test-2812'
           foreach($name in @('index.html','app.js','ai-chat.js','sw.js')){
-            $url = if($name -eq 'index.html'){"$origin/"}else{"$origin/$name?v=2813"}
-            $tmp=Join-Path $env:RUNNER_TEMP ("frame-working-"+$name)
-            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp -Headers @{'Cache-Control'='no-cache'}
-            $sha=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()
-            $text=Get-Content $tmp -Raw
-            $result[$name]=[ordered]@{sha=$sha;expected=$expected[$name];exact=($sha -eq $expected[$name]);has_2813=($text -match '2\.8\.13|2813');has_delete_helper=($name -ne 'app.js' -or $text -match 'frameDeleteObjectFromChat');has_delete_gate=($name -ne 'ai-chat.js' -or $text -match 'frameObjectDeleteApplyDecision')}
+            $p=Join-Path $root $name
+            if(Test-Path $p){$text=Get-Content $p -Raw;$local[$name]=[ordered]@{sha=(Get-FileHash $p -Algorithm SHA256).Hash.ToLower();bytes=(Get-Item $p).Length;has_2813=($text -match '2\.8\.13|2813');has_helper=($text -match 'frameDeleteObjectFromChat');has_gate=($text -match 'frameObjectDeleteApplyDecision');matches_main=((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -eq $expected[$name])}}else{$local[$name]=[ordered]@{missing=$true}}
           }
-          $json=$result|ConvertTo-Json -Depth 6
-          Write-Host $json
-          if(($result.Values|Where-Object{-not $_.exact}).Count -gt 0){throw 'WORKING_ORIGIN_FILE_MISMATCH'}
-          if(-not $result['app.js'].has_delete_helper){throw 'WORKING_APP_DELETE_HELPER_MISSING'}
-          if(-not $result['ai-chat.js'].has_delete_gate){throw 'WORKING_CHAT_DELETE_GATE_MISSING'}
-          Write-Host 'WORKING_OBJECT_DELETE_SOURCE_EXACT'
+          $result['local_owner_test']=$local
+          try{$serve=& tailscale serve status 2>&1 | Out-String;$result['tailscale_serve_status']=$serve}catch{$result['tailscale_serve_status']='unavailable'}
+          Write-Host ($result|ConvertTo-Json -Depth 8)
+          Write-Host 'WORKING_OBJECT_DELETE_DIAGNOSTIC_COMPLETE'
