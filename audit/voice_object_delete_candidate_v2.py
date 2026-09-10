@@ -7,9 +7,6 @@ spec=importlib.util.spec_from_file_location('voice_object_delete_candidate_lib',
 if spec is None or spec.loader is None: raise RuntimeError(f'cannot load builder: {builder_path}')
 base=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
-base.EXPECTED['refresh.html']='63ecd73f60e219c74bc01b30067993922e257c684cbe96482087c3c3285a7e991'
-# Correct current production SHA for refresh.html. The historical builder had the
-# earlier verification typo; source drift is still fail-closed for every file.
 base.EXPECTED['refresh.html']='63ecd73f60e219c74d3d514ef59c0b0e9e284415346f35811d8c6e83e33ec600'
 _original_once=base.once
 
@@ -33,37 +30,11 @@ def precise_once(text,old,new,label):
         payload=new[:-len(old)]
         return text.replace(anchor,payload+anchor,1)
     if label=='local destructive gate functions':
-        # JavaScript \w is ASCII-only. Use explicit Cyrillic ranges so spoken
-        # forms such as "Удали" and "текущий" are recognized locally.
-        new=exact_replace(
-            new,
-            r"/(?:^|\s)(?:удал\w*|снес\w*|убер\w*)(?:\s|$)/",
-            r"/(?:^|\s)(?:удал[a-zа-яё]*|снес[a-zа-яё]*|убер[a-zа-яё]*)(?:\s|$)/i",
-            'Cyrillic destructive verb matcher')
-        new=exact_replace(
-            new,
-            r"/(?:этот|этого|текущ\w*|данн\w*)\s+(?:же\s+)?(?:объект|карточк)/",
-            r"/(?:этот|этого|текущ[a-zа-яё]*|данн[a-zа-яё]*)\s+(?:же\s+)?(?:объект|карточк)/i",
-            'Cyrillic current-object matcher')
-        # Do not call full render while waiting for confirmation: render exits
-        # the AI route in the browser harness/real app and must not erase the
-        # page-session destructive confirmation. Full render happens only after
-        # the object has actually been deleted.
-        new=exact_replace(
-            new,
-            "frameThinking=false;let reply=String(decision.reply||''),outcome='answer';",
-            "frameThinking=false;let reply=String(decision.reply||''),outcome='answer',didDelete=false;",
-            'delete decision render state')
-        new=exact_replace(
-            new,
-            "if(!result?.ok)throw new Error(result?.error||'объект не удалён');\n      reply=`Объект «${decision.label}» полностью удалён.`;",
-            "if(!result?.ok)throw new Error(result?.error||'объект не удалён');\n      didDelete=true;\n      reply=`Объект «${decision.label}» полностью удалён.`;",
-            'delete success marker')
-        new=exact_replace(
-            new,
-            "if(route==='ai')render();else frameRefreshChat();",
-            "if(didDelete&&route==='ai')render();else frameRefreshChat();",
-            'preserve confirmation session before delete')
+        new=exact_replace(new,r"/(?:^|\s)(?:удал\w*|снес\w*|убер\w*)(?:\s|$)/",r"/(?:^|\s)(?:удал[a-zа-яё]*|снес[a-zа-яё]*|убер[a-zа-яё]*)(?:\s|$)/i",'Cyrillic destructive verb matcher')
+        new=exact_replace(new,r"/(?:этот|этого|текущ\w*|данн\w*)\s+(?:же\s+)?(?:объект|карточк)/",r"/(?:этот|этого|текущ[a-zа-яё]*|данн[a-zа-яё]*)\s+(?:же\s+)?(?:объект|карточк)/i",'Cyrillic current-object matcher')
+        new=exact_replace(new,"frameThinking=false;let reply=String(decision.reply||''),outcome='answer';","frameThinking=false;let reply=String(decision.reply||''),outcome='answer',didDelete=false;",'delete decision render state')
+        new=exact_replace(new,"if(!result?.ok)throw new Error(result?.error||'объект не удалён');\n      reply=`Объект «${decision.label}» полностью удалён.`;","if(!result?.ok)throw new Error(result?.error||'объект не удалён');\n      didDelete=true;\n      reply=`Объект «${decision.label}» полностью удалён.`;",'delete success marker')
+        new=exact_replace(new,"if(route==='ai')render();else frameRefreshChat();","if(didDelete&&route==='ai')render();else frameRefreshChat();",'preserve confirmation session before delete')
         return _original_once(text,old,new,label)
     return _original_once(text,old,new,label)
 
@@ -74,4 +45,15 @@ if __name__=='__main__':
     p.add_argument('--src',type=Path,required=True)
     p.add_argument('--out',type=Path,required=True)
     a=p.parse_args()
-    base.build(a.src.resolve(),a.out.resolve())
+    out=a.out.resolve()
+    base.build(a.src.resolve(),out)
+    # Test-only: the retained UI harness already consumed nearly its old 10 s
+    # virtual-time budget before the new destructive cases appended at the end.
+    # Give the isolated candidate harness room to finish; production code is not
+    # changed by this adjustment and ci.py is never part of promotion.
+    ci=out/'tests/ai/ci.py'
+    text=ci.read_text(encoding='utf-8')
+    old='"ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 10000),'
+    new='"ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 30000),'
+    if text.count(old)!=1: raise RuntimeError('isolated UI virtual-time anchor changed')
+    ci.write_text(text.replace(old,new,1),encoding='utf-8',newline='\n')
