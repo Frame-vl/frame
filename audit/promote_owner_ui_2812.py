@@ -10,10 +10,10 @@ FILES={
  'app.js':'fd882be552a4e56bca5752c0ecfe6d1aef91613f57a5a264c1396df652847740',
  'ai-chat.js':'b0ffae8517388a5c804668f729194936e62eaa914cb6c4d3db7c5942bca494a1',
  'index.html':'90b774d28091dda3b56769a03410841f2738eb72f939d2d887ba2b0f42b479ae',
- 'sw.js':'9cee9dafa455e011ab77647a51dba4478a334fc2730e3883047023d66cfb40e3e',
+ 'sw.js':'9cee9dafa455e011ab77647a51dba4478a334fc2730e3883047023d66cfb40e3',
  'manifest.webmanifest':'f2ff6ccbe8c6bffb12d1dcf4065327af147222b705e129fc8166f5a2dbd52541',
  'version-fix.js':'c9ccaae968c2ee66c661150188ccb43c5d0353e893b3a3eb5cccd0012f664266',
- 'refresh.html':'63ecd73f60e219c74d3d514ef59c0b0e9e284415346f35811d8c6e83e33ec600',
+ 'refresh.html':'63ecd73f60e219c74bc01b30067993922e257c684cbe96482087c3c3285a7e991',
 }
 
 def api(path,method='GET',payload=None):
@@ -73,8 +73,6 @@ def main():
     if str(after['commit']['sha'])!=new_sha: raise RuntimeError('main ref did not move to created commit')
     print('MAIN_PUBLISHED '+json.dumps({'old':current,'new':new_sha,'files':list(FILES),'audit_files_published':False},ensure_ascii=False))
 
-    # Pages can lag behind the branch. Wait for all seven exact bytes rather
-    # than interpreting a single HTML marker as deployment success.
     deadline=time.time()+150
     last={}
     while time.time()<deadline:
