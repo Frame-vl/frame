@@ -1,0 +1,111 @@
+name: FRAME deploy working 2.8.14 sync
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/deploy-working-2814-sync.yml'
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: working-2814-src
+          persist-credentials: false
+      - name: Build cache-busted 2.8.14 candidate from exact main
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=(Resolve-Path 'working-2814-src').Path
+          $out='C:\FRAME\Working-2814-Candidate'
+          if(Test-Path $out){Remove-Item $out -Recurse -Force}
+          Copy-Item $src $out -Recurse
+          foreach($name in @('app.js','index.html','sw.js','manifest.webmanifest','version-fix.js','refresh.html')){
+            $p=Join-Path $out $name
+            $text=[IO.File]::ReadAllText($p)
+            $text=$text.Replace('2.8.13','2.8.14').Replace('2813','2814')
+            [IO.File]::WriteAllText($p,$text,(New-Object Text.UTF8Encoding($false)))
+          }
+          $app=[IO.File]::ReadAllText((Join-Path $out 'app.js'))
+          $chat=[IO.File]::ReadAllText((Join-Path $out 'ai-chat.js'))
+          $index=[IO.File]::ReadAllText((Join-Path $out 'index.html'))
+          $sw=[IO.File]::ReadAllText((Join-Path $out 'sw.js'))
+          if($app -notmatch "const VERSION='2\.8\.14'" -or $app -notmatch 'frameDeleteObjectFromChat'){throw '2814 app helper/version missing'}
+          if($chat -notmatch 'frameObjectDeleteApplyDecision' -or $chat -notmatch 'frameObjectDeleteSession'){throw '2814 chat delete gate missing'}
+          if($index -notmatch '2\.8\.14' -or $index -notmatch 'app\.js\?v=2814' -or $index -notmatch 'ai-chat\.js\?v=2814'){throw '2814 index cache bust missing'}
+          if($sw -notmatch 'frame-v2814' -or $sw -notmatch 'app\.js\?v=2814'){throw '2814 service worker cache missing'}
+          Write-Host 'WORKING_2814_CANDIDATE_BUILT'
+      - name: Re-run UI browser regression before working mutation
+        shell: cmd
+        working-directory: C:\FRAME\Working-2814-Candidate
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui
+      - name: Re-run executor browser regression before working mutation
+        shell: cmd
+        working-directory: C:\FRAME\Working-2814-Candidate
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor
+      - name: Re-run guard browser regression before working mutation
+        shell: cmd
+        working-directory: C:\FRAME\Working-2814-Candidate
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser guard
+      - name: Backup and synchronize exact working frontend
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $src='C:\FRAME\Working-2814-Candidate'
+          $dst='C:\FRAME\Owner-Test-2812\frontend'
+          if(!(Test-Path $dst)){throw 'working frontend directory missing'}
+          $stamp=(Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
+          $backup="C:\FRAME\Promotion-Backups\working-2814-sync-$stamp"
+          $files=@('styles.css','ai-chat.css','ai-test.css','ai-safety.js','owner-reset.js','app.js','ai-chat.js','ai-guard.js','version-fix.js','manifest.webmanifest','sw.js','refresh.html','icons\icon-192.png','icons\icon-512.png','index.html')
+          New-Item -ItemType Directory -Force -Path $backup | Out-Null
+          foreach($rel in $files){
+            $old=Join-Path $dst $rel
+            if(Test-Path $old){$bp=Join-Path $backup $rel;New-Item -ItemType Directory -Force -Path (Split-Path $bp) | Out-Null;Copy-Item $old $bp -Force}
+          }
+          foreach($rel in $files | Where-Object {$_ -ne 'index.html'}){
+            $from=Join-Path $src $rel;$to=Join-Path $dst $rel
+            if(!(Test-Path $from)){throw "candidate file missing: $rel"}
+            New-Item -ItemType Directory -Force -Path (Split-Path $to) | Out-Null
+            Copy-Item $from $to -Force
+          }
+          Copy-Item (Join-Path $src 'index.html') (Join-Path $dst 'index.html') -Force
+          foreach($rel in $files){
+            $a=(Get-FileHash (Join-Path $src $rel) -Algorithm SHA256).Hash
+            $b=(Get-FileHash (Join-Path $dst $rel) -Algorithm SHA256).Hash
+            if($a -ne $b){throw "working copy hash mismatch: $rel"}
+          }
+          Write-Host "WORKING_FRONTEND_SYNCED_2814 backup=$backup"
+      - name: Verify port 8799 and Tailscale HTTPS serve exact 2.8.14 bytes
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $src='C:\FRAME\Working-2814-Candidate'
+          $checks=@(
+            @('index.html','/index.html'),
+            @('app.js','/app.js?v=2814'),
+            @('ai-chat.js','/ai-chat.js?v=2814'),
+            @('sw.js','/sw.js?v=2814'),
+            @('version-fix.js','/version-fix.js?v=2814')
+          )
+          foreach($base in @('http://127.0.0.1:8799','https://home-pc.tail9b1df8.ts.net')){
+            foreach($c in $checks){
+              $name=$c[0];$path=$c[1];$tmp=Join-Path $env:RUNNER_TEMP ('verify-'+[guid]::NewGuid().ToString('N'))
+              Invoke-WebRequest -UseBasicParsing -Uri ($base+$path) -OutFile $tmp -Headers @{'Cache-Control'='no-cache'}
+              $want=(Get-FileHash (Join-Path $src $name) -Algorithm SHA256).Hash.ToLower()
+              $got=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()
+              if($want -ne $got){throw "served hash mismatch $base $name want=$want got=$got"}
+            }
+          }
+          $root=(Invoke-WebRequest -UseBasicParsing -Uri 'https://home-pc.tail9b1df8.ts.net/' -Headers @{'Cache-Control'='no-cache'}).Content
+          if($root -notmatch 'FRAME 2\.8\.14' -or $root -notmatch 'app\.js\?v=2814'){throw 'working root did not switch to 2.8.14'}
+          Write-Host 'WORKING_2814_HTTPS_VERIFIED owner_db_accessed=false backend_changed=false'
