@@ -1,0 +1,69 @@
+name: FRAME voice object delete promote
+
+on:
+  push:
+    branches: ['audit/voice-object-delete-20260910']
+    paths:
+      - 'audit/promote_voice_object_delete_2813.py'
+      - '.github/workflows/voice-object-delete-promote.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-PC
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout audited builder
+        uses: actions/checkout@v4
+        with:
+          ref: audit/voice-object-delete-20260910
+          path: voice-delete-audit
+          persist-credentials: false
+
+      - name: Checkout exact current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: voice-delete-main
+          persist-credentials: false
+
+      - name: Rebuild exact candidate from current main
+        shell: cmd
+        run: |
+          call voice-delete-audit\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 voice-delete-audit\audit\voice_object_delete_candidate_v2.py --src voice-delete-main --out C:\FRAME\Voice-Object-Delete-Promotion-2813
+
+      - name: Re-run browser UI before mutation
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Promotion-2813
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui
+
+      - name: Re-run executor before mutation
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Promotion-2813
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor
+
+      - name: Re-run guard before mutation
+        shell: cmd
+        working-directory: C:\FRAME\Voice-Object-Delete-Promotion-2813
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser guard
+
+      - name: Atomically publish seven verified files and wait for Pages
+        shell: cmd
+        run: |
+          call voice-delete-audit\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 voice-delete-audit\audit\promote_voice_object_delete_2813.py C:\FRAME\Voice-Object-Delete-Promotion-2813 voice-delete-main
