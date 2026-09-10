@@ -16,43 +16,40 @@ jobs:
           ref: main
           path: diagnose-main
           persist-credentials: false
-      - name: Probe working gateway and source versions without touching IndexedDB
+      - name: Locate exact files backing port 8799 without touching IndexedDB
         shell: powershell
         run: |
-          $ErrorActionPreference='Stop'
-          $expected=@{}
-          foreach($name in @('index.html','app.js','ai-chat.js','sw.js')){$expected[$name]=(Get-FileHash (Join-Path 'diagnose-main' $name) -Algorithm SHA256).Hash.ToLower()}
-          function Probe($label,$url){
-            $tmp=Join-Path $env:RUNNER_TEMP ('frame-probe-'+($label -replace '[^A-Za-z0-9_.-]','_'))
-            try{
-              $r=Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp -Headers @{'Cache-Control'='no-cache'} -ErrorAction Stop
-              $text=Get-Content $tmp -Raw
-              $sha=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()
-              return [ordered]@{ok=$true;status=200;sha=$sha;bytes=(Get-Item $tmp).Length;has_2813=($text -match '2\.8\.13|2813');has_helper=($text -match 'frameDeleteObjectFromChat');has_gate=($text -match 'frameObjectDeleteApplyDecision')}
-            }catch{
-              $status=$null
-              try{$status=[int]$_.Exception.Response.StatusCode}catch{}
-              return [ordered]@{ok=$false;status=$status;error=$_.Exception.Message}
+          $ErrorActionPreference='Continue'
+          $served=@{}
+          foreach($pair in @(@('app.js','http://127.0.0.1:8799/app.js?v=2813'),@('ai-chat.js','http://127.0.0.1:8799/ai-chat.js?v=2813'),@('index.html','http://127.0.0.1:8799/index.html'),@('sw.js','http://127.0.0.1:8799/sw.js?v=2813'))){
+            $name=$pair[0];$url=$pair[1];$tmp=Join-Path $env:RUNNER_TEMP ('served-'+$name)
+            try{Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp -Headers @{'Cache-Control'='no-cache'} -ErrorAction Stop;$served[$name]=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()}catch{$served[$name]='ERROR'}
+          }
+          $roots=@('C:\FRAME','C:\actions-runner\_work')
+          $hits=@()
+          foreach($root in $roots){
+            if(!(Test-Path $root)){continue}
+            Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | Where-Object {$_.Name -in @('app.js','ai-chat.js','index.html','sw.js')} | ForEach-Object {
+              $sha=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+              if($served.Values -contains $sha){
+                $text=Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
+                $hits += [pscustomobject]@{path=$_.FullName;name=$_.Name;sha=$sha;served_match=$true;has_2813=($text -match '2\.8\.13|2813');has_helper=($text -match 'frameDeleteObjectFromChat');has_gate=($text -match 'frameObjectDeleteApplyDecision')}
+              }
             }
           }
-          $result=[ordered]@{}
-          $result['public_root']=Probe 'public_root' 'https://home-pc.tail9b1df8.ts.net/'
-          $result['public_index']=Probe 'public_index' 'https://home-pc.tail9b1df8.ts.net/index.html'
-          $result['public_app']=Probe 'public_app' 'https://home-pc.tail9b1df8.ts.net/app.js?v=2813'
-          $result['public_chat']=Probe 'public_chat' 'https://home-pc.tail9b1df8.ts.net/ai-chat.js?v=2813'
-          $result['public_sw']=Probe 'public_sw' 'https://home-pc.tail9b1df8.ts.net/sw.js?v=2813'
-          $result['gateway_root']=Probe 'gateway_root' 'http://127.0.0.1:8799/'
-          $result['gateway_index']=Probe 'gateway_index' 'http://127.0.0.1:8799/index.html'
-          $result['gateway_app']=Probe 'gateway_app' 'http://127.0.0.1:8799/app.js?v=2813'
-          $result['gateway_chat']=Probe 'gateway_chat' 'http://127.0.0.1:8799/ai-chat.js?v=2813'
-          $result['gateway_sw']=Probe 'gateway_sw' 'http://127.0.0.1:8799/sw.js?v=2813'
-          $local=[ordered]@{}
-          $root='C:\FRAME\Owner-Test-2812'
-          foreach($name in @('index.html','app.js','ai-chat.js','sw.js')){
-            $p=Join-Path $root $name
-            if(Test-Path $p){$text=Get-Content $p -Raw;$local[$name]=[ordered]@{sha=(Get-FileHash $p -Algorithm SHA256).Hash.ToLower();bytes=(Get-Item $p).Length;has_2813=($text -match '2\.8\.13|2813');has_helper=($text -match 'frameDeleteObjectFromChat');has_gate=($text -match 'frameObjectDeleteApplyDecision');matches_main=((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -eq $expected[$name])}}else{$local[$name]=[ordered]@{missing=$true}}
-          }
-          $result['local_owner_test']=$local
-          try{$serve=& tailscale serve status 2>&1 | Out-String;$result['tailscale_serve_status']=$serve}catch{$result['tailscale_serve_status']='unavailable'}
-          Write-Host ($result|ConvertTo-Json -Depth 8)
-          Write-Host 'WORKING_OBJECT_DELETE_DIAGNOSTIC_COMPLETE'
+          Write-Host 'SERVED_HASHES'
+          Write-Host ($served|ConvertTo-Json -Depth 3)
+          Write-Host 'BACKING_FILE_MATCHES'
+          Write-Host ($hits|ConvertTo-Json -Depth 4)
+          try{
+            $conn=Get-NetTCPConnection -LocalPort 8799 -State Listen -ErrorAction Stop | Select-Object -First 1
+            Write-Host ('PORT8799_PID='+$conn.OwningProcess)
+            $p=Get-CimInstance Win32_Process -Filter "ProcessId=$($conn.OwningProcess)"
+            if($p){
+              $cmd=String($p.CommandLine)
+              $cmd=$cmd -replace '(?i)(token|secret|key)(\s*[=:]\s*)[^\s\"]+','$1$2[REDACTED]'
+              Write-Host ('PORT8799_EXE='+$p.ExecutablePath)
+              Write-Host ('PORT8799_CMD='+$cmd)
+            }
+          }catch{Write-Host ('PORT8799_INFO_ERROR='+$_.Exception.Message)}
+          Write-Host 'BACKING_FILE_DISCOVERY_COMPLETE'
