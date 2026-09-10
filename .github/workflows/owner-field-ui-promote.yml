@@ -1,0 +1,38 @@
+name: FRAME owner field UI promote
+on:
+  push:
+    branches: ['audit/owner-field-fix-20260910']
+    paths:
+      - 'audit/promote_owner_ui_2812.py'
+      - '.github/workflows/owner-field-ui-promote.yml'
+permissions:
+  contents: write
+jobs:
+  promote:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/owner-field-fix-20260910
+          path: owner-ui-audit
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: owner-ui-main
+          persist-credentials: false
+      - name: Refuse main drift and rebuild exact tested candidate
+        shell: cmd
+        run: |
+          call owner-ui-audit\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 owner-ui-audit\audit\owner_ui_candidate.py --src owner-ui-main --out C:\FRAME\Owner-UI-Promotion-2812
+      - name: Atomically update only seven working files and verify GitHub Pages bytes
+        shell: cmd
+        run: |
+          call owner-ui-audit\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 owner-ui-audit\audit\promote_owner_ui_2812.py C:\FRAME\Owner-UI-Promotion-2812
