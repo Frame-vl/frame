@@ -8,6 +8,18 @@ if spec is None or spec.loader is None: raise RuntimeError(f'cannot load builder
 base=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 base.EXPECTED['refresh.html']='63ecd73f60e219c74d3d514ef59c0b0e9e284415346f35811d8c6e83e33ec600'
+_original_once=base.once
+
+def precise_once(text,old,new,label):
+    if label=='delete session state':
+        anchor="frameMutationClarificationSession='';\nlet frameVoiceEndWaiter=null;"
+        replacement="frameMutationClarificationSession='',frameObjectDeleteSession=null;\nlet frameVoiceEndWaiter=null;"
+        count=text.count(anchor)
+        if count!=1: raise RuntimeError(f'{label}: precise declaration anchor count {count}')
+        return text.replace(anchor,replacement,1)
+    return _original_once(text,old,new,label)
+
+base.once=precise_once
 
 if __name__=='__main__':
     p=argparse.ArgumentParser()
