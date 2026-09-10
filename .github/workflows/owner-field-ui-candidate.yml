@@ -1,0 +1,63 @@
+name: FRAME owner field UI candidate
+on:
+  push:
+    branches: ['audit/owner-field-fix-20260910']
+    paths:
+      - 'audit/owner_ui_candidate.py'
+      - '.github/workflows/owner-field-ui-candidate.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      FRAME_EXPECTED_RUNNER: FRAME-PC
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/owner-field-fix-20260910
+          path: owner-ui-src
+          persist-credentials: false
+      - name: Build isolated frontend candidate
+        shell: cmd
+        run: |
+          call owner-ui-src\tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 owner-ui-src\audit\owner_ui_candidate.py --src owner-ui-src --out C:\FRAME\Owner-UI-Candidate-20260910
+      - name: Browser UI including short-object auto-open
+        shell: cmd
+        working-directory: C:\FRAME\Owner-UI-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser ui
+      - name: Browser executor safety including delete_work boundary
+        shell: cmd
+        working-directory: C:\FRAME\Owner-UI-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser executor
+      - name: Browser guard safety
+        shell: cmd
+        working-directory: C:\FRAME\Owner-UI-Candidate-20260910
+        run: |
+          call tests\ai\resolve-python.cmd
+          "%FRAME_PYTHON%" -X utf8 tests\ai\ci.py browser guard
+      - name: Static PWA freshness gate
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $root='C:\FRAME\Owner-UI-Candidate-20260910'
+          $app=Get-Content (Join-Path $root 'app.js') -Raw -Encoding UTF8
+          $sw=Get-Content (Join-Path $root 'sw.js') -Raw -Encoding UTF8
+          $idx=Get-Content (Join-Path $root 'index.html') -Raw -Encoding UTF8
+          $manifest=Get-Content (Join-Path $root 'manifest.webmanifest') -Raw|ConvertFrom-Json
+          if($app -notmatch "const VERSION='2\.8\.12';"){throw 'version marker wrong'}
+          if($app -match 'SOLO · 2\.6'){throw 'legacy badge survives'}
+          if($sw -notmatch "const CACHE='frame-v2812-ownerfix';"){throw 'cache marker wrong'}
+          if($sw -notmatch "fetch\(event\.request,\{cache:'no-store'\}\)"){throw 'navigation/static fetch not network-first'}
+          if($app -notmatch 'controllerchange'){throw 'controller-change reload missing'}
+          if([string]$manifest.start_url -ne './index.html?v=2812'){throw 'manifest start_url wrong'}
+          if($idx -notmatch 'frame-version" content="2\.8\.12"'){throw 'index build marker wrong'}
+          [ordered]@{state='OWNER_UI_CANDIDATE_GREEN';build='2.8.12';browser_ui='PASS';browser_executor='PASS';browser_guard='PASS';pwa_freshness_static='PASS';working_main_changed=$false;owner_db_accessed=$false}|ConvertTo-Json
