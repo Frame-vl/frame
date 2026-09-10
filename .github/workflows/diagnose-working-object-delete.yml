@@ -1,0 +1,44 @@
+name: FRAME diagnose working object delete
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/diagnose-working-object-delete.yml'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: diagnose-main
+          persist-credentials: false
+      - name: Probe exact working origin without touching IndexedDB
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $origin='https://home-pc.tail9b1df8.ts.net'
+          $expected=@{
+            'app.js'=(Get-FileHash 'diagnose-main\app.js' -Algorithm SHA256).Hash.ToLower()
+            'ai-chat.js'=(Get-FileHash 'diagnose-main\ai-chat.js' -Algorithm SHA256).Hash.ToLower()
+            'index.html'=(Get-FileHash 'diagnose-main\index.html' -Algorithm SHA256).Hash.ToLower()
+            'sw.js'=(Get-FileHash 'diagnose-main\sw.js' -Algorithm SHA256).Hash.ToLower()
+          }
+          $result=[ordered]@{}
+          foreach($name in @('index.html','app.js','ai-chat.js','sw.js')){
+            $url = if($name -eq 'index.html'){"$origin/"}else{"$origin/$name?v=2813"}
+            $tmp=Join-Path $env:RUNNER_TEMP ("frame-working-"+$name)
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $tmp -Headers @{'Cache-Control'='no-cache'}
+            $sha=(Get-FileHash $tmp -Algorithm SHA256).Hash.ToLower()
+            $text=Get-Content $tmp -Raw
+            $result[$name]=[ordered]@{sha=$sha;expected=$expected[$name];exact=($sha -eq $expected[$name]);has_2813=($text -match '2\.8\.13|2813');has_delete_helper=($name -ne 'app.js' -or $text -match 'frameDeleteObjectFromChat');has_delete_gate=($name -ne 'ai-chat.js' -or $text -match 'frameObjectDeleteApplyDecision')}
+          }
+          $json=$result|ConvertTo-Json -Depth 6
+          Write-Host $json
+          if(($result.Values|Where-Object{-not $_.exact}).Count -gt 0){throw 'WORKING_ORIGIN_FILE_MISMATCH'}
+          if(-not $result['app.js'].has_delete_helper){throw 'WORKING_APP_DELETE_HELPER_MISSING'}
+          if(-not $result['ai-chat.js'].has_delete_gate){throw 'WORKING_CHAT_DELETE_GATE_MISSING'}
+          Write-Host 'WORKING_OBJECT_DELETE_SOURCE_EXACT'
