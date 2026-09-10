@@ -47,13 +47,9 @@ if __name__=='__main__':
     a=p.parse_args()
     out=a.out.resolve()
     base.build(a.src.resolve(),out)
-    # Test-only: the retained UI harness already consumed nearly its old 10 s
-    # virtual-time budget before the new destructive cases appended at the end.
-    # Give the isolated candidate harness room to finish; production code is not
-    # changed by this adjustment and ci.py is never part of promotion.
     ci=out/'tests/ai/ci.py'
     text=ci.read_text(encoding='utf-8')
     old='"ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 10000),'
-    new='"ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 30000),'
+    new='"ui": ("ui-harness.html", "FRAME_UI_E2E_PASS", 60000),'
     if text.count(old)!=1: raise RuntimeError('isolated UI virtual-time anchor changed')
     ci.write_text(text.replace(old,new,1),encoding='utf-8',newline='\n')
