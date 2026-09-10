@@ -13,7 +13,7 @@ FILES={
  'sw.js':'9cee9dafa455e011ab77647a51dba4478a334fc2730e3883047023d66cfb40e3',
  'manifest.webmanifest':'f2ff6ccbe8c6bffb12d1dcf4065327af147222b705e129fc8166f5a2dbd52541',
  'version-fix.js':'c9ccaae968c2ee66c661150188ccb43c5d0353e893b3a3eb5cccd0012f664266',
- 'refresh.html':'63ecd73f60e219c74bc01b30067993922e257c684cbe96482087c3c3285a7e991',
+ 'refresh.html':'63ecd73f60e219c74d3d514ef59c0b0e9e284415346f35811d8c6e83e33ec600',
 }
 
 def api(path,method='GET',payload=None):
