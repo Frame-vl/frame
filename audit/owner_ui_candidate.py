@@ -59,6 +59,22 @@ def build(src:Path,out:Path):
     r=refresh.read_text(encoding='utf-8').replace('2811h1',CACHE)
     refresh.write_text(r,encoding='utf-8',newline='\n')
 
+    # Candidate-only browser assertion: short "Открой <address>" must take the
+    # local navigation path and invoke the object opener without an LLM roundtrip.
+    harness=out/'tests'/'ai'/'ui-harness.html'
+    u=harness.read_text(encoding='utf-8')
+    u=once(u,'<script src="../../ai-chat.js"></script>','<script>window.AUTO_OPEN=[];window.frameOpenObjectRef=(objectId,orderId)=>{window.AUTO_OPEN=[String(objectId),String(orderId)]};</script>\n<script src="../../ai-chat.js"></script>','ui harness navigation stub')
+    anchor="  }catch(e){failures.push('exception: '+(e?.stack||e))}"
+    proof="""    window.AUTO_OPEN=[];
+    await send('Открой Архангельская, 21');
+    await waitFor(()=>window.AUTO_OPEN.length===2,1000);
+    assert(window.AUTO_OPEN[0]==='obj-arch'&&window.AUTO_OPEN[1]==='order-arch','short address open did not navigate directly to the unique object');
+    const latestLocal=[...frameChatMessages()].reverse().find(message=>message?.role==='assistant');
+    assert(latestLocal?.trace?.provider==='FRAME local navigation','short address open went to remote AI instead of local navigation');
+"""+anchor
+    u=once(u,anchor,proof,'ui harness short open proof')
+    harness.write_text(u,encoding='utf-8',newline='\n')
+
     # Candidate-only invariants. Never accept a UI build where the historical
     # SOLO 2.6 badge remains or short object open still requires a subject word.
     final_app=app.read_text(encoding='utf-8'); final_chat=chat.read_text(encoding='utf-8'); final_sw=sw.read_text(encoding='utf-8')
@@ -68,6 +84,7 @@ def build(src:Path,out:Path):
       'short_open_relaxed':'if(!open||!subject)return null;' not in final_chat,
       'short_open_unique_guard':'!subject&&!(objectResolution.named&&objectResolution.objectId)' in final_chat,
       'auto_open_exec':'frameOpenObjectRef(localOpen.autoOpen.objectId,localOpen.autoOpen.orderId)' in final_chat,
+      'browser_short_open_proof':'short address open did not navigate directly' in harness.read_text(encoding='utf-8'),
       'sw_network_first':"fetch(event.request,{cache:'no-store'})" in final_sw,
       'sw_controller_reload':'controllerchange' in final_app,
       'cache_version':f"const CACHE='frame-v{CACHE}-ownerfix';" in final_sw,
