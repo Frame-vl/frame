@@ -1,0 +1,58 @@
+name: FRAME runtime watchdog
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/frame-runtime-watchdog.yml'
+  schedule:
+    - cron: '*/10 * * * *'
+permissions:
+  contents: read
+jobs:
+  watchdog:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 8
+    steps:
+      - name: Resolve FRAME Python
+        shell: cmd
+        run: |
+          call C:\FRAME\Working-2814-Candidate\tests\ai\resolve-python.cmd
+          if not defined FRAME_PYTHON exit /b 1
+      - name: Restore missing FRAME runtime processes
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:RUNNER_TRACKING_ID=''
+          function Listening([int]$port){
+            return [bool](Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1)
+          }
+          function StartFrame([int]$port,[string]$script,[string]$cwd){
+            if(Listening $port){Write-Host ("PORT_"+$port+"_ALREADY_LISTENING");return}
+            Start-Process -FilePath $env:FRAME_PYTHON -ArgumentList @('-X','utf8',$script) -WorkingDirectory $cwd -WindowStyle Hidden
+            $deadline=(Get-Date).AddSeconds(35)
+            while((Get-Date)-lt $deadline){
+              if(Listening $port){Write-Host ("PORT_"+$port+"_RESTORED");return}
+              Start-Sleep -Milliseconds 500
+            }
+            throw ("port "+$port+" did not start")
+          }
+          StartFrame 8788 'C:\FRAME\AI-Server-Field-v030\frame_field_public_start.py' 'C:\FRAME\AI-Server-Field-v030'
+          StartFrame 8804 'C:\FRAME\AI-Server-Field-v030\legacy_auth_proxy.py' 'C:\FRAME\AI-Server-Field-v030'
+          StartFrame 8799 'C:\FRAME\Owner-Test-2812\runtime\gateway.py' 'C:\FRAME\Owner-Test-2812\runtime'
+      - name: Verify local and public health
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          function Status($url,$headers=@{}){
+            try{return [int](Invoke-WebRequest -UseBasicParsing -Uri $url -Headers $headers -TimeoutSec 20 -ErrorAction Stop).StatusCode}
+            catch{try{return [int]$_.Exception.Response.StatusCode}catch{return 0}}
+          }
+          $cfg=Get-Content 'C:\FRAME\AI-Server-Field-v030\frame-ai-config.json' -Raw | ConvertFrom-Json
+          $token=[string]$cfg.token
+          if(!$token){throw 'field token missing'}
+          $h=@{Authorization=('Bearer '+$token)}
+          if((Status 'http://127.0.0.1:8799/') -ne 200){throw 'gateway unhealthy'}
+          if((Status 'http://127.0.0.1:8788/health' $h) -ne 200){throw 'backend unhealthy'}
+          if((Status 'http://127.0.0.1:8804/health' $h) -ne 200){throw 'proxy unhealthy'}
+          if((Status 'https://home-pc.tail9b1df8.ts.net/frame-field/health' $h) -ne 200){throw 'public AI route unhealthy'}
+          Write-Host 'FRAME_RUNTIME_WATCHDOG_OK owner_db_accessed=false future_touched=false'
