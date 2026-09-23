@@ -245,8 +245,10 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
     assert(startedInTap&&startedRecognition,'voice recognition was deferred beyond the user tap');
     assert(startedRecognition.continuous===false&&startedRecognition.interimResults===true,'iPhone-safe recognition settings were not applied');
     const previewResult=[{transcript:'проверка микрофона'}];previewResult.isFinal=false;startedRecognition.onresult?.({resultIndex:0,results:[previewResult]});
-    assert(!document.getElementById('frameVoicePreview'),'recognized text was rendered over the waveform');
-    assert(!/проверка микрофона/i.test(document.getElementById('frameVoicePanel')?.textContent||''),'recognized text leaked into the recording panel');
+    assert(/проверка микрофона/i.test(document.getElementById('frameVoicePreview')?.textContent||''),'recognized speech was not shown during recording');
+    assert((document.getElementById('aiCommandInput')?.value||'')==='проверка микрофона','recognized speech was not retained for Send');
+    startedRecognition.onresult?.({resultIndex:0,results:[previewResult]});
+    assert((document.getElementById('aiCommandInput')?.value||'')==='проверка микрофона','repeated recognition result duplicated the transcript');
     startedRecognition.onerror?.({error:'network'});
     assert(!frameVoiceWanted&&aiRecognition===null&&/VPN/.test(TOASTS.at(-1)||''),'speech network failure stayed silent or retained stale recognition');
     await directStart;
@@ -592,5 +594,4 @@ window.brainDraftFromResponse=(text,response)=>{const key=routeState.aiTarget||T
 })();
 </script>
 </body></html>
-
 
