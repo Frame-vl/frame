@@ -1,4 +1,4 @@
-name: FRAME locate live gateway proxy
+name: FRAME inspect launcher code
 on:
   workflow_dispatch:
   push:
@@ -11,17 +11,21 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 6
     steps:
-      - name: Locate exact live launcher files
-        shell: cmd
+      - name: Inspect safe launcher code
+        shell: powershell
         run: |
-          @echo off
-          echo OWNER_TEST_GATEWAY_FILES
-          dir /s /b C:\FRAME\Owner-Test-2812\*gateway*.py 2>nul
-          dir /s /b C:\FRAME\Owner-Test-2812\*start*.py 2>nul
-          echo FIELD_PROXY_FILES
-          dir /s /b C:\FRAME\AI-Server-Field-v030\*proxy*.py 2>nul
-          dir /s /b C:\FRAME\AI-Server-Field-v030\*public*.py 2>nul
-          dir /s /b C:\FRAME\AI-Server-Field-v030\*watchdog*.py 2>nul
-          echo OWNER_TEST_TOP
-          dir /b C:\FRAME\Owner-Test-2812 2>nul
-          echo LIVE_LAUNCHER_PATHS_COMPLETE
+          $ErrorActionPreference='Stop'
+          foreach($p in @(
+            'C:\FRAME\Owner-Test-2812\runtime\gateway.py',
+            'C:\FRAME\Owner-Test-2812\runtime\backend_start.py',
+            'C:\FRAME\AI-Server-Field-v030\frame_field_public_start.py',
+            'C:\FRAME\AI-Server-Field-v030\legacy_auth_proxy.py',
+            'C:\FRAME\AI-Server-Field-v030\frame_field_public_watchdog.py'
+          )){
+            Write-Host ('===== '+$p+' =====')
+            $text=Get-Content $p -Raw
+            $text=$text -replace '(?i)(token\s*[=:]\s*)(["''][^"'']+["'']|[^\s]+)','$1[REDACTED]'
+            if($text.Length -gt 18000){$text=$text.Substring(0,18000)}
+            Write-Host $text
+          }
+          Write-Host 'LAUNCHER_CODE_INSPECT_COMPLETE'
