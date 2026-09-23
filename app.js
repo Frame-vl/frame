@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
-const VERSION='2.8.13';
+const VERSION='2.8.14';
 const DB_NAME='FRAME_DB';
 const DB_VERSION=2;
 const STORE='objects';
@@ -1405,7 +1405,7 @@ async function init(){
   }
   render();
   if(aiServerUrl())checkAiBrain({toastResult:false});
-  if('serviceWorker'in navigator){const reloadKey='frameSwControllerReloadV2813';navigator.serviceWorker.addEventListener('controllerchange',()=>{try{if(sessionStorage.getItem(reloadKey)!=='1'){sessionStorage.setItem(reloadKey,'1');location.reload()}}catch(e){}});navigator.serviceWorker.register('./sw.js?v=2813',{updateViaCache:'none'}).then(r=>r.update()).catch(console.warn);}
+  if('serviceWorker'in navigator){const reloadKey='frameSwControllerReloadV2813';navigator.serviceWorker.addEventListener('controllerchange',()=>{try{if(sessionStorage.getItem(reloadKey)!=='1'){sessionStorage.setItem(reloadKey,'1');location.reload()}}catch(e){}});navigator.serviceWorker.register('./sw.js?v=2814',{updateViaCache:'none'}).then(r=>r.update()).catch(console.warn);}
 }
 const frameSkipInitForExecutorHarness=window.FRAME_TEST_SKIP_APP_INIT===true&&location.protocol==='file:'&&/\/tests\/ai\/executor-harness\.html$/i.test(decodeURI(location.pathname||''));
 if(!frameSkipInitForExecutorHarness)init();
