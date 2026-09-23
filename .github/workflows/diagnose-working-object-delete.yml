@@ -1,4 +1,4 @@
-name: FRAME diagnose runtime launchers
+name: FRAME inspect runtime tree
 on:
   workflow_dispatch:
   push:
@@ -9,29 +9,21 @@ permissions:
 jobs:
   diagnose:
     runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
-      - name: Inspect launchers without touching owner DB
+      - name: Inspect runtime tree without owner DB access
         shell: powershell
         run: |
           $ErrorActionPreference='Continue'
-          Write-Host 'PROCESS_8788'
-          try{
-            $c=Get-NetTCPConnection -LocalPort 8788 -State Listen -ErrorAction Stop|Select-Object -First 1
-            $p=Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)"
-            $cmd=[string]$p.CommandLine
-            $cmd=$cmd -replace '(?i)(token|secret|key)(\s*[=:]\s*)[^\s"]+','$1$2[REDACTED]'
-            Write-Host ('PID='+$p.ProcessId)
-            Write-Host ('EXE='+$p.ExecutablePath)
-            Write-Host ('CMD='+$cmd)
-          }catch{Write-Host ('PROCESS_8788_ERROR='+$_.Exception.Message)}
-          Write-Host 'LAUNCHER_FILES'
-          Get-ChildItem 'C:\FRAME' -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object { $_.Extension -in @('.py','.ps1','.cmd','.bat') -and $_.Name -match '(?i)(gateway|proxy|watchdog|start|serve|field)' } |
-            Select-Object -First 120 |
-            ForEach-Object { Write-Host (($_.FullName -replace '^C:\\FRAME\\','')+' bytes='+$_.Length) }
-          Write-Host 'TOP_DIRS'
-          Get-ChildItem 'C:\FRAME' -Directory -ErrorAction SilentlyContinue | ForEach-Object {Write-Host $_.Name}
-          Write-Host 'TASKS_SCHTASKS'
-          & schtasks.exe /Query /FO CSV /NH 2>$null | Select-String -Pattern '(?i)FRAME|Owner|Field|Gateway|Proxy' | ForEach-Object {Write-Host $_.Line}
-          Write-Host 'RUNTIME_LAUNCHER_DIAGNOSTIC_COMPLETE owner_db_accessed=false'
+          foreach($root in @('C:\FRAME\Owner-Test-2812','C:\FRAME\AI-Server-Field-v030')){
+            Write-Host ('ROOT='+$root)
+            Get-ChildItem $root -Force -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host ('L1 '+$_.Name+' type='+(if($_.PSIsContainer){'dir'}else{'file'})+' bytes='+(if($_.PSIsContainer){0}else{$_.Length}))
+              if($_.PSIsContainer){
+                Get-ChildItem $_.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 80 | ForEach-Object {
+                  Write-Host ('L2 '+$_.FullName.Replace($root+'\','')+' type='+(if($_.PSIsContainer){'dir'}else{'file'})+' bytes='+(if($_.PSIsContainer){0}else{$_.Length}))
+                }
+              }
+            }
+          }
+          Write-Host 'RUNTIME_TREE_COMPLETE owner_db_accessed=false'
