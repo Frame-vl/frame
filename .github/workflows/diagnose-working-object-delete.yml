@@ -1,4 +1,4 @@
-name: FRAME inspect runtime tree
+name: FRAME locate live gateway proxy
 on:
   workflow_dispatch:
   push:
@@ -9,21 +9,19 @@ permissions:
 jobs:
   diagnose:
     runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 8
+    timeout-minutes: 6
     steps:
-      - name: Inspect runtime tree without owner DB access
-        shell: powershell
+      - name: Locate exact live launcher files
+        shell: cmd
         run: |
-          $ErrorActionPreference='Continue'
-          foreach($root in @('C:\FRAME\Owner-Test-2812','C:\FRAME\AI-Server-Field-v030')){
-            Write-Host ('ROOT='+$root)
-            Get-ChildItem $root -Force -ErrorAction SilentlyContinue | ForEach-Object {
-              Write-Host ('L1 '+$_.Name+' type='+(if($_.PSIsContainer){'dir'}else{'file'})+' bytes='+(if($_.PSIsContainer){0}else{$_.Length}))
-              if($_.PSIsContainer){
-                Get-ChildItem $_.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 80 | ForEach-Object {
-                  Write-Host ('L2 '+$_.FullName.Replace($root+'\','')+' type='+(if($_.PSIsContainer){'dir'}else{'file'})+' bytes='+(if($_.PSIsContainer){0}else{$_.Length}))
-                }
-              }
-            }
-          }
-          Write-Host 'RUNTIME_TREE_COMPLETE owner_db_accessed=false'
+          @echo off
+          echo OWNER_TEST_GATEWAY_FILES
+          dir /s /b C:\FRAME\Owner-Test-2812\*gateway*.py 2>nul
+          dir /s /b C:\FRAME\Owner-Test-2812\*start*.py 2>nul
+          echo FIELD_PROXY_FILES
+          dir /s /b C:\FRAME\AI-Server-Field-v030\*proxy*.py 2>nul
+          dir /s /b C:\FRAME\AI-Server-Field-v030\*public*.py 2>nul
+          dir /s /b C:\FRAME\AI-Server-Field-v030\*watchdog*.py 2>nul
+          echo OWNER_TEST_TOP
+          dir /b C:\FRAME\Owner-Test-2812 2>nul
+          echo LIVE_LAUNCHER_PATHS_COMPLETE
