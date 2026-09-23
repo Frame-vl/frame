@@ -1,4 +1,4 @@
-name: FRAME diagnose current AI connectivity
+name: FRAME diagnose runtime launchers
 on:
   workflow_dispatch:
   push:
@@ -9,83 +9,29 @@ permissions:
 jobs:
   diagnose:
     runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 12
+    timeout-minutes: 10
     steps:
-      - name: Diagnose working AI without touching owner DB
+      - name: Inspect launchers without touching owner DB
         shell: powershell
         run: |
           $ErrorActionPreference='Continue'
-          Write-Host ('UTC='+[DateTime]::UtcNow.ToString('o'))
-          Write-Host 'PORTS'
-          foreach($port in @(8788,8799,8804,18787)){
-            $c=Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-            if($c){Write-Host ("PORT $port LISTEN pid="+$c.OwningProcess)}else{Write-Host ("PORT $port DOWN")}
-          }
-          Write-Host 'TASKS'
-          Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {$_.TaskName -like 'FRAME*'} | ForEach-Object {
-            $i=Get-ScheduledTaskInfo -TaskName $_.TaskName -TaskPath $_.TaskPath -ErrorAction SilentlyContinue
-            Write-Host ("TASK="+$_.TaskName+" state="+$_.State+" lastResult="+$i.LastTaskResult+" lastRun="+$i.LastRunTime.ToString('o'))
-          }
-          function Probe($label,$url,$headers=@{},$method='GET',$body=$null){
-            try{
-              $params=@{UseBasicParsing=$true;Uri=$url;Method=$method;Headers=$headers;TimeoutSec=20;ErrorAction='Stop'}
-              if($body -ne $null){$params['Body']=$body;$params['ContentType']='application/json'}
-              $r=Invoke-WebRequest @params
-              $provider='';$model='';$mode='';$ok=''
-              try{$j=$r.Content|ConvertFrom-Json;$provider=[string]$j.provider;$model=[string]$j.model;$mode=[string]$j.mode;$ok=[string]$j.ok}catch{}
-              Write-Host ("PROBE="+$label+" status="+[int]$r.StatusCode+" ok="+$ok+" provider="+$provider+" model="+$model+" mode="+$mode)
-              return [int]$r.StatusCode
-            }catch{
-              $status=0;try{$status=[int]$_.Exception.Response.StatusCode}catch{}
-              $msg=[string]$_.Exception.Message
-              if($msg.Length -gt 140){$msg=$msg.Substring(0,140)}
-              Write-Host ("PROBE="+$label+" status="+$status+" error="+$msg)
-              return $status
-            }
-          }
-          [void](Probe 'frontend_local' 'http://127.0.0.1:8799/')
-          [void](Probe 'backend_8788_unauth' 'http://127.0.0.1:8788/health')
-          [void](Probe 'proxy_8804_unauth' 'http://127.0.0.1:8804/health')
-          [void](Probe 'public_root' 'https://home-pc.tail9b1df8.ts.net/')
-          [void](Probe 'public_ai_unauth' 'https://home-pc.tail9b1df8.ts.net/frame-field/health')
-          Write-Host 'TAILSCALE'
-          try{& tailscale funnel status 2>&1 | ForEach-Object {Write-Host $_}}catch{Write-Host ('FUNNEL_STATUS_ERROR='+$_.Exception.Message)}
-          $candidates=@()
-          $machine=[Environment]::GetEnvironmentVariable('FRAME_AI_TOKEN','Machine')
-          if($machine){$candidates += [pscustomobject]@{source='machine_env';token=$machine}}
-          $process=$env:FRAME_AI_TOKEN
-          if($process){$candidates += [pscustomobject]@{source='process_env';token=$process}}
-          $configs=Get-ChildItem 'C:\FRAME' -Recurse -File -Filter 'frame-ai-config.json' -ErrorAction SilentlyContinue
-          foreach($file in $configs){
-            try{
-              $j=Get-Content $file.FullName -Raw | ConvertFrom-Json
-              foreach($prop in @('token','access_token','api_token','frame_ai_token')){
-                $v=[string]$j.$prop
-                if($v){$candidates += [pscustomobject]@{source=('config:'+($file.FullName -replace '^C:\\FRAME\\','')+':'+$prop);token=$v}}
-              }
-              $keys=($j.PSObject.Properties.Name | Sort-Object) -join ','
-              Write-Host ('CONFIG='+($file.FullName -replace '^C:\\FRAME\\','')+' keys='+$keys)
-            }catch{Write-Host ('CONFIG_PARSE_FAIL='+($file.FullName -replace '^C:\\FRAME\\',''))}
-          }
-          $seen=@{}
-          $valid=@()
-          foreach($candidate in $candidates){
-            if(!$candidate.token){continue}
-            $finger=[Convert]::ToBase64String([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($candidate.token))).Substring(0,10)
-            if($seen[$finger]){continue};$seen[$finger]=$true
-            $headers=@{Authorization=('Bearer '+$candidate.token)}
-            $s1=Probe ('auth8788:'+ $candidate.source +':'+$finger) 'http://127.0.0.1:8788/health' $headers
-            $s2=Probe ('auth8804:'+ $candidate.source +':'+$finger) 'http://127.0.0.1:8804/health' $headers
-            $s3=Probe ('authPublic:'+ $candidate.source +':'+$finger) 'https://home-pc.tail9b1df8.ts.net/frame-field/health' $headers
-            if($s3 -eq 200){$valid += $candidate}
-          }
-          if($valid.Count -gt 0){
-            $chosen=$valid[0]
-            $headers=@{Authorization=('Bearer '+$chosen.token)}
-            $rid='diag-'+[guid]::NewGuid().ToString('N')
-            $payload=@{text='Reply only OK';context=@{current_target='';conversation_target_key='';conversation=@();objects=@();today=[DateTime]::UtcNow.ToString('yyyy-MM-dd')};request_id=$rid}|ConvertTo-Json -Depth 8 -Compress
-            [void](Probe 'public_analyze_e2e' 'https://home-pc.tail9b1df8.ts.net/frame-field/analyze' $headers 'POST' $payload)
-          }else{
-            Write-Host 'NO_AUTH_TOKEN_ACCEPTED_BY_PUBLIC_AI'
-          }
-          Write-Host 'CURRENT_AI_DIAGNOSTIC_COMPLETE owner_db_accessed=false'
+          Write-Host 'PROCESS_8788'
+          try{
+            $c=Get-NetTCPConnection -LocalPort 8788 -State Listen -ErrorAction Stop|Select-Object -First 1
+            $p=Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)"
+            $cmd=[string]$p.CommandLine
+            $cmd=$cmd -replace '(?i)(token|secret|key)(\s*[=:]\s*)[^\s"]+','$1$2[REDACTED]'
+            Write-Host ('PID='+$p.ProcessId)
+            Write-Host ('EXE='+$p.ExecutablePath)
+            Write-Host ('CMD='+$cmd)
+          }catch{Write-Host ('PROCESS_8788_ERROR='+$_.Exception.Message)}
+          Write-Host 'LAUNCHER_FILES'
+          Get-ChildItem 'C:\FRAME' -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in @('.py','.ps1','.cmd','.bat') -and $_.Name -match '(?i)(gateway|proxy|watchdog|start|serve|field)' } |
+            Select-Object -First 120 |
+            ForEach-Object { Write-Host (($_.FullName -replace '^C:\\FRAME\\','')+' bytes='+$_.Length) }
+          Write-Host 'TOP_DIRS'
+          Get-ChildItem 'C:\FRAME' -Directory -ErrorAction SilentlyContinue | ForEach-Object {Write-Host $_.Name}
+          Write-Host 'TASKS_SCHTASKS'
+          & schtasks.exe /Query /FO CSV /NH 2>$null | Select-String -Pattern '(?i)FRAME|Owner|Field|Gateway|Proxy' | ForEach-Object {Write-Host $_.Line}
+          Write-Host 'RUNTIME_LAUNCHER_DIAGNOSTIC_COMPLETE owner_db_accessed=false'
