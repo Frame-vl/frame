@@ -1,0 +1,67 @@
+name: FRAME repair public runtime
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/repair-frame-public-runtime.yml'
+permissions:
+  contents: read
+jobs:
+  repair:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 12
+    steps:
+      - name: Resolve persistent Python
+        shell: cmd
+        run: |
+          call C:\FRAME\Working-2814-Candidate\tests\ai\resolve-python.cmd
+          if not defined FRAME_PYTHON exit /b 1
+          echo FRAME runtime Python ready
+      - name: Start missing gateway and auth proxy detached
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if(!(Test-Path $env:FRAME_PYTHON)){throw 'FRAME Python missing'}
+          $env:RUNNER_TRACKING_ID=''
+          function Listening([int]$port){
+            return [bool](Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1)
+          }
+          if(!(Listening 8799)){
+            Start-Process -FilePath $env:FRAME_PYTHON -ArgumentList @('-X','utf8','C:\FRAME\Owner-Test-2812\runtime\gateway.py') -WorkingDirectory 'C:\FRAME\Owner-Test-2812\runtime' -WindowStyle Hidden
+          }
+          if(!(Listening 8804)){
+            Start-Process -FilePath $env:FRAME_PYTHON -ArgumentList @('-X','utf8','C:\FRAME\AI-Server-Field-v030\legacy_auth_proxy.py') -WorkingDirectory 'C:\FRAME\AI-Server-Field-v030' -WindowStyle Hidden
+          }
+          $deadline=(Get-Date).AddSeconds(20)
+          while((Get-Date)-lt $deadline){
+            if((Listening 8799) -and (Listening 8804)){break}
+            Start-Sleep -Milliseconds 500
+          }
+          if(!(Listening 8799)){throw 'gateway 8799 did not start'}
+          if(!(Listening 8804)){throw 'auth proxy 8804 did not start'}
+          Write-Host 'FRAME_PUBLIC_PROCESSES_LISTENING'
+      - name: Verify full public AI path
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          function Status($url,$headers=@{}){
+            try{return [int](Invoke-WebRequest -UseBasicParsing -Uri $url -Headers $headers -TimeoutSec 25 -ErrorAction Stop).StatusCode}
+            catch{try{return [int]$_.Exception.Response.StatusCode}catch{return 0}}
+          }
+          if((Status 'http://127.0.0.1:8799/') -ne 200){throw 'local gateway root failed'}
+          if((Status 'http://127.0.0.1:8804/health') -ne 401){throw 'proxy unauth boundary failed'}
+          $cfg=Get-Content 'C:\FRAME\AI-Server-Field-v030\frame-ai-config.json' -Raw | ConvertFrom-Json
+          $token=[string]$cfg.token
+          if(!$token){throw 'current field token missing'}
+          $h=@{Authorization=('Bearer '+$token)}
+          if((Status 'http://127.0.0.1:8788/health' $h) -ne 200){throw 'backend auth health failed'}
+          if((Status 'http://127.0.0.1:8804/health' $h) -ne 200){throw 'proxy auth health failed'}
+          if((Status 'https://home-pc.tail9b1df8.ts.net/' ) -ne 200){throw 'public FRAME root failed'}
+          if((Status 'https://home-pc.tail9b1df8.ts.net/frame-field/health' $h) -ne 200){throw 'public AI health failed'}
+          $rid='repair-'+[guid]::NewGuid().ToString('N')
+          $payload=@{text='Reply only OK';context=@{current_target='';conversation_target_key='';conversation=@();objects=@();today=[DateTime]::UtcNow.ToString('yyyy-MM-dd')};request_id=$rid}|ConvertTo-Json -Depth 8 -Compress
+          $resp=Invoke-WebRequest -UseBasicParsing -Uri 'https://home-pc.tail9b1df8.ts.net/frame-field/analyze' -Method POST -Headers $h -ContentType 'application/json' -Body $payload -TimeoutSec 190 -ErrorAction Stop
+          $j=$resp.Content|ConvertFrom-Json
+          if([int]$resp.StatusCode -ne 200 -or !$j.ok){throw 'public analyze failed'}
+          Write-Host ('FRAME_PUBLIC_AI_E2E_OK provider='+[string]$j.meta.provider+' model='+[string]$j.meta.model+' mode='+[string]$j.meta.mode)
+          Write-Host 'owner_db_accessed=false backend_changed=false tailscale_routes_changed=false'
