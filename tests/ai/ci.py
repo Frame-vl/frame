@@ -167,9 +167,9 @@ def contract() -> None:
     if manifest.get("start_url") != "./index.html?v=275":
         raise RuntimeError("FRAME PWA start_url identity changed; keep the installed-app identity stable")
     app_version_match = re.search(r"const VERSION='(\d+)\.(\d+)\.(\d+)'", app)
-    cache_version_match = re.search(r"const CACHE='frame-v(\d+)-field-safe'", worker)
+    cache_version_match = re.search(r"const CACHE='frame-v(\d+)-[a-z0-9-]+'", worker)
     build_version_match = re.search(r'<meta name="frame-version" content="(\d+)\.(\d+)\.(\d+)">', index)
-    title_version_match = re.search(r'<title>FRAME (\d+)\.(\d+)\.(\d+) ', index)
+    title_version_match = re.search(r'<title>FRAME (\d+)\.(\d+)\.(\d+)</title>', index)
     if not all((app_version_match, cache_version_match, build_version_match, title_version_match)):
         raise RuntimeError("FRAME version markers are incomplete")
     app_version = tuple(app_version_match.groups())
