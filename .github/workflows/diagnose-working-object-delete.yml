@@ -83,7 +83,7 @@ jobs:
             $chosen=$valid[0]
             $headers=@{Authorization=('Bearer '+$chosen.token)}
             $rid='diag-'+[guid]::NewGuid().ToString('N')
-            $payload=@{text='Ответь одним словом: OK';context=@{current_target='';conversation_target_key='';conversation=@();objects=@();today=[DateTime]::UtcNow.ToString('yyyy-MM-dd')};request_id=$rid}|ConvertTo-Json -Depth 8 -Compress
+            $payload=@{text='Reply only OK';context=@{current_target='';conversation_target_key='';conversation=@();objects=@();today=[DateTime]::UtcNow.ToString('yyyy-MM-dd')};request_id=$rid}|ConvertTo-Json -Depth 8 -Compress
             [void](Probe 'public_analyze_e2e' 'https://home-pc.tail9b1df8.ts.net/frame-field/analyze' $headers 'POST' $payload)
           }else{
             Write-Host 'NO_AUTH_TOKEN_ACCEPTED_BY_PUBLIC_AI'
