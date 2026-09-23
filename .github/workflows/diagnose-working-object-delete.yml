@@ -1,4 +1,4 @@
-name: FRAME inspect launcher code
+name: FRAME find python runtime
 on:
   workflow_dispatch:
   push:
@@ -9,23 +9,20 @@ permissions:
 jobs:
   diagnose:
     runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
-      - name: Inspect safe launcher code
-        shell: powershell
+      - name: Find persistent Python runtime
+        shell: cmd
         run: |
-          $ErrorActionPreference='Stop'
-          foreach($p in @(
-            'C:\FRAME\Owner-Test-2812\runtime\gateway.py',
-            'C:\FRAME\Owner-Test-2812\runtime\backend_start.py',
-            'C:\FRAME\AI-Server-Field-v030\frame_field_public_start.py',
-            'C:\FRAME\AI-Server-Field-v030\legacy_auth_proxy.py',
-            'C:\FRAME\AI-Server-Field-v030\frame_field_public_watchdog.py'
-          )){
-            Write-Host ('===== '+$p+' =====')
-            $text=Get-Content $p -Raw
-            $text=$text -replace '(?i)(token\s*[=:]\s*)(["''][^"'']+["'']|[^\s]+)','$1[REDACTED]'
-            if($text.Length -gt 18000){$text=$text.Substring(0,18000)}
-            Write-Host $text
-          }
-          Write-Host 'LAUNCHER_CODE_INSPECT_COMPLETE'
+          @echo off
+          echo WHOAMI
+          whoami
+          echo WHERE_PYTHON
+          where python 2>nul
+          where python.exe 2>nul
+          where py 2>nul
+          echo COMMON_PYTHONS
+          dir /s /b C:\Python*\python.exe 2>nul
+          dir /s /b C:\Users\*\AppData\Local\Programs\Python\Python*\python.exe 2>nul
+          dir /s /b C:\actions-runner\_work\_tool\FRAMEPython\*\x64\python.exe 2>nul
+          echo PYTHON_RUNTIME_DISCOVERY_COMPLETE
